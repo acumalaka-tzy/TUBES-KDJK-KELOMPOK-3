@@ -115,10 +115,10 @@
             </div>
 
             <div class="pt-4 flex items-center justify-end gap-3">
-                <a href="{{ route('dashboard') }}" class="px-5 py-3 rounded-2xl glass-card text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] transition-all hover:-translate-y-0.5">
+                <a href="{{ route('dashboard') }}" class="px-5 py-3 rounded-2xl glass-card text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition-all hover:-translate-y-0.5">
                     Batal
                 </a>
-                <button type="submit" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white text-xs font-semibold shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5">
+                <button type="submit" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white text-xs font-semibold shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5">
                     Buat Room Sekarang
                 </button>
             </div>

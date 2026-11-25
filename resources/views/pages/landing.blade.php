@@ -7,38 +7,38 @@
     <!-- Hero Section -->
     <div class="text-center space-y-6 relative">
         <!-- Verified Security Badge with subtle glow -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-white/80 dark:bg-[#1B2230]/80 text-[#315CE8] dark:text-[#7895FF] border border-blue-200/80 dark:border-blue-500/30 shadow-sm backdrop-blur-md glow-primary">
-            <span class="w-2.5 h-2.5 rounded-full bg-[#315CE8] dark:bg-[#7895FF] animate-pulse"></span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-white/80 dark:bg-[#111B21]/80 text-[#008069] dark:text-[#25D366] border border-emerald-200/80 dark:border-emerald-500/30 shadow-sm backdrop-blur-md glow-primary">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#008069] dark:bg-[#25D366] animate-pulse"></span>
             WebRTC DataChannel &bull; DTLS Transport &bull; E2EE AES-GCM
         </div>
 
         <!-- Strong Editorial Headline -->
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#182033] dark:text-[#F1F4FA] leading-[1.12]">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#111B21] dark:text-[#E9EDEF] leading-[1.12]">
             Komunikasi P2P Privat <br class="hidden sm:inline">
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#315CE8] via-[#7657D6] to-[#A58AE8]">
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#008069] via-[#00A884] to-[#25D366]">
                 Tanpa Perantara Server
             </span>
         </h1>
 
         <!-- Editorial Subtitle -->
-        <p class="text-base sm:text-lg text-[#667085] dark:text-[#A8B2C3] leading-relaxed max-w-2xl mx-auto font-normal">
+        <p class="text-base sm:text-lg text-[#667781] dark:text-[#8696A0] leading-relaxed max-w-2xl mx-auto font-normal">
             SecureLink mendemonstrasikan pertukaran data langsung antarperangkat melalui WebRTC DataChannel. Server WebSocket hanya bertindak sebagai signaling negosiasi koneksi tanpa pernah meneruskan atau menyimpan plain-text percakapan Anda.
         </p>
 
         <!-- CTA Group -->
         <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             @if(isset($user) && $user)
-                <a href="{{ route('dashboard') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-sm shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                <a href="{{ route('dashboard') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white font-semibold text-sm shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     Masuk ke Dashboard
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </a>
             @else
-                <a href="{{ route('identity.setup') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-sm shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                <a href="{{ route('identity.setup') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white font-semibold text-sm shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                     Mulai Chatting Sekarang
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </a>
             @endif
-            <a href="{{ route('demo') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl glass-card text-[#182033] dark:text-[#F1F4FA] font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+            <a href="{{ route('demo') }}" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl glass-card text-[#111B21] dark:text-[#E9EDEF] font-semibold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                 Demonstrasi P2P vs Broadcast
             </a>
         </div>

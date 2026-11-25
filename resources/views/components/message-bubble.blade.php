@@ -27,11 +27,11 @@
         </div>
 
         <!-- Bubble Container -->
-        <div class="relative p-3.5 rounded-2xl {{ $isSelf ? 'rounded-tr-sm bg-[#315CE8] text-white' : 'rounded-tl-sm bg-[#EEF1F7] dark:bg-[#222B3A] border border-[#E3E7EF] dark:border-[#344052] text-[#182033] dark:text-[#F1F4FA]' }} text-xs leading-relaxed shadow-2xs">
+        <div class="relative p-3.5 rounded-2xl {{ $isSelf ? 'rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F]' : 'rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[#111B21] dark:text-[#E9EDEF]' }} text-xs leading-relaxed shadow-xs">
             @if($replyAuthor && $replySnippet)
-                <div class="mb-2 p-2 rounded-lg {{ $isSelf ? 'bg-blue-700/60 text-white/90 border-l-2 border-white' : 'bg-white/60 dark:bg-[#151A24]/60 border-l-2 border-[#315CE8] text-[#182033] dark:text-[#F1F4FA]' }} text-[11px]">
-                    <div class="font-bold">{{ $replyAuthor }}</div>
-                    <div class="truncate opacity-80">{{ $replySnippet }}</div>
+                <div class="mb-2 p-2 rounded-lg {{ $isSelf ? 'bg-[#C2E8BC]/80 dark:bg-[#004A3C]/80 text-[#111B21] dark:text-[#E9EDEF] border-l-2 border-[#00A884]' : 'bg-[#F0F2F5] dark:bg-[#111B21] border-l-2 border-[#00A884] text-[#111B21] dark:text-[#E9EDEF]' }} text-[11px]">
+                    <div class="font-bold text-[#008069] dark:text-[#25D366]">{{ $replyAuthor }}</div>
+                    <div class="truncate opacity-85">{{ $replySnippet }}</div>
                 </div>
             @endif
 
@@ -41,19 +41,19 @@
         </div>
 
         <!-- Status & Delivery Indicator -->
-        <div class="flex items-center gap-1.5 text-[10px] text-[#667085] dark:text-[#A8B2C3] mt-1 font-mono">
+        <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
             @if($isSelf)
                 @if($status === 'sending')
                     <span class="text-slate-400">Sedang mengirim...</span>
                 @elseif($status === 'sent')
-                    <span class="text-blue-500 font-bold">✓ Sent</span>
+                    <span class="text-slate-400 font-bold">✓ Sent</span>
                 @elseif($status === 'delivered')
-                    <span class="text-[#315CE8] dark:text-[#7895FF] font-bold">✓✓ Delivered</span>
+                    <span class="text-[#53BDEB] font-bold">✓✓ Delivered</span>
                 @elseif($status === 'failed')
                     <span class="text-rose-500 font-bold">✕ Gagal</span>
                 @endif
             @else
-                <span class="text-emerald-600 dark:text-[#55C49A] font-bold">✓ E2EE</span>
+                <span class="text-[#25D366] font-bold">✓ E2EE</span>
             @endif
 
             @if($ephemeralDuration > 0)

@@ -137,7 +137,7 @@
         </header>
 
         <!-- Message History Container -->
-        <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#EFEAE2]/60 dark:bg-[#0B141A]">
             <!-- System Security Badge -->
             <div class="text-center my-1">
                 <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#EEF1F7]/80 dark:bg-[#222B3A] border border-[#E3E7EF] dark:border-[#344052] text-[11px] text-[#667085] dark:text-[#A8B2C3]">
@@ -198,7 +198,7 @@
                     class="flex-1 px-4 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#151A24] text-xs sm:text-sm text-[#182033] dark:text-[#F1F4FA] placeholder-[#667085] dark:placeholder-[#A8B2C3]/60 focus:outline-none focus:ring-2 focus:ring-[#315CE8] dark:focus:ring-[#7895FF] transition">
 
                 <!-- Send Button -->
-                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-1.5 shrink-0">
+                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#008069] hover:bg-[#00A884] dark:bg-[#00A884] dark:hover:bg-[#25D366] text-white font-semibold text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-1.5 shrink-0">
                     <span class="hidden sm:inline">Kirim</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>
@@ -395,33 +395,33 @@
         let replyHtml = '';
         if (replyPayload) {
             replyHtml = `
-                <div class="mb-1 p-2 rounded-lg bg-blue-700/60 text-white/90 border-l-2 border-white text-[11px]">
-                    <div class="font-bold">${replyPayload.authorName}</div>
-                    <div class="truncate opacity-80">${replyPayload.text}</div>
+                <div class="mb-1 p-2 rounded-lg bg-[#C2E8BC]/80 dark:bg-[#004A3C]/80 text-[#111B21] dark:text-[#E9EDEF] border-l-2 border-[#00A884] text-[11px]">
+                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${replyPayload.authorName}</div>
+                    <div class="truncate opacity-85">${replyPayload.text}</div>
                 </div>
             `;
         }
 
         bubbleWrapper.innerHTML = `
             <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 text-[11px] text-[#667085] dark:text-[#A8B2C3] mb-1">
+                <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
                     <span>${timeStr}</span>
-                    <span class="font-semibold text-[#182033] dark:text-[#F1F4FA]">Anda</span>
+                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF]">Anda</span>
                 </div>
-                <div class="relative p-3.5 rounded-2xl rounded-tr-sm bg-[#315CE8] text-white text-xs leading-relaxed shadow-sm">
+                <div class="relative p-3.5 rounded-2xl rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F] text-xs leading-relaxed shadow-xs">
                     ${replyHtml}
                     <div>${text}</div>
 
                     <!-- Quick Reactions & Actions on Hover -->
-                    <div class="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#1B2230] border border-[#E3E7EF] dark:border-[#344052] shadow-sm text-xs">
+                    <div class="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '🔒')" title="Secured">🔒</button>
                         <button type="button" onclick="navigator.clipboard.writeText('${text.replace(/'/g, "\\'")}'); alert('Teks disalin!')" title="Salin">📋</button>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-[#667085] dark:text-[#A8B2C3] mt-1 font-mono">
-                    <span class="text-[#315CE8] dark:text-[#7895FF] font-bold">✓✓ Delivered</span>
+                <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
+                    <span class="text-[#53BDEB] font-bold">✓✓ Delivered</span>
                     ${duration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${duration}s)</span>` : ''}
                 </div>
             </div>
@@ -467,36 +467,36 @@
         let replyHtml = '';
         if (data.replyTo) {
             replyHtml = `
-                <div class="mb-1 p-2 rounded-lg bg-[#EEF1F7]/80 dark:bg-[#151A24]/80 border-l-2 border-[#315CE8] dark:border-[#7895FF] text-[11px]">
-                    <div class="font-bold text-[#315CE8] dark:text-[#7895FF]">${data.replyTo.authorName}</div>
-                    <div class="truncate opacity-80 text-[#182033] dark:text-[#F1F4FA]">${data.replyTo.text}</div>
+                <div class="mb-1 p-2 rounded-lg bg-[#F0F2F5] dark:bg-[#111B21] border-l-2 border-[#00A884] text-[11px]">
+                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${data.replyTo.authorName}</div>
+                    <div class="truncate opacity-80 text-[#111B21] dark:text-[#E9EDEF]">${data.replyTo.text}</div>
                 </div>
             `;
         }
 
         bubbleWrapper.innerHTML = `
-            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs">
+            <div class="w-8 h-8 rounded-full bg-[#008069] text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs">
                 ${(data.senderName || 'P').charAt(0)}
             </div>
             <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 text-[11px] text-[#667085] dark:text-[#A8B2C3] mb-1">
-                    <span class="font-semibold text-[#182033] dark:text-[#F1F4FA]">${data.senderName}</span>
+                <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
+                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF]">${data.senderName}</span>
                     <span>${data.timestamp}</span>
                 </div>
-                <div class="relative p-3.5 rounded-2xl rounded-tl-sm bg-[#EEF1F7] dark:bg-[#222B3A] border border-[#E3E7EF] dark:border-[#344052] text-xs text-[#182033] dark:text-[#F1F4FA] leading-relaxed shadow-2xs">
+                <div class="relative p-3.5 rounded-2xl rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#111B21] dark:text-[#E9EDEF] leading-relaxed shadow-xs">
                     ${replyHtml}
                     <div>${data.text}</div>
 
                     <!-- Quick Reactions & Reply on Hover -->
-                    <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#1B2230] border border-[#E3E7EF] dark:border-[#344052] shadow-sm text-xs">
+                    <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
                         <button type="button" onclick="setReply('${data.id}', '${data.senderName.replace(/'/g, "\\'")}', '${data.text.replace(/'/g, "\\'")}')" title="Balas">↩️</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
                         <button type="button" onclick="navigator.clipboard.writeText('${data.text.replace(/'/g, "\\'")}'); alert('Teks disalin!')" title="Salin">📋</button>
                     </div>
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-[#667085] dark:text-[#A8B2C3] mt-1 font-mono">
-                    <span class="text-emerald-600 dark:text-[#55C49A] font-bold">✓ E2EE Enkripsi</span>
+                <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
+                    <span class="text-[#25D366] font-bold">✓ E2EE Enkripsi</span>
                     ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${data.ephemeralDuration}s)</span>` : ''}
                 </div>
             </div>
