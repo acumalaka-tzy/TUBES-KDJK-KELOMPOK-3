@@ -48,7 +48,7 @@
 
             <div class="pt-2">
                 <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white font-semibold text-sm shadow-sm transition">
-                    Bergabung ke Room
+                    Gabung ke Room
                 </button>
             </div>
         </form>
