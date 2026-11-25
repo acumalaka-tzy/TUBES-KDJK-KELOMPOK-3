@@ -271,7 +271,7 @@
 
 <!-- Invitation & QR Code Modal -->
 <div id="invite-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+    <div class="bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] rounded-2xl max-w-sm w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-2 border-b border-[#E9EDEF] dark:border-[#222D34]">
             <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">Undang Peserta ke Room</h3>
             <button type="button" onclick="closeInviteModal()" class="text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] text-lg font-bold">&times;</button>
@@ -328,6 +328,32 @@
     }
 
     let activeReply = null; // { messageId, authorName, text }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function copyMessageText(btn) {
+        const bubble = btn.closest('.relative');
+        const textEl = bubble ? bubble.querySelector('.msg-content') : null;
+        if (textEl) {
+            navigator.clipboard.writeText(textEl.textContent).then(() => alert('Teks pesan disalin!'));
+        }
+    }
+    window.copyMessageText = copyMessageText;
+
+    function handleReplyFromBubble(btn, msgId) {
+        const wrapper = btn.closest('.group');
+        const authorEl = wrapper ? wrapper.querySelector('.sender-name') : null;
+        const textEl = wrapper ? wrapper.querySelector('.msg-content') : null;
+        const author = authorEl ? authorEl.textContent.trim() : 'Peserta';
+        const text = textEl ? textEl.textContent.trim() : '';
+        setReply(msgId, author, text);
+    }
+    window.handleReplyFromBubble = handleReplyFromBubble;
 
     function copyRoomId(id) {
         navigator.clipboard.writeText(id).then(() => alert('Room ID ' + id + ' disalin!'));
@@ -423,8 +449,8 @@
         if (replyPayload) {
             replyHtml = `
                 <div class="mb-1 p-2 rounded-lg bg-[#C2E8BC]/80 dark:bg-[#004A3C]/80 text-[#111B21] dark:text-[#E9EDEF] border-l-2 border-[#00A884] text-[11px]">
-                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${replyPayload.authorName}</div>
-                    <div class="truncate opacity-85">${replyPayload.text}</div>
+                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${escapeHtml(replyPayload.authorName)}</div>
+                    <div class="truncate opacity-85">${escapeHtml(replyPayload.text)}</div>
                 </div>
             `;
         }
@@ -433,18 +459,18 @@
             <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
                 <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
                     <span>${timeStr}</span>
-                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF]">Anda</span>
+                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF] sender-name">Anda</span>
                 </div>
                 <div class="relative p-3.5 rounded-2xl rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F] text-xs leading-relaxed shadow-xs">
                     ${replyHtml}
-                    <div>${text}</div>
+                    <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
 
                     <!-- Quick Reactions & Actions on Hover -->
                     <div class="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '🔒')" title="Secured">🔒</button>
-                        <button type="button" onclick="navigator.clipboard.writeText('${text.replace(/'/g, "\\'")}'); alert('Teks disalin!')" title="Salin">📋</button>
+                        <button type="button" onclick="copyMessageText(this)" title="Salin">📋</button>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
@@ -495,8 +521,8 @@
         if (data.replyTo) {
             replyHtml = `
                 <div class="mb-1 p-2 rounded-lg bg-[#F0F2F5] dark:bg-[#111B21] border-l-2 border-[#00A884] text-[11px]">
-                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${data.replyTo.authorName}</div>
-                    <div class="truncate opacity-80 text-[#111B21] dark:text-[#E9EDEF]">${data.replyTo.text}</div>
+                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${escapeHtml(data.replyTo.authorName || 'Anonim')}</div>
+                    <div class="truncate opacity-80 text-[#111B21] dark:text-[#E9EDEF]">${escapeHtml(data.replyTo.text || '')}</div>
                 </div>
             `;
         }
@@ -507,19 +533,19 @@
             </div>
             <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
                 <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
-                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF]">${data.senderName}</span>
-                    <span>${data.timestamp}</span>
+                    <span class="sender-name font-semibold text-[#111B21] dark:text-[#E9EDEF]">${escapeHtml(data.senderName)}</span>
+                    <span>${escapeHtml(data.timestamp || '')}</span>
                 </div>
                 <div class="relative p-3.5 rounded-2xl rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#111B21] dark:text-[#E9EDEF] leading-relaxed shadow-xs">
                     ${replyHtml}
-                    <div>${data.text}</div>
+                    <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
 
                     <!-- Quick Reactions & Reply on Hover -->
                     <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
-                        <button type="button" onclick="setReply('${data.id}', '${data.senderName.replace(/'/g, "\\'")}', '${data.text.replace(/'/g, "\\'")}')" title="Balas">↩️</button>
+                        <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(data.id)}')" title="Balas">↩️</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
                         <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
-                        <button type="button" onclick="navigator.clipboard.writeText('${data.text.replace(/'/g, "\\'")}'); alert('Teks disalin!')" title="Salin">📋</button>
+                        <button type="button" onclick="copyMessageText(this)" title="Salin">📋</button>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
