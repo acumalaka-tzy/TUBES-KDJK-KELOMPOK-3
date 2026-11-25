@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'identity' => \App\Http\Middleware\EnsureUserIdentity::class,
+            'room.member' => \App\Http\Middleware\EnsureRoomMember::class,
+            'room.creator' => \App\Http\Middleware\EnsureRoomCreator::class,
+        ]);
+
         $middleware->api(append: [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
