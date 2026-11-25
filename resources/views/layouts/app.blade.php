@@ -235,7 +235,7 @@
                 @endif
 
                 <!-- Mobile Menu Button -->
-                <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-xl text-[#667085] dark:text-[#A8B2C3] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] transition" aria-label="Menu">
+                <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-xl text-[#667781] hover:text-[#111B21] dark:text-[#8696A0] dark:hover:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" aria-label="Menu">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>

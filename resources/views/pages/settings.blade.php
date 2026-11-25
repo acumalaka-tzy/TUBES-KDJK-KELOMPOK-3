@@ -202,11 +202,11 @@
             Uji responsivitas koneksi dan verifikasi WebRTC API browser Anda.
         </p>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button type="button" onclick="runDiagnostics()" class="px-4 py-2 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">
                 Jalankan Diagnostik Sekarang
             </button>
-            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition flex items-center gap-1.5">
+            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition flex items-center justify-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Unduh Log Diagnostik (JSON)
             </button>
@@ -229,16 +229,16 @@
     </div>
 
     <!-- Section 5: Logout / Terminate Identity Session -->
-    <div class="p-6 rounded-2xl bg-white dark:bg-[#111B21] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between">
+    <div class="p-6 rounded-2xl bg-white dark:bg-[#111B21] border border-rose-200 dark:border-rose-900/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h3 class="text-sm font-bold text-rose-700 dark:text-[#F07878]">Akhiri Sesi Identitas</h3>
             <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-0.5">
                 Menghapus kredensial sesi lokal Anda dan menandai status offline.
             </p>
         </div>
-        <form action="{{ route('identity.logout.web') }}" method="POST">
+        <form action="{{ route('identity.logout.web') }}" method="POST" class="shrink-0">
             @csrf
-            <button type="submit" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">
+            <button type="submit" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition text-center">
                 Logout Sesi
             </button>
         </form>

@@ -18,11 +18,11 @@
         <!-- Metadata Header -->
         <div class="flex items-center gap-1.5 text-[11px] text-[#667085] dark:text-[#A8B2C3] mb-1">
             @if(!$isSelf)
-                <span class="font-semibold text-[#182033] dark:text-[#F1F4FA]">{{ $senderName }}</span>
+                <span class="sender-name font-semibold text-[#111B21] dark:text-[#E9EDEF]">{{ $senderName }}</span>
             @endif
             <span>{{ $timestamp }}</span>
             @if($isSelf)
-                <span class="font-semibold text-[#182033] dark:text-[#F1F4FA]">Anda</span>
+                <span class="sender-name font-semibold text-[#111B21] dark:text-[#E9EDEF]">Anda</span>
             @endif
         </div>
 
@@ -35,7 +35,7 @@
                 </div>
             @endif
 
-            <div>
+            <div class="msg-content break-words whitespace-pre-wrap select-text">
                 {{ $slot }}
             </div>
         </div>
