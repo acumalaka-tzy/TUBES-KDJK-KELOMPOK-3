@@ -134,7 +134,13 @@
 
     @stack('styles')
 </head>
-<body class="h-full flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white">
+<body class="h-full flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white relative min-h-screen">
+
+    <!-- Ambient Gradient Background Layer -->
+    <div class="ambient-bg">
+        <div class="ambient-glow-1"></div>
+        <div class="ambient-glow-2"></div>
+    </div>
 
     <!-- Immediate Theme Initialization Script (Prevents flash of unstyled content) -->
     <script>
@@ -159,7 +165,7 @@
     </script>
 
     <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-40 w-full border-b border-[#E3E7EF] dark:border-[#344052] bg-white/90 dark:bg-[#1B2230]/90 backdrop-blur-md">
+    <header class="sticky top-0 z-40 w-full glass-nav shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <!-- Brand -->
             <div class="flex items-center gap-3">
@@ -311,12 +317,12 @@
     </div>
 
     <!-- Main View Content -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4">
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-5 relative z-10">
         @yield('content')
     </main>
 
     <!-- Footer -->
-    <footer class="mt-auto border-t border-[#E3E7EF] dark:border-[#344052] bg-white/70 dark:bg-[#1B2230]/70 py-6 text-center text-xs text-[#667085] dark:text-[#A8B2C3]">
+    <footer class="mt-auto border-t border-[#E3E7EF] dark:border-[#344052] bg-white/80 dark:bg-[#1B2230]/80 backdrop-blur-md py-6 text-center text-xs text-[#667085] dark:text-[#A8B2C3] relative z-10">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">SecureLink</span>

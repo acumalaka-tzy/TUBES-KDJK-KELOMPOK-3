@@ -3,7 +3,7 @@
 @section('title', $room->room_name . ' — SecureLink Chat')
 
 @section('content')
-<div class="h-[calc(100vh-8.5rem)] min-h-[580px] flex rounded-2xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#1B2230] shadow-sm overflow-hidden relative">
+<div class="h-[calc(100vh-8.5rem)] min-h-[580px] flex rounded-3xl glass-card overflow-hidden relative shadow-xl">
 
     <!-- 1. LEFT CONVERSATION SIDEBAR (Desktop always visible, Mobile toggleable) -->
     <aside id="chat-sidebar" class="w-full md:w-80 border-r border-[#E3E7EF] dark:border-[#344052] bg-[#F4F6FA]/60 dark:bg-[#151A24]/60 flex flex-col shrink-0 md:flex hidden">
@@ -74,7 +74,7 @@
     <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#1B2230] relative">
 
         <!-- Active Chat Header -->
-        <header class="px-4 sm:px-6 py-3 border-b border-[#E3E7EF] dark:border-[#344052] bg-white/95 dark:bg-[#1B2230]/95 flex items-center justify-between shrink-0">
+        <header class="px-4 sm:px-6 py-3.5 border-b border-[#E3E7EF] dark:border-[#344052] bg-white/90 dark:bg-[#1B2230]/90 backdrop-blur-md flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2.5 min-w-0">
                 <!-- Mobile Back Button -->
                 <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[#667085] dark:text-[#A8B2C3] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] transition" title="Kembali ke Dashboard">
@@ -179,12 +179,12 @@
         </div>
 
         <!-- 3. MESSAGE COMPOSER -->
-        <div class="p-3 sm:p-4 border-t border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#1B2230] shrink-0">
+        <div class="p-3 sm:p-4 border-t border-[#E3E7EF] dark:border-[#344052] bg-white/80 dark:bg-[#1B2230]/80 backdrop-blur-md shrink-0">
             <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
                 <!-- Ephemeral Duration Selector -->
                 <div class="relative shrink-0">
                     <select id="ephemeral_duration" title="Pesan Sementara (Ephemeral)"
-                        class="px-2 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-[#EEF1F7]/60 dark:bg-[#222B3A] text-xs text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-1 focus:ring-[#315CE8]">
+                        class="px-2.5 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] bg-white/80 dark:bg-[#222B3A] text-xs text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-2 focus:ring-[#315CE8] transition">
                         <option value="0">⏱️ Normal</option>
                         <option value="10">⏱️ 10 dtk</option>
                         <option value="30">⏱️ 30 dtk</option>
@@ -195,10 +195,10 @@
 
                 <!-- Text Input -->
                 <input type="text" id="message-input" placeholder="Tulis pesan privat di sini... (Enter untuk kirim)" autocomplete="off"
-                    class="flex-1 px-4 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#151A24] text-xs sm:text-sm text-[#182033] dark:text-[#F1F4FA] placeholder-[#667085] dark:placeholder-[#A8B2C3]/60 focus:outline-none focus:ring-2 focus:ring-[#315CE8] dark:focus:ring-[#7895FF]">
+                    class="flex-1 px-4 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#151A24] text-xs sm:text-sm text-[#182033] dark:text-[#F1F4FA] placeholder-[#667085] dark:placeholder-[#A8B2C3]/60 focus:outline-none focus:ring-2 focus:ring-[#315CE8] dark:focus:ring-[#7895FF] transition">
 
                 <!-- Send Button -->
-                <button type="submit" class="px-4 py-2.5 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white font-semibold text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-1.5 shrink-0">
+                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-xs sm:text-sm shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-1.5 shrink-0">
                     <span class="hidden sm:inline">Kirim</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>
