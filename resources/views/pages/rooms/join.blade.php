@@ -6,11 +6,11 @@
 <div class="max-w-md mx-auto py-8 sm:py-12">
     <div class="glass-card rounded-3xl p-6 sm:p-9 shadow-lg relative overflow-hidden">
         <div class="text-center mb-6">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#008069] to-[#25D366] text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/20">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
             </div>
-            <h1 class="text-xl font-extrabold text-[#182033] dark:text-[#F1F4FA]">Gabung ke Chat Room</h1>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-1.5">
+            <h1 class="text-xl font-extrabold text-[#111B21] dark:text-[#E9EDEF]">Gabung ke Chat Room</h1>
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-1.5">
                 Masukkan Room ID dan PIN (jika room dilindungi kode akses).
             </p>
         </div>
@@ -47,7 +47,7 @@
             </div>
 
             <div class="pt-2">
-                <button type="submit" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-sm shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5">
+                <button type="submit" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white font-semibold text-sm shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5">
                     Gabung ke Room
                 </button>
             </div>

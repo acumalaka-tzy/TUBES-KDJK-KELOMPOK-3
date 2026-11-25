@@ -32,11 +32,11 @@
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto">
-            <a href="{{ route('rooms.create') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white font-semibold text-xs shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+            <a href="{{ route('rooms.create') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white font-semibold text-xs shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Buat Room Baru
             </a>
-            <a href="{{ route('rooms.join') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl glass-card text-[#182033] dark:text-[#F1F4FA] font-semibold text-xs transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+            <a href="{{ route('rooms.join') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl glass-card text-[#111B21] dark:text-[#E9EDEF] font-semibold text-xs transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
                 Gabung Room
             </a>
@@ -46,12 +46,12 @@
     <!-- Quick Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="glass-card p-5 rounded-3xl flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#315CE8] dark:text-[#7895FF] flex items-center justify-center">
+            <div class="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-[#008069] dark:text-[#25D366] flex items-center justify-center">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             </div>
             <div>
-                <div class="text-xs text-[#667085] dark:text-[#A8B2C3]">Total Room Sesi</div>
-                <div class="text-lg font-extrabold text-[#182033] dark:text-[#F1F4FA]">{{ $participations->count() }} Room</div>
+                <div class="text-xs text-[#667781] dark:text-[#8696A0]">Total Room Sesi</div>
+                <div class="text-lg font-extrabold text-[#111B21] dark:text-[#E9EDEF]">{{ $participations->count() }} Room</div>
             </div>
         </div>
 
