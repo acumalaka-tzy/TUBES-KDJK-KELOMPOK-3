@@ -3,10 +3,10 @@
 @section('title', $room->room_name . ' — SecureLink Chat')
 
 @section('content')
-<div class="h-[calc(100vh-8.5rem)] min-h-[580px] flex rounded-3xl glass-card overflow-hidden relative shadow-xl">
+<div class="h-[calc(100vh-8rem)] sm:h-[calc(100vh-8.5rem)] min-h-[480px] sm:min-h-[560px] flex rounded-3xl glass-card overflow-hidden relative shadow-xl">
 
-    <!-- 1. LEFT CONVERSATION SIDEBAR (Desktop always visible, Mobile toggleable) -->
-    <aside id="chat-sidebar" class="w-full md:w-80 border-r border-[#E9EDEF] dark:border-[#222D34] bg-[#F0F2F5]/70 dark:bg-[#111B21]/70 flex flex-col shrink-0 md:flex hidden">
+    <!-- 1. LEFT CONVERSATION SIDEBAR (Desktop always visible, Mobile toggleable overlay) -->
+    <aside id="chat-sidebar" class="w-full md:w-80 border-r border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] md:bg-[#F0F2F5]/70 md:dark:bg-[#111B21]/70 flex flex-col shrink-0 md:flex hidden absolute md:static inset-0 z-40">
         <!-- Sidebar Header: Search & Action -->
         <div class="p-3.5 border-b border-[#E9EDEF] dark:border-[#222D34] space-y-2.5">
             <div class="flex items-center justify-between">
@@ -18,6 +18,9 @@
                     <a href="{{ route('rooms.join') }}" class="p-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Gabung Room">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
                     </a>
+                    <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1 rounded-lg text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] font-bold text-sm" title="Tutup">
+                        &times;
+                    </button>
                 </div>
             </div>
             <input type="text" id="sidebar-search" placeholder="Cari obrolan..." oninput="filterSidebarRooms()"
@@ -74,30 +77,35 @@
     <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111B21] relative">
 
         <!-- Active Chat Header -->
-        <header class="px-4 sm:px-6 py-3.5 border-b border-[#E9EDEF] dark:border-[#222D34] bg-white/90 dark:bg-[#111B21]/90 backdrop-blur-md flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2.5 min-w-0">
+        <header class="px-3 sm:px-6 py-3 border-b border-[#E9EDEF] dark:border-[#222D34] bg-white/90 dark:bg-[#111B21]/90 backdrop-blur-md flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                <!-- Mobile Sidebar Toggle -->
+                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition shrink-0" title="Daftar Obrolan">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                </button>
+
                 <!-- Mobile Back Button -->
-                <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Kembali ke Dashboard">
+                <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition shrink-0" title="Kembali ke Dashboard">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
 
                 <div class="flex flex-col min-w-0">
                     <div class="flex items-center gap-2">
-                        <h2 class="text-sm sm:text-base font-extrabold text-[#111B21] dark:text-[#E9EDEF] truncate leading-tight">
+                        <h2 class="text-xs sm:text-base font-extrabold text-[#111B21] dark:text-[#E9EDEF] truncate leading-tight">
                             {{ $room->room_name }}
                         </h2>
                         @if($room->isLocked())
-                            <span class="text-[9px] px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-[#F07878] font-bold shrink-0">
+                            <span class="text-[9px] px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-[#F07878] font-bold shrink-0">
                                 Terkunci
                             </span>
                         @endif
                     </div>
 
-                    <div class="flex items-center gap-2 text-xs font-mono text-[#667781] dark:text-[#8696A0] mt-0.5">
-                        <span class="truncate">ID: {{ $room->room_id }}</span>
-                        <button type="button" onclick="copyRoomId('{{ $room->room_id }}')" class="text-[#008069] dark:text-[#25D366] hover:underline text-[11px] font-sans" title="Salin ID">Salin</button>
+                    <div class="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono text-[#667781] dark:text-[#8696A0] mt-0.5">
+                        <span class="truncate max-w-[90px] sm:max-w-none">ID: {{ $room->room_id }}</span>
+                        <button type="button" onclick="copyRoomId('{{ $room->room_id }}')" class="text-[#008069] dark:text-[#25D366] hover:underline text-[10px] sm:text-[11px] font-sans shrink-0" title="Salin ID">Salin</button>
                         <span>&bull;</span>
-                        <span id="header-conn-status" class="text-emerald-600 dark:text-[#25D366] font-semibold font-sans">
+                        <span id="header-conn-status" class="text-emerald-600 dark:text-[#25D366] font-semibold font-sans truncate text-[10px] sm:text-xs">
                             ● P2P Direct
                         </span>
                     </div>
@@ -324,6 +332,12 @@
     function copyRoomId(id) {
         navigator.clipboard.writeText(id).then(() => alert('Room ID ' + id + ' disalin!'));
     }
+
+    function toggleChatSidebar() {
+        const sidebar = document.getElementById('chat-sidebar');
+        if (sidebar) sidebar.classList.toggle('hidden');
+    }
+    window.toggleChatSidebar = toggleChatSidebar;
 
     function toggleMembersDrawer() {
         const drawer = document.getElementById('members-drawer');

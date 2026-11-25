@@ -5,26 +5,26 @@
 @section('content')
 <div class="space-y-6 max-w-5xl mx-auto py-2">
     <!-- User Profile Banner (Glassmorphic) -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-        <div class="flex items-center gap-4.5">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold uppercase shadow-lg shadow-emerald-500/20 shrink-0 transform transition duration-300 hover:rotate-3 overflow-hidden p-2.5" style="background-color: {{ $user->avatar_color }}">
+    <div class="glass-card p-5 sm:p-7 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div class="flex items-center gap-3.5 sm:gap-4.5 min-w-0 w-full sm:w-auto">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl font-extrabold uppercase shadow-lg shadow-emerald-500/20 shrink-0 transform transition duration-300 hover:rotate-3 overflow-hidden p-2 sm:p-2.5" style="background-color: {{ $user->avatar_color }}">
                 {!! $user->avatar_html !!}
             </div>
-            <div>
-                <div class="flex items-center gap-2.5">
-                    <h1 class="text-xl sm:text-2xl font-extrabold text-[#111B21] dark:text-[#E9EDEF]">Halo, {{ $user->display_name }}!</h1>
-                    <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-lg sm:text-2xl font-extrabold text-[#111B21] dark:text-[#E9EDEF] truncate max-w-[200px] sm:max-w-none">Halo, {{ $user->display_name }}!</h1>
+                    <span class="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs shrink-0">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Sesi Aktif
                     </span>
                 </div>
-                <div class="flex items-center gap-2 mt-1.5">
-                    <span class="text-xs font-mono text-[#667781] dark:text-[#8696A0] bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md">ID: {{ $user->user_id }}</span>
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="text-[11px] text-[#008069] dark:text-[#25D366] font-semibold hover:underline">
+                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span class="text-xs font-mono text-[#667781] dark:text-[#8696A0] bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md truncate max-w-[170px] sm:max-w-none">ID: {{ $user->user_id }}</span>
+                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="text-[11px] text-[#008069] dark:text-[#25D366] font-semibold hover:underline shrink-0">
                         Salin
                     </button>
                     <span class="text-[#667781] dark:text-[#8696A0]">&bull;</span>
-                    <a href="{{ route('settings') }}" class="text-[11px] text-[#667781] dark:text-[#8696A0] hover:text-[#008069] dark:hover:text-[#25D366]">
+                    <a href="{{ route('settings') }}" class="text-[11px] text-[#667781] dark:text-[#8696A0] hover:text-[#008069] dark:hover:text-[#25D366] shrink-0">
                         Edit Profil
                     </a>
                 </div>
