@@ -162,4 +162,14 @@ class WebViewController extends Controller
 
         return view('pages.demo', compact('user'));
     }
+
+    /**
+     * Tailscale VPN laboratory guide page (PRD Section 3.6).
+     */
+    public function tailscaleGuide(Request $request): View
+    {
+        $user = $this->identityService->getCurrentUser($request);
+
+        return view('pages.tailscale-guide', compact('user'));
+    }
 }

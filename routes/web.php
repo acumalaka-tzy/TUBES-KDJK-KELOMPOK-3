@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::get('/', [WebViewController::class, 'landing'])->name('landing');
 Route::get('/demo', [WebViewController::class, 'demo'])->name('demo');
+Route::get('/tailscale-guide', [WebViewController::class, 'tailscaleGuide'])->name('tailscale.guide');
 
 // Identity setup
 Route::get('/setup', [WebViewController::class, 'setup'])->name('identity.setup');
