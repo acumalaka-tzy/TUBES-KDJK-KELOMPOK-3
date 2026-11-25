@@ -210,13 +210,14 @@
 @push('scripts')
 <script>
     function runLivePacketSimulation() {
-        const text = document.getElementById('sim-input').value.trim() || 'Paket pengujian';
+        const rawText = document.getElementById('sim-input').value.trim() || 'Paket pengujian';
+        const safeText = rawText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         // Animate Server side
         document.getElementById('sim-server-state').textContent = 'Memproses...';
         document.getElementById('sim-server-log').innerHTML = `
             <div>1. [T+12ms] Client A &xrarr; Server: Menerima payload plain-text:</div>
-            <div class="text-rose-600 dark:text-[#F07878] font-bold pl-3">"${text}"</div>
+            <div class="text-rose-600 dark:text-[#F07878] font-bold pl-3 truncate">"${safeText}"</div>
             <div>2. [T+28ms] Server memvalidasi dan mem-broadcast ke Client B...</div>
         `;
         document.getElementById('sim-server-result').classList.remove('hidden');
@@ -224,14 +225,19 @@
         // Animate P2P side with crypto simulation
         document.getElementById('sim-p2p-state').textContent = 'Mengenkripsi...';
         const dummyIv = Math.random().toString(36).substring(2, 14);
-        const dummyCipher = btoa(text).substring(0, 24) + '...==';
+        let dummyCipher = '';
+        try {
+            dummyCipher = btoa(unescape(encodeURIComponent(rawText))).substring(0, 24) + '...==';
+        } catch (e) {
+            dummyCipher = 'q3Kj9XvLm7...==';
+        }
 
         document.getElementById('sim-p2p-log').innerHTML = `
             <div>1. [T+2ms] Client A mengenkripsi teks lokal via Web Crypto (AES-GCM):</div>
-            <div class="text-[#008069] dark:text-[#25D366] font-bold pl-3">Cipher: "${dummyCipher}" (IV: ${dummyIv})</div>
+            <div class="text-[#008069] dark:text-[#25D366] font-bold pl-3 break-all">Cipher: "${dummyCipher}" (IV: ${dummyIv})</div>
             <div>2. [T+9ms] Transmisi langsung via RTCDataChannel &xrarr; Client B (Server di-bypass).</div>
             <div>3. [T+14ms] Client B memverifikasi tag otentikasi &amp; mendekripsi pesan:</div>
-            <div class="text-emerald-600 dark:text-[#25D366] font-bold pl-3">Plaintext: "${text}"</div>
+            <div class="text-emerald-600 dark:text-[#25D366] font-bold pl-3 truncate">Plaintext: "${safeText}"</div>
         `;
         document.getElementById('sim-p2p-result').classList.remove('hidden');
     }

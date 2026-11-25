@@ -150,4 +150,41 @@ class FrontendIntegrationTest extends TestCase
         $response->assertSee('Panduan Integrasi VPN Tailscale');
         $response->assertSee('100.x.y.z');
     }
+
+    public function test_chat_view_renders_mobile_sidebar_toggle(): void
+    {
+        $creator = UserSession::create([
+            'user_id' => 'usr_mobile_test',
+            'display_name' => 'Mobile Host',
+            'connection_status' => 'online',
+        ]);
+
+        $room = Room::create([
+            'room_id' => 'SEC-MOBI-001',
+            'room_name' => 'Mobile Test Room',
+            'creator_id' => $creator->user_id,
+        ]);
+
+        $response = $this->withSession(['securelink_user_id' => $creator->user_id])
+            ->get("/rooms/{$room->room_id}");
+
+        $response->assertStatus(200);
+        $response->assertSee('toggleChatSidebar');
+        $response->assertSee('chat-sidebar');
+    }
+
+    public function test_mobile_nav_drawer_includes_logout_for_authenticated_user(): void
+    {
+        $user = UserSession::create([
+            'user_id' => 'usr_nav_test',
+            'display_name' => 'Nav User',
+            'connection_status' => 'online',
+        ]);
+
+        $response = $this->withSession(['securelink_user_id' => $user->user_id])
+            ->get('/dashboard');
+
+        $response->assertStatus(200);
+        $response->assertSee('Keluar Sesi (Logout)');
+    }
 }

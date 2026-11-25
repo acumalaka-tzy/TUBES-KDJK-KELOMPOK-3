@@ -7,9 +7,9 @@
     <!-- Hero Section -->
     <div class="text-center space-y-6 relative">
         <!-- Verified Security Badge with subtle glow -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-white/80 dark:bg-[#111B21]/80 text-[#008069] dark:text-[#25D366] border border-emerald-200/80 dark:border-emerald-500/30 shadow-sm backdrop-blur-md glow-primary">
-            <span class="w-2.5 h-2.5 rounded-full bg-[#008069] dark:bg-[#25D366] animate-pulse"></span>
-            WebRTC DataChannel &bull; DTLS Transport &bull; E2EE AES-GCM
+        <div class="inline-flex items-center justify-center flex-wrap gap-1.5 sm:gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-xs font-semibold bg-white/80 dark:bg-[#111B21]/80 text-[#008069] dark:text-[#25D366] border border-emerald-200/80 dark:border-emerald-500/30 shadow-sm backdrop-blur-md glow-primary max-w-full">
+            <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#008069] dark:bg-[#25D366] animate-pulse shrink-0"></span>
+            <span>WebRTC DataChannel &bull; DTLS Transport &bull; E2EE AES-GCM</span>
         </div>
 
         <!-- Strong Editorial Headline -->

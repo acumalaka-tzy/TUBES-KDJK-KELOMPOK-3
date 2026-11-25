@@ -66,16 +66,16 @@
                         <button type="button"
                             onclick="selectSettingsAvatarPreset('{{ $key }}')"
                             id="settings-preset-btn-{{ $key }}"
-                            class="settings-avatar-btn p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 {{ $isActive ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}"
+                            class="settings-avatar-btn p-2 sm:p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 sm:gap-1.5 min-w-0 {{ $isActive ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}"
                             title="{{ $meta['desc'] }}">
-                            <div class="w-7 h-7 flex items-center justify-center text-[#008069] dark:text-[#25D366]">
+                            <div class="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-[#008069] dark:text-[#25D366] shrink-0">
                                 @if($isSvg)
                                     {!! $characterSvgs[$key] !!}
                                 @else
-                                    <span class="text-xs font-black tracking-tight bg-[#E9EDEF] dark:bg-[#202C33] px-1.5 py-0.5 rounded text-[#111B21] dark:text-[#E9EDEF]">Aa</span>
+                                    <span class="text-[11px] sm:text-xs font-black tracking-tight bg-[#E9EDEF] dark:bg-[#202C33] px-1 sm:px-1.5 py-0.5 rounded text-[#111B21] dark:text-[#E9EDEF]">Aa</span>
                                 @endif
                             </div>
-                            <span class="text-[10px] font-semibold text-[#111B21] dark:text-[#E9EDEF]">{{ $meta['label'] }}</span>
+                            <span class="text-[9px] sm:text-[10px] font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate max-w-full">{{ $meta['label'] }}</span>
                         </button>
                     @endforeach
                 </div>

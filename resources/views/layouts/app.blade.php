@@ -168,16 +168,16 @@
     <header class="sticky top-0 z-40 w-full glass-nav shadow-xs">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <!-- Brand -->
-            <div class="flex items-center gap-3">
-                <a href="{{ route('landing') }}" class="flex items-center gap-2.5 font-bold text-lg tracking-tight hover:opacity-90 transition">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008069] to-[#25D366] flex items-center justify-center text-white shadow-sm shadow-emerald-500/20">
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="{{ route('landing') }}" class="flex items-center gap-2.5 font-bold text-lg tracking-tight hover:opacity-90 transition min-w-0">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008069] to-[#25D366] flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="text-[#111B21] dark:text-[#E9EDEF] font-extrabold text-base leading-tight">SecureLink</span>
-                        <span class="text-[10px] text-[#008069] dark:text-[#25D366] font-semibold tracking-wider uppercase">P2P Network Lab</span>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-[#111B21] dark:text-[#E9EDEF] font-extrabold text-sm sm:text-base leading-tight truncate">SecureLink</span>
+                        <span class="text-[9px] sm:text-[10px] text-[#008069] dark:text-[#25D366] font-semibold tracking-wider uppercase truncate">P2P Network Lab</span>
                     </div>
                 </a>
             </div>
@@ -269,6 +269,14 @@
             <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                 Panduan VPN Tailscale
             </a>
+            @if(session()->has('securelink_user_id'))
+                <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-2 border-t border-[#E9EDEF] dark:border-[#222D34]">
+                    @csrf
+                    <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition">
+                        Keluar Sesi (Logout)
+                    </button>
+                </form>
+            @endif
         </div>
     </header>
 
