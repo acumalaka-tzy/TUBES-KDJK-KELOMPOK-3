@@ -123,6 +123,10 @@
             <button type="button" onclick="runDiagnostics()" class="px-4 py-2 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white text-xs font-semibold shadow-sm transition">
                 Jalankan Diagnostik Sekarang
             </button>
+            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E3E7EF] dark:border-[#344052] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] transition flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Unduh Log Diagnostik (JSON)
+            </button>
         </div>
 
         <div id="diag-results" class="hidden p-4 rounded-xl bg-[#EEF1F7]/50 dark:bg-[#151A24] border border-[#E3E7EF] dark:border-[#344052] space-y-2 text-xs font-mono">
@@ -187,6 +191,42 @@
                 document.getElementById('diag-ping').textContent = '✗ Gagal terhubung';
                 document.getElementById('diag-ping').className = 'text-rose-500 font-bold';
             });
+    }
+
+    function exportDiagnosticLogs() {
+        const diagnosticsData = {
+            appName: 'SecureLink',
+            version: '2.1',
+            timestamp: new Date().toISOString(),
+            user: {
+                userId: '{{ $user->user_id }}',
+                displayName: '{{ $user->display_name }}'
+            },
+            clientEnvironment: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenResolution: `${window.innerWidth}x${window.innerHeight}`,
+                themePreference: localStorage.getItem('securelink_theme') || 'system',
+                webRtcSupported: !!(window.RTCPeerConnection && window.RTCDataChannel),
+                webCryptoSupported: !!(window.crypto && window.crypto.subtle)
+            },
+            securityCompliance: {
+                dtlsTransport: 'Encrypted in transit',
+                e2eeCipher: 'AES-GCM (256-bit)',
+                keyDerivation: 'ECDH P-256',
+                serverChatRetention: 'None (Zero Knowledge)'
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(diagnosticsData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `securelink-diagnostics-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 </script>
 @endpush
