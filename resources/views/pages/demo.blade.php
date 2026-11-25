@@ -150,5 +150,91 @@
             </table>
         </div>
     </div>
+
+    <!-- PRD Section 10.13 Live Interactive Simulator -->
+    <div class="bg-white dark:bg-[#1B2230] border border-[#E3E7EF] dark:border-[#344052] rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-[#315CE8] dark:text-[#7895FF] text-[10px] font-bold uppercase tracking-wider mb-1">
+                Laboratorium Praktikum
+            </div>
+            <h3 class="text-base font-bold text-[#182033] dark:text-[#F1F4FA]">Simulator Alur Paket Real-Time</h3>
+            <p class="text-xs text-[#667085] dark:text-[#A8B2C3]">
+                Ketik teks simulasi dan amati perbedaan inspeksi paket antara Relay Server dan DataChannel P2P secara langsung.
+            </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="sim-input" value="Halo, ini adalah paket rahasia pengujian jaringan!" placeholder="Ketik pesan simulasi..."
+                class="flex-1 px-3.5 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#151A24] text-xs sm:text-sm text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-2 focus:ring-[#315CE8]">
+            <button type="button" onclick="runLivePacketSimulation()" class="px-5 py-2.5 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white font-semibold text-xs shadow-sm transition shrink-0 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Jalankan Simulasi
+            </button>
+        </div>
+
+        <!-- Simulation Comparison Boxes -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+            <!-- Simulator Box A: Server Broadcast -->
+            <div class="p-4 rounded-xl bg-[#EEF1F7]/60 dark:bg-[#151A24] border border-[#E3E7EF] dark:border-[#344052] space-y-3">
+                <div class="flex items-center justify-between font-bold text-amber-600 dark:text-[#E7B45B]">
+                    <span>[SERVER BROADCAST LOG]</span>
+                    <span id="sim-server-state" class="text-[10px] text-slate-400">Siap</span>
+                </div>
+                <div class="p-3 rounded-lg bg-white dark:bg-[#222B3A] border border-[#E3E7EF] dark:border-[#344052] space-y-1 text-[11px] leading-relaxed">
+                    <div class="text-slate-400">&gt; Menunggu transmisi...</div>
+                    <div id="sim-server-log" class="text-[#182033] dark:text-[#F1F4FA]"></div>
+                </div>
+                <div id="sim-server-result" class="hidden p-2 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 text-[11px]">
+                    ⚠️ <strong>Server Vulnerability:</strong> Server perantara dapat menginspeksi plain-text pesan karena data singgah di memori server.
+                </div>
+            </div>
+
+            <!-- Simulator Box B: WebRTC P2P -->
+            <div class="p-4 rounded-xl bg-blue-50/40 dark:bg-[#222B3A]/40 border border-blue-200 dark:border-blue-900/40 space-y-3">
+                <div class="flex items-center justify-between font-bold text-[#315CE8] dark:text-[#7895FF]">
+                    <span>[WEBRTC P2P DATACHANNEL]</span>
+                    <span id="sim-p2p-state" class="text-[10px] text-slate-400">Siap</span>
+                </div>
+                <div class="p-3 rounded-lg bg-white dark:bg-[#151A24] border border-[#E3E7EF] dark:border-[#344052] space-y-1 text-[11px] leading-relaxed">
+                    <div class="text-slate-400">&gt; Menunggu transmisi...</div>
+                    <div id="sim-p2p-log" class="text-[#182033] dark:text-[#F1F4FA]"></div>
+                </div>
+                <div id="sim-p2p-result" class="hidden p-2 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-[#55C49A] text-[11px]">
+                    🔒 <strong>Privacy Guaranteed:</strong> Server tidak menerima paket chat. DataChannel terenkripsi DTLS + E2EE AES-GCM bilateral.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+    function runLivePacketSimulation() {
+        const text = document.getElementById('sim-input').value.trim() || 'Paket pengujian';
+
+        // Animate Server side
+        document.getElementById('sim-server-state').textContent = 'Memproses...';
+        document.getElementById('sim-server-log').innerHTML = `
+            <div>1. [T+12ms] Client A &xrarr; Server: Menerima payload plain-text:</div>
+            <div class="text-rose-600 dark:text-[#F07878] font-bold pl-3">"${text}"</div>
+            <div>2. [T+28ms] Server memvalidasi dan mem-broadcast ke Client B...</div>
+        `;
+        document.getElementById('sim-server-result').classList.remove('hidden');
+
+        // Animate P2P side with crypto simulation
+        document.getElementById('sim-p2p-state').textContent = 'Mengenkripsi...';
+        const dummyIv = Math.random().toString(36).substring(2, 14);
+        const dummyCipher = btoa(text).substring(0, 24) + '...==';
+
+        document.getElementById('sim-p2p-log').innerHTML = `
+            <div>1. [T+2ms] Client A mengenkripsi teks lokal via Web Crypto (AES-GCM):</div>
+            <div class="text-[#315CE8] dark:text-[#7895FF] font-bold pl-3">Cipher: "${dummyCipher}" (IV: ${dummyIv})</div>
+            <div>2. [T+9ms] Transmisi langsung via RTCDataChannel &xrarr; Client B (Server di-bypass).</div>
+            <div>3. [T+14ms] Client B memverifikasi tag otentikasi &amp; mendekripsi pesan:</div>
+            <div class="text-emerald-600 dark:text-[#55C49A] font-bold pl-3">Plaintext: "${text}"</div>
+        `;
+        document.getElementById('sim-p2p-result').classList.remove('hidden');
+    }
+</script>
+@endpush
 @endsection
