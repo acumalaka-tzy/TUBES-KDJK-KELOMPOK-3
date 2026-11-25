@@ -18,57 +18,57 @@
             theme: {
                 extend: {
                     colors: {
-                        // PRD Section 10.2 Light & Dark (Blue-Charcoal) Tokens
+                        // WhatsApp Color Tokens
                         app: {
-                            light: '#F4F6FA',
-                            dark: '#151A24'
+                            light: '#EFEAE2',
+                            dark: '#0B141A'
                         },
                         sidebar: {
                             light: '#FFFFFF',
-                            dark: '#1B2230'
+                            dark: '#111B21'
                         },
                         surface: {
                             light: '#FFFFFF',
-                            dark: '#222B3A',
+                            dark: '#111B21',
                             muted: {
-                                light: '#EEF1F7',
-                                dark: '#2A3546'
+                                light: '#F0F2F5',
+                                dark: '#202C33'
                             }
                         },
                         brand: {
-                            primary: '#315CE8',
-                            hover: '#254BC5',
-                            darkPrimary: '#7895FF',
-                            darkHover: '#91A8FF',
-                            accent: '#7657D6',
-                            darkAccent: '#A58AE8'
+                            primary: '#008069',
+                            hover: '#00A884',
+                            darkPrimary: '#00A884',
+                            darkHover: '#25D366',
+                            accent: '#25D366',
+                            darkAccent: '#25D366'
                         },
                         content: {
                             primary: {
-                                light: '#182033',
-                                dark: '#F1F4FA'
+                                light: '#111B21',
+                                dark: '#E9EDEF'
                             },
                             secondary: {
-                                light: '#667085',
-                                dark: '#A8B2C3'
+                                light: '#667781',
+                                dark: '#8696A0'
                             }
                         },
                         divider: {
-                            light: '#E3E7EF',
-                            dark: '#344052'
+                            light: '#E9EDEF',
+                            dark: '#222D34'
                         },
                         status: {
                             success: {
-                                light: '#16845B',
-                                dark: '#55C49A'
+                                light: '#25D366',
+                                dark: '#00A884'
                             },
                             warning: {
-                                light: '#B7791F',
+                                light: '#FFB703',
                                 dark: '#E7B45B'
                             },
                             danger: {
-                                light: '#D14343',
-                                dark: '#F07878'
+                                light: '#EA0038',
+                                dark: '#F15C6D'
                             }
                         }
                     },
@@ -81,36 +81,36 @@
     </script>
     <style>
         :root {
-            --bg-app: #F4F6FA;
+            --bg-app: #EFEAE2;
             --bg-sidebar: #FFFFFF;
             --bg-surface: #FFFFFF;
-            --bg-surface-muted: #EEF1F7;
-            --color-primary: #315CE8;
-            --color-primary-hover: #254BC5;
-            --color-accent: #7657D6;
-            --color-text-primary: #182033;
-            --color-text-secondary: #667085;
-            --color-border: #E3E7EF;
-            --color-success: #16845B;
-            --color-warning: #B7791F;
-            --color-danger: #D14343;
+            --bg-surface-muted: #F0F2F5;
+            --color-primary: #008069;
+            --color-primary-hover: #00A884;
+            --color-accent: #25D366;
+            --color-text-primary: #111B21;
+            --color-text-secondary: #667781;
+            --color-border: #E9EDEF;
+            --color-success: #25D366;
+            --color-warning: #FFB703;
+            --color-danger: #EA0038;
         }
 
         html.dark {
             color-scheme: dark;
-            --bg-app: #151A24;
-            --bg-sidebar: #1B2230;
-            --bg-surface: #222B3A;
-            --bg-surface-muted: #2A3546;
-            --color-primary: #7895FF;
-            --color-primary-hover: #91A8FF;
-            --color-accent: #A58AE8;
-            --color-text-primary: #F1F4FA;
-            --color-text-secondary: #A8B2C3;
-            --color-border: #344052;
-            --color-success: #55C49A;
+            --bg-app: #0B141A;
+            --bg-sidebar: #111B21;
+            --bg-surface: #111B21;
+            --bg-surface-muted: #202C33;
+            --color-primary: #00A884;
+            --color-primary-hover: #25D366;
+            --color-accent: #25D366;
+            --color-text-primary: #E9EDEF;
+            --color-text-secondary: #8696A0;
+            --color-border: #222D34;
+            --color-success: #00A884;
             --color-warning: #E7B45B;
-            --color-danger: #F07878;
+            --color-danger: #F15C6D;
         }
 
         body {
@@ -170,14 +170,14 @@
             <!-- Brand -->
             <div class="flex items-center gap-3">
                 <a href="{{ route('landing') }}" class="flex items-center gap-2.5 font-bold text-lg tracking-tight hover:opacity-90 transition">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#315CE8] to-[#7657D6] flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008069] to-[#25D366] flex items-center justify-center text-white shadow-sm shadow-emerald-500/20">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-[#182033] dark:text-[#F1F4FA] font-extrabold text-base leading-tight">SecureLink</span>
-                        <span class="text-[10px] text-[#315CE8] dark:text-[#7895FF] font-semibold tracking-wider uppercase">P2P Network Lab</span>
+                        <span class="text-[#111B21] dark:text-[#E9EDEF] font-extrabold text-base leading-tight">SecureLink</span>
+                        <span class="text-[10px] text-[#008069] dark:text-[#25D366] font-semibold tracking-wider uppercase">P2P Network Lab</span>
                     </div>
                 </a>
             </div>
@@ -185,20 +185,20 @@
             <!-- Desktop Navigation Links -->
             <nav class="hidden md:flex items-center gap-1">
                 @if(session()->has('securelink_user_id'))
-                    <a href="{{ route('dashboard') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] {{ request()->routeIs('dashboard') ? 'text-[#315CE8] dark:text-[#7895FF] bg-blue-50/70 dark:bg-blue-950/40' : 'text-[#667085] dark:text-[#A8B2C3]' }}">
+                    <a href="{{ route('dashboard') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('dashboard') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
                         Dashboard
                     </a>
-                    <a href="{{ route('rooms.create') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] {{ request()->routeIs('rooms.create') ? 'text-[#315CE8] dark:text-[#7895FF] bg-blue-50/70 dark:bg-blue-950/40' : 'text-[#667085] dark:text-[#A8B2C3]' }}">
+                    <a href="{{ route('rooms.create') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('rooms.create') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
                         Buat Room
                     </a>
-                    <a href="{{ route('rooms.join') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] {{ request()->routeIs('rooms.join') ? 'text-[#315CE8] dark:text-[#7895FF] bg-blue-50/70 dark:bg-blue-950/40' : 'text-[#667085] dark:text-[#A8B2C3]' }}">
+                    <a href="{{ route('rooms.join') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('rooms.join') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
                         Gabung Room
                     </a>
                 @endif
-                <a href="{{ route('demo') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] {{ request()->routeIs('demo') ? 'text-[#315CE8] dark:text-[#7895FF] bg-blue-50/70 dark:bg-blue-950/40' : 'text-[#667085] dark:text-[#A8B2C3]' }}">
+                <a href="{{ route('demo') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('demo') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
                     Demonstrasi P2P
                 </a>
-                <a href="{{ route('settings') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] {{ request()->routeIs('settings') ? 'text-[#315CE8] dark:text-[#7895FF] bg-blue-50/70 dark:bg-blue-950/40' : 'text-[#667085] dark:text-[#A8B2C3]' }}">
+                <a href="{{ route('settings') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('settings') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
                     Settings
                 </a>
             </nav>
@@ -206,7 +206,7 @@
             <!-- User Status, Theme Switcher & Mobile Menu Button -->
             <div class="flex items-center gap-2.5">
                 <!-- Theme Switcher Button -->
-                <button type="button" onclick="cycleTheme()" class="p-2 rounded-xl text-[#667085] hover:text-[#182033] dark:text-[#A8B2C3] dark:hover:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] border border-transparent hover:border-[#E3E7EF] dark:hover:border-[#344052] transition" title="Ganti Tema (Light/Dark/System)">
+                <button type="button" onclick="cycleTheme()" class="p-2 rounded-xl text-[#667781] hover:text-[#111B21] dark:text-[#8696A0] dark:hover:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Ganti Tema (Light/Dark/System)">
                     <span id="theme-icon-light" class="hidden">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                     </span>
@@ -219,17 +219,17 @@
                 </button>
 
                 @if(isset($user) && $user)
-                    <div class="flex items-center gap-2 pl-2 border-l border-[#E3E7EF] dark:border-[#344052]">
+                    <div class="flex items-center gap-2 pl-2 border-l border-[#E9EDEF] dark:border-[#222D34]">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm" style="background-color: {{ $user->avatar_color }}">
                             {{ substr($user->display_name, 0, 1) }}
                         </div>
                         <div class="hidden sm:flex flex-col text-left">
-                            <span class="text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] leading-none">{{ $user->display_name }}</span>
-                            <span class="text-[10px] text-emerald-600 dark:text-[#55C49A] font-mono mt-0.5">● Online</span>
+                            <span class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] leading-none">{{ $user->display_name }}</span>
+                            <span class="text-[10px] text-emerald-600 dark:text-[#25D366] font-mono mt-0.5">● Online</span>
                         </div>
                     </div>
                 @else
-                    <a href="{{ route('identity.setup') }}" class="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white shadow-sm transition">
+                    <a href="{{ route('identity.setup') }}" class="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-[#008069] hover:bg-[#00A884] text-white shadow-sm transition">
                         Setup Identitas
                     </a>
                 @endif

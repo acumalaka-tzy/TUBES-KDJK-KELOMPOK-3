@@ -6,35 +6,37 @@
 @source '../js/**/*.js';
 
 :root {
-    --color-app-bg: #F4F6FA;
+    /* WhatsApp Light Palette */
+    --color-app-bg: #EFEAE2;
     --color-sidebar: #FFFFFF;
     --color-surface: #FFFFFF;
-    --color-surface-muted: #EEF1F7;
-    --color-primary: #315CE8;
-    --color-primary-hover: #254BC5;
-    --color-accent: #7657D6;
-    --color-text-primary: #182033;
-    --color-text-secondary: #667085;
-    --color-border: #E3E7EF;
-    --color-success: #16845B;
-    --color-warning: #B7791F;
-    --color-danger: #D14343;
+    --color-surface-muted: #F0F2F5;
+    --color-primary: #008069;
+    --color-primary-hover: #00A884;
+    --color-accent: #25D366;
+    --color-text-primary: #111B21;
+    --color-text-secondary: #667781;
+    --color-border: #E9EDEF;
+    --color-success: #25D366;
+    --color-warning: #FFB703;
+    --color-danger: #EA0038;
 }
 
 html.dark {
-    --color-app-bg: #151A24;
-    --color-sidebar: #1B2230;
-    --color-surface: #222B3A;
-    --color-surface-muted: #2A3546;
-    --color-primary: #7895FF;
-    --color-primary-hover: #91A8FF;
-    --color-accent: #A58AE8;
-    --color-text-primary: #F1F4FA;
-    --color-text-secondary: #A8B2C3;
-    --color-border: #344052;
-    --color-success: #55C49A;
+    /* WhatsApp Dark Palette */
+    --color-app-bg: #0B141A;
+    --color-sidebar: #111B21;
+    --color-surface: #111B21;
+    --color-surface-muted: #202C33;
+    --color-primary: #00A884;
+    --color-primary-hover: #25D366;
+    --color-accent: #25D366;
+    --color-text-primary: #E9EDEF;
+    --color-text-secondary: #8696A0;
+    --color-border: #222D34;
+    --color-success: #00A884;
     --color-warning: #E7B45B;
-    --color-danger: #F07878;
+    --color-danger: #F15C6D;
 }
 
 @theme {
@@ -80,7 +82,7 @@ body {
     width: 650px;
     height: 650px;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(49, 92, 232, 0.08) 0%, rgba(49, 92, 232, 0) 70%);
+    background: radial-gradient(circle, rgba(0, 128, 105, 0.08) 0%, rgba(0, 128, 105, 0) 70%);
     filter: blur(60px);
 }
 .ambient-glow-2 {
@@ -90,14 +92,14 @@ body {
     width: 600px;
     height: 600px;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(118, 87, 214, 0.08) 0%, rgba(118, 87, 214, 0) 70%);
+    background: radial-gradient(circle, rgba(37, 211, 102, 0.08) 0%, rgba(37, 211, 102, 0) 70%);
     filter: blur(60px);
 }
 html.dark .ambient-glow-1 {
-    background: radial-gradient(circle, rgba(120, 149, 255, 0.06) 0%, rgba(120, 149, 255, 0) 70%);
+    background: radial-gradient(circle, rgba(0, 168, 132, 0.07) 0%, rgba(0, 168, 132, 0) 70%);
 }
 html.dark .ambient-glow-2 {
-    background: radial-gradient(circle, rgba(165, 138, 232, 0.06) 0%, rgba(165, 138, 232, 0) 70%);
+    background: radial-gradient(circle, rgba(37, 211, 102, 0.07) 0%, rgba(37, 211, 102, 0) 70%);
 }
 
 /* Glassmorphism utilities */
@@ -149,18 +151,41 @@ html.dark .glass-nav {
 
 /* Glow effects */
 .glow-primary {
-    box-shadow: 0 0 24px -2px rgba(49, 92, 232, 0.35);
+    box-shadow: 0 0 24px -2px rgba(0, 168, 132, 0.35);
 }
 html.dark .glow-primary {
-    box-shadow: 0 0 24px -2px rgba(120, 149, 255, 0.3);
+    box-shadow: 0 0 24px -2px rgba(37, 211, 102, 0.3);
 }
 
 .glow-accent {
-    box-shadow: 0 0 24px -2px rgba(118, 87, 214, 0.35);
+    box-shadow: 0 0 24px -2px rgba(37, 211, 102, 0.35);
 }
 
 .glow-success {
-    box-shadow: 0 0 20px -2px rgba(22, 132, 91, 0.35);
+    box-shadow: 0 0 20px -2px rgba(37, 211, 102, 0.35);
+}
+
+/* WhatsApp message bubbles */
+.wa-bubble-sent {
+    background-color: #D9FDD3;
+    color: #111B21;
+    border: 1px solid #C5E8B7;
+}
+html.dark .wa-bubble-sent {
+    background-color: #005C4B;
+    color: #E9EDEF;
+    border: 1px solid #004D3F;
+}
+
+.wa-bubble-recv {
+    background-color: #FFFFFF;
+    color: #111B21;
+    border: 1px solid #E9EDEF;
+}
+html.dark .wa-bubble-recv {
+    background-color: #202C33;
+    color: #E9EDEF;
+    border: 1px solid #222D34;
 }
 
 /* Micro-animations */
