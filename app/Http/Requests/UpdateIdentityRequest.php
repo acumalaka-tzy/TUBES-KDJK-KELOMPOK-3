@@ -16,6 +16,7 @@ class UpdateIdentityRequest extends FormRequest
         return [
             'display_name' => ['nullable', 'string', 'min:2', 'max:50'],
             'avatar_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'avatar_icon' => ['nullable', 'string', 'max:50'],
             'preferences' => ['nullable', 'array'],
         ];
     }

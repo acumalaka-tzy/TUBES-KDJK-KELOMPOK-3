@@ -1,6 +1,7 @@
 @props([
     'name' => 'User',
-    'color' => '#315CE8',
+    'color' => '#008069',
+    'icon' => null,
     'size' => 'md',
     'online' => false,
 ])
@@ -12,6 +13,7 @@
         'md' => 'w-8 h-8 text-xs',
         'lg' => 'w-10 h-10 text-sm',
         'xl' => 'w-14 h-14 text-xl',
+        '2xl' => 'w-18 h-18 text-3xl',
     ];
 
     $badgeSizes = [
@@ -20,22 +22,24 @@
         'md' => 'w-2.5 h-2.5',
         'lg' => 'w-3 h-3',
         'xl' => 'w-3.5 h-3.5',
+        '2xl' => 'w-4 h-4',
     ];
 
     $selectedSize = $sizeClasses[$size] ?? $sizeClasses['md'];
     $selectedBadge = $badgeSizes[$size] ?? $badgeSizes['md'];
     $initial = strtoupper(substr(trim($name), 0, 1) ?: 'U');
+    $display = (!empty($icon) && $icon !== 'initial') ? $icon : $initial;
 @endphp
 
 <div class="relative inline-flex shrink-0">
     <div class="{{ $selectedSize }} rounded-full flex items-center justify-center text-white font-bold uppercase shadow-2xs select-none"
         style="background-color: {{ $color }};"
         title="{{ $name }}">
-        {{ $initial }}
+        {{ $display }}
     </div>
 
     @if($online)
-        <span class="absolute bottom-0 right-0 {{ $selectedBadge }} rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1B2230]"
+        <span class="absolute bottom-0 right-0 {{ $selectedBadge }} rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#111B21]"
             title="Online"></span>
     @endif
 </div>

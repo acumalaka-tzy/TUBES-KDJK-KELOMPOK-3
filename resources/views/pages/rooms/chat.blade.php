@@ -57,7 +57,7 @@
         <div class="p-3 border-t border-[#E3E7EF] dark:border-[#344052] bg-white/40 dark:bg-[#1B2230]/40 flex items-center justify-between">
             <div class="flex items-center gap-2 min-w-0">
                 <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase" style="background-color: {{ $user->avatar_color }}">
-                    {{ substr($user->display_name, 0, 1) }}
+                    {{ $user->avatar_display }}
                 </div>
                 <div class="truncate">
                     <div class="text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] truncate">{{ $user->display_name }}</div>
@@ -223,7 +223,7 @@
                         <div class="p-2.5 rounded-xl bg-[#EEF1F7]/40 dark:bg-[#222B3A]/50 border border-[#E3E7EF] dark:border-[#344052] flex items-center justify-between gap-2 shadow-2xs">
                             <div class="flex items-center gap-2 min-w-0">
                                 <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase" style="background-color: {{ $p['avatar_color'] }}">
-                                    {{ substr($p['display_name'], 0, 1) }}
+                                    {{ $p['avatar_display'] ?? substr($p['display_name'], 0, 1) }}
                                 </div>
                                 <div class="truncate">
                                     <div class="text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] truncate">{{ $p['display_name'] }}</div>
@@ -475,8 +475,8 @@
         }
 
         bubbleWrapper.innerHTML = `
-            <div class="w-8 h-8 rounded-full bg-[#008069] text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs">
-                ${(data.senderName || 'P').charAt(0)}
+            <div class="w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs" style="background-color: ${data.senderAvatarColor || '#008069'}">
+                ${data.senderAvatarDisplay || (data.senderName || 'P').charAt(0)}
             </div>
             <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
                 <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">

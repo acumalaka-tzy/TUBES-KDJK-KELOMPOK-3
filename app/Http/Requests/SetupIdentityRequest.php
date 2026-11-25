@@ -17,6 +17,7 @@ class SetupIdentityRequest extends FormRequest
             'display_name' => ['required', 'string', 'min:2', 'max:50'],
             'user_id' => ['nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_\-]+$/'],
             'avatar_color' => ['nullable', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'avatar_icon' => ['nullable', 'string', 'max:50'],
             'preferences' => ['nullable', 'array'],
         ];
     }
