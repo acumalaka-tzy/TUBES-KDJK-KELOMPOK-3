@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto py-6">
-    <div class="bg-white dark:bg-[#1B2230] border border-[#E3E7EF] dark:border-[#344052] rounded-2xl p-6 sm:p-8 shadow-sm">
+    <div class="glass-card rounded-3xl p-6 sm:p-9 shadow-lg relative overflow-hidden">
         <div class="mb-6 pb-4 border-b border-[#E3E7EF] dark:border-[#344052]">
             <h1 class="text-xl font-extrabold text-[#182033] dark:text-[#F1F4FA]">Buat Chat Room Baru</h1>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-1">
+            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-1.5">
                 Atur konfigurasi keamanan, enkripsi end-to-end, dan pembatasan room P2P Anda.
             </p>
         </div>
@@ -115,10 +115,10 @@
             </div>
 
             <div class="pt-4 flex items-center justify-end gap-3">
-                <a href="{{ route('dashboard') }}" class="px-4 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546] transition">
+                <a href="{{ route('dashboard') }}" class="px-5 py-3 rounded-2xl glass-card text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] transition-all hover:-translate-y-0.5">
                     Batal
                 </a>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white text-xs font-semibold shadow-sm transition">
+                <button type="submit" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#315CE8] to-[#254BC5] hover:opacity-95 text-white text-xs font-semibold shadow-md shadow-blue-500/25 transition-all hover:-translate-y-0.5">
                     Buat Room Sekarang
                 </button>
             </div>
