@@ -377,6 +377,7 @@ class RoomService
                 'avatar_color' => $part->userSession?->avatar_color ?? '#008069',
                 'avatar_icon' => $part->userSession?->avatar_icon ?? 'initial',
                 'avatar_display' => $part->userSession?->avatar_display ?? strtoupper(substr($part->display_name, 0, 1)),
+                'avatar_html' => $part->userSession?->avatar_html ?? strtoupper(substr($part->display_name, 0, 1)),
                 'joined_at' => $part->joined_at?->toIso8601String(),
                 'last_seen_at' => $part->last_seen_at?->toIso8601String(),
             ];
