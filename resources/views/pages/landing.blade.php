@@ -47,41 +47,41 @@
     <!-- Interactive Architecture Diagram with Glassmorphic Card -->
     <div class="p-6 sm:p-9 rounded-3xl glass-card">
         <div class="text-center max-w-xl mx-auto mb-8">
-            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-[#315CE8] dark:text-[#7895FF] mb-2">P2P Network Topology</span>
-            <h2 class="text-xl font-extrabold text-[#182033] dark:text-[#F1F4FA]">Alur Komunikasi Peer-to-Peer</h2>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-1.5 leading-relaxed">
+            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-emerald-50 dark:bg-emerald-950/60 text-[#008069] dark:text-[#25D366] mb-2">P2P Network Topology</span>
+            <h2 class="text-xl font-extrabold text-[#111B21] dark:text-[#E9EDEF]">Alur Komunikasi Peer-to-Peer</h2>
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-1.5 leading-relaxed">
                 Visualisasi pemisahan tanggung jawab antara signaling negosiasi dan kanal transfer pesan.
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
             <!-- Step 1: Peer A -->
-            <div class="p-5 rounded-2xl bg-white/70 dark:bg-[#1B2230]/70 border border-[#E3E7EF] dark:border-[#344052] text-center space-y-2.5 transition hover:shadow-md">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-base mx-auto shadow-md shadow-blue-500/20">
+            <div class="p-5 rounded-2xl bg-white/70 dark:bg-[#111B21]/70 border border-[#E9EDEF] dark:border-[#222D34] text-center space-y-2.5 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-[#008069] text-white flex items-center justify-center font-bold text-base mx-auto shadow-md shadow-emerald-500/20">
                     A
                 </div>
-                <div class="font-bold text-xs text-[#182033] dark:text-[#F1F4FA]">Peer Pengirim</div>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3] leading-relaxed">Membuat kunci ECDH, enkripsi pesan dengan AES-GCM, kirim langsung melalui DataChannel.</p>
+                <div class="font-bold text-xs text-[#111B21] dark:text-[#E9EDEF]">Peer Pengirim</div>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0] leading-relaxed">Membuat kunci ECDH, enkripsi pesan dengan AES-GCM, kirim langsung melalui DataChannel.</p>
             </div>
 
             <!-- Signaling Indicator -->
-            <div class="p-5 rounded-2xl bg-blue-50/50 dark:bg-[#151A24]/60 border border-dashed border-[#315CE8]/50 dark:border-[#7895FF]/50 text-center space-y-2.5">
-                <div class="inline-flex p-2 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-[#315CE8] dark:text-[#7895FF]">
+            <div class="p-5 rounded-2xl bg-emerald-50/50 dark:bg-[#111B21]/60 border border-dashed border-[#008069]/50 dark:border-[#25D366]/50 text-center space-y-2.5">
+                <div class="inline-flex p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-[#008069] dark:text-[#25D366]">
                     <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                 </div>
-                <div class="font-bold text-xs text-[#315CE8] dark:text-[#7895FF]">Signaling (WebSocket)</div>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3] leading-relaxed">
+                <div class="font-bold text-xs text-[#008069] dark:text-[#25D366]">Signaling (WebSocket)</div>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0] leading-relaxed">
                     Hanya menukar SDP Offer/Answer dan ICE Candidate. <span class="font-semibold text-rose-600 dark:text-rose-400">Tidak menerima plain-text.</span>
                 </p>
             </div>
 
             <!-- Step 2: Peer B -->
-            <div class="p-5 rounded-2xl bg-white/70 dark:bg-[#1B2230]/70 border border-[#E3E7EF] dark:border-[#344052] text-center space-y-2.5 transition hover:shadow-md">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center font-bold text-base mx-auto shadow-md shadow-purple-500/20">
+            <div class="p-5 rounded-2xl bg-white/70 dark:bg-[#111B21]/70 border border-[#E9EDEF] dark:border-[#222D34] text-center space-y-2.5 transition hover:shadow-md">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-emerald-600 text-white flex items-center justify-center font-bold text-base mx-auto shadow-md shadow-emerald-500/20">
                     B
                 </div>
-                <div class="font-bold text-xs text-[#182033] dark:text-[#F1F4FA]">Peer Penerima</div>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3] leading-relaxed">Menerima ciphertext, verifikasi auth tag, dekripsi pesan, lalu mengirim acknowledgment.</p>
+                <div class="font-bold text-xs text-[#111B21] dark:text-[#E9EDEF]">Peer Penerima</div>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0] leading-relaxed">Menerima ciphertext, verifikasi auth tag, dekripsi pesan, lalu mengirim acknowledgment.</p>
             </div>
         </div>
     </div>
@@ -90,22 +90,22 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Pillar 1 -->
         <div class="p-6 rounded-3xl glass-card space-y-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/20 text-[#315CE8] dark:text-[#7895FF] flex items-center justify-center font-bold">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-[#008069]/20 text-[#008069] dark:text-[#25D366] flex items-center justify-center font-bold">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             </div>
-            <h3 class="text-sm font-bold text-[#182033] dark:text-[#F1F4FA]">WebRTC DataChannel &amp; DTLS</h3>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] leading-relaxed">
+            <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">WebRTC DataChannel &amp; DTLS</h3>
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] leading-relaxed">
                 Jalur koneksi data langsung berlatensi rendah antarperangkat yang diamankan dengan standar protokol kriptografi DTLS.
             </p>
         </div>
 
         <!-- Pillar 2 -->
         <div class="p-6 rounded-3xl glass-card space-y-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/20 text-emerald-600 dark:text-[#55C49A] flex items-center justify-center font-bold">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/20 text-[#008069] dark:text-[#25D366] flex items-center justify-center font-bold">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
             </div>
-            <h3 class="text-sm font-bold text-[#182033] dark:text-[#F1F4FA]">End-to-End Encryption &amp; PIN</h3>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] leading-relaxed">
+            <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">End-to-End Encryption &amp; PIN</h3>
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] leading-relaxed">
                 Kombinasi Web Crypto API (AES-GCM 256-bit), pesan sementara (ephemeral), serta perlindungan room PIN statis atau Dynamic PIN (TOTP).
             </p>
         </div>
@@ -115,8 +115,8 @@
             <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-500/20 text-[#7657D6] dark:text-[#A58AE8] flex items-center justify-center font-bold">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             </div>
-            <h3 class="text-sm font-bold text-[#182033] dark:text-[#F1F4FA]">Jaringan Privat Tailscale</h3>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] leading-relaxed">
+            <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">Jaringan Privat Tailscale</h3>
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] leading-relaxed">
                 Mendukung skenario pengujian lintas node pada lingkungan VPN privat Tailnet dengan panduan komprehensif.
             </p>
         </div>
