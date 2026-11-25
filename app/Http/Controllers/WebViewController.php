@@ -130,7 +130,14 @@ class WebViewController extends Controller
 
         $metadata = $this->roomService->getRoomMetadata($room, $user);
 
-        return view('pages.rooms.chat', compact('user', 'room', 'participant', 'metadata'));
+        $userRooms = $user->participations()
+            ->where('is_kicked', false)
+            ->with(['room' => fn($q) => $q->withCount('activeParticipants')])
+            ->latest('last_seen_at')
+            ->take(15)
+            ->get();
+
+        return view('pages.rooms.chat', compact('user', 'room', 'participant', 'metadata', 'userRooms'));
     }
 
     /**
