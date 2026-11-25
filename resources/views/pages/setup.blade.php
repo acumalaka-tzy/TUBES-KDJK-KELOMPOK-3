@@ -44,7 +44,7 @@
                 <label class="block text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] mb-1.5">
                     Pilihan Warna Avatar
                 </label>
-                <div class="flex items-center justify-between gap-2 pt-1">
+                <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
                     @php
                         $colors = ['#315CE8', '#7657D6', '#16845B', '#B7791F', '#D14343', '#0891B2', '#4F46E5'];
                         $selectedColor = old('avatar_color', $user?->avatar_color ?? $colors[0]);

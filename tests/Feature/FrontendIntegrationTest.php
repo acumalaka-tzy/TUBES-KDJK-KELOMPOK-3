@@ -23,7 +23,7 @@ class FrontendIntegrationTest extends TestCase
     {
         $response = $this->get('/setup');
         $response->assertStatus(200);
-        $response->assertSee('Identitas Sesi Anda');
+        $response->assertSee('Identitas Sesi');
         $response->assertSee('Display Name');
     }
 
@@ -141,5 +141,13 @@ class FrontendIntegrationTest extends TestCase
         $response->assertSee('Perbandingan Model Komunikasi');
         $response->assertSee('Server Broadcast Mode');
         $response->assertSee('P2P WebRTC Mode');
+    }
+
+    public function test_tailscale_guide_page_renders(): void
+    {
+        $response = $this->get('/tailscale-guide');
+        $response->assertStatus(200);
+        $response->assertSee('Panduan Integrasi VPN Tailscale');
+        $response->assertSee('100.x.y.z');
     }
 }

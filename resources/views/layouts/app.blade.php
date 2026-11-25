@@ -260,6 +260,9 @@
             <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
                 Settings &amp; Diagnostik
             </a>
+            <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+                Panduan VPN Tailscale
+            </a>
         </div>
     </header>
 
@@ -323,6 +326,7 @@
             <div class="flex items-center gap-4 text-[11px]">
                 <a href="{{ route('demo') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Demonstrasi P2P</a>
                 <a href="{{ route('settings') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Keamanan &amp; Diagnostik</a>
+                <a href="{{ route('tailscale.guide') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Panduan Tailscale</a>
             </div>
         </div>
     </footer>
