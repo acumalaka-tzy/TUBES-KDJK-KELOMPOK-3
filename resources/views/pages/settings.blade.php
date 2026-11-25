@@ -131,19 +131,19 @@
 
     <!-- Section 2: Appearance (Light / Dark / System) -->
     <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <h2 class="text-xs font-bold text-[#315CE8] dark:text-[#7895FF] uppercase tracking-wider">2. Tema Tampilan (Appearance)</h2>
-        <p class="text-xs text-[#667085] dark:text-[#A8B2C3]">
-            Sesuai PRD Section 10.2, Dark Mode menggunakan palet berlapis <em>blue-charcoal</em> untuk kenyamanan mata dan kontras tinggi.
+        <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">2. Tema Tampilan (Appearance)</h2>
+        <p class="text-xs text-[#667781] dark:text-[#8696A0]">
+            Pilih mode tampilan WhatsApp untuk kenyamanan mata dan kontras optimal di segala kondisi cahaya.
         </p>
 
         <div class="flex flex-wrap items-center gap-3">
-            <button type="button" onclick="setThemeMode('light')" class="px-4 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A] transition flex items-center gap-2">
+            <button type="button" onclick="setThemeMode('light')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
                 <span>☀️</span> Light Mode
             </button>
-            <button type="button" onclick="setThemeMode('dark')" class="px-4 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A] transition flex items-center gap-2">
-                <span>🌙</span> Dark Mode (Blue Charcoal)
+            <button type="button" onclick="setThemeMode('dark')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
+                <span>🌙</span> Dark Mode (WhatsApp Dark)
             </button>
-            <button type="button" onclick="setThemeMode('system')" class="px-4 py-2.5 rounded-2xl border border-[#E3E7EF] dark:border-[#344052] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A] transition flex items-center gap-2">
+            <button type="button" onclick="setThemeMode('system')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
                 <span>💻</span> Mengikuti Sistem
             </button>
         </div>
@@ -152,41 +152,41 @@
     <!-- Section 3: Honest Security Indicators (PRD Section 3.7 & Appendix B) -->
     <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
         <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold text-[#315CE8] dark:text-[#7895FF] uppercase tracking-wider">3. Indikator Keamanan Aktual</h2>
-            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#55C49A] font-semibold border border-emerald-200 dark:border-emerald-800/60">
+            <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">3. Indikator Keamanan Aktual</h2>
+            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200 dark:border-emerald-800/60">
                 Terverifikasi
             </span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div class="p-4 rounded-2xl bg-[#EEF1F7]/50 dark:bg-[#222B3A]/60 border border-[#E3E7EF] dark:border-[#344052] space-y-1">
-                <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">WebRTC DataChannel DTLS</span>
-                <p class="text-emerald-600 dark:text-[#55C49A] font-semibold">Aktif (Encrypted in transit)</p>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3]">
+            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
+                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">WebRTC DataChannel DTLS</span>
+                <p class="text-emerald-600 dark:text-[#25D366] font-semibold">Aktif (Encrypted in transit)</p>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
                     Kanal transport terenkripsi kriptografi DTLS secara bilateral antarperangkat.
                 </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-[#EEF1F7]/50 dark:bg-[#222B3A]/60 border border-[#E3E7EF] dark:border-[#344052] space-y-1">
-                <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">End-to-End Encryption (E2EE)</span>
-                <p class="text-[#315CE8] dark:text-[#7895FF] font-semibold">Web Crypto API (AES-GCM 256-bit)</p>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3]">
+            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
+                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">End-to-End Encryption (E2EE)</span>
+                <p class="text-[#008069] dark:text-[#25D366] font-semibold">Web Crypto API (AES-GCM 256-bit)</p>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
                     Derivasi kunci ECDH P-256 dan IV acak 12-byte per pesan di sisi klien.
                 </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-[#EEF1F7]/50 dark:bg-[#222B3A]/60 border border-[#E3E7EF] dark:border-[#344052] space-y-1">
-                <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">Zero Chat Retention Server</span>
-                <p class="text-emerald-600 dark:text-[#55C49A] font-semibold">100% Client-Side Ephemeral</p>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3]">
+            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
+                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">Zero Chat Retention Server</span>
+                <p class="text-emerald-600 dark:text-[#25D366] font-semibold">100% Client-Side Ephemeral</p>
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
                     Signaling server Laravel Reverb tidak menyimpan plain-text percakapan Anda.
                 </p>
             </div>
 
-            <div class="p-4 rounded-2xl bg-[#EEF1F7]/50 dark:bg-[#222B3A]/60 border border-[#E3E7EF] dark:border-[#344052] space-y-1">
-                <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">Tailscale Private Network</span>
+            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
+                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">Tailscale Private Network</span>
                 <p class="text-[#7657D6] dark:text-[#A58AE8] font-semibold">Didukung (Skenario Lab VPN)</p>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3]">
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
                     Dapat dihubungkan ke Tailnet yang sama untuk demonstrasi jaringan privat.
                 </p>
             </div>
@@ -195,22 +195,22 @@
 
     <!-- Section 4: Live Network Diagnostics (PRD Section 10.12) -->
     <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <h2 class="text-xs font-bold text-[#315CE8] dark:text-[#7895FF] uppercase tracking-wider">4. Diagnostik Jaringan Interaktif</h2>
-        <p class="text-xs text-[#667085] dark:text-[#A8B2C3]">
+        <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">4. Diagnostik Jaringan Interaktif</h2>
+        <p class="text-xs text-[#667781] dark:text-[#8696A0]">
             Uji responsivitas koneksi dan verifikasi WebRTC API browser Anda.
         </p>
 
         <div class="flex items-center gap-3">
-            <button type="button" onclick="runDiagnostics()" class="px-4 py-2 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white text-xs font-semibold shadow-sm transition">
+            <button type="button" onclick="runDiagnostics()" class="px-4 py-2 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">
                 Jalankan Diagnostik Sekarang
             </button>
-            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E3E7EF] dark:border-[#344052] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A] text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] transition flex items-center gap-1.5">
+            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Unduh Log Diagnostik (JSON)
             </button>
         </div>
 
-        <div id="diag-results" class="hidden p-4 rounded-xl bg-[#EEF1F7]/50 dark:bg-[#151A24] border border-[#E3E7EF] dark:border-[#344052] space-y-2 text-xs font-mono">
+        <div id="diag-results" class="hidden p-4 rounded-xl bg-[#F0F2F5]/60 dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] space-y-2 text-xs font-mono">
             <div class="flex items-center justify-between">
                 <span>WebRTC RTCPeerConnection:</span>
                 <span id="diag-webrtc" class="text-emerald-500 font-bold">Mengecek...</span>
@@ -227,10 +227,10 @@
     </div>
 
     <!-- Section 5: Logout / Terminate Identity Session -->
-    <div class="p-6 rounded-2xl bg-white dark:bg-[#1B2230] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between">
+    <div class="p-6 rounded-2xl bg-white dark:bg-[#111B21] border border-rose-200 dark:border-rose-900/40 shadow-sm flex items-center justify-between">
         <div>
             <h3 class="text-sm font-bold text-rose-700 dark:text-[#F07878]">Akhiri Sesi Identitas</h3>
-            <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-0.5">
+            <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-0.5">
                 Menghapus kredensial sesi lokal Anda dan menandai status offline.
             </p>
         </div>

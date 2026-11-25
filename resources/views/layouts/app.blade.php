@@ -244,29 +244,29 @@
         </div>
 
         <!-- Mobile Drawer Navigation -->
-        <div id="mobile-nav" class="hidden md:hidden border-t border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#1B2230] px-4 py-3 space-y-1">
+        <div id="mobile-nav" class="hidden md:hidden border-t border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] px-4 py-3 space-y-1">
             @if(session()->has('securelink_user_id'))
-                <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+                <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                     Dashboard
                 </a>
-                <a href="{{ route('rooms.create') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+                <a href="{{ route('rooms.create') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                     Buat Room Baru
                 </a>
-                <a href="{{ route('rooms.join') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+                <a href="{{ route('rooms.join') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                     Gabung Room
                 </a>
             @else
-                <a href="{{ route('identity.setup') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#315CE8] dark:text-[#7895FF] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+                <a href="{{ route('identity.setup') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#008069] dark:text-[#25D366] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                     Setup Identitas
                 </a>
             @endif
-            <a href="{{ route('demo') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+            <a href="{{ route('demo') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                 Demonstrasi P2P &amp; Broadcast
             </a>
-            <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+            <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                 Settings &amp; Diagnostik
             </a>
-            <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] hover:bg-[#EEF1F7] dark:hover:bg-[#2A3546]">
+            <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                 Panduan VPN Tailscale
             </a>
         </div>
@@ -322,17 +322,17 @@
     </main>
 
     <!-- Footer -->
-    <footer class="mt-auto border-t border-[#E3E7EF] dark:border-[#344052] bg-white/80 dark:bg-[#1B2230]/80 backdrop-blur-md py-6 text-center text-xs text-[#667085] dark:text-[#A8B2C3] relative z-10">
+    <footer class="mt-auto border-t border-[#E9EDEF] dark:border-[#222D34] bg-white/80 dark:bg-[#111B21]/80 backdrop-blur-md py-6 text-center text-xs text-[#667781] dark:text-[#8696A0] relative z-10 transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-                <span class="font-bold text-[#182033] dark:text-[#F1F4FA]">SecureLink</span>
+                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">SecureLink</span>
                 <span>&bull;</span>
                 <span>Tugas Besar Komunikasi Data &amp; Jaringan Komputer (KDJK) Kelompok 3</span>
             </div>
             <div class="flex items-center gap-4 text-[11px]">
-                <a href="{{ route('demo') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Demonstrasi P2P</a>
-                <a href="{{ route('settings') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Keamanan &amp; Diagnostik</a>
-                <a href="{{ route('tailscale.guide') }}" class="hover:text-[#315CE8] dark:hover:text-[#7895FF] transition">Panduan Tailscale</a>
+                <a href="{{ route('demo') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Demonstrasi P2P</a>
+                <a href="{{ route('settings') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Keamanan &amp; Diagnostik</a>
+                <a href="{{ route('tailscale.guide') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Panduan Tailscale</a>
             </div>
         </div>
     </footer>
