@@ -184,12 +184,12 @@
                 <!-- Ephemeral Duration Selector -->
                 <div class="relative shrink-0">
                     <select id="ephemeral_duration" title="Pesan Sementara (Ephemeral)"
-                        class="px-2.5 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-[#EEF1F7]/60 dark:bg-[#222B3A] text-xs text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-1 focus:ring-[#315CE8]">
-                        <option value="0">Normal</option>
-                        <option value="10">10s Ephemeral</option>
-                        <option value="30">30s Ephemeral</option>
-                        <option value="60">60s Ephemeral</option>
-                        <option value="300">5m Ephemeral</option>
+                        class="px-2 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-[#EEF1F7]/60 dark:bg-[#222B3A] text-xs text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-1 focus:ring-[#315CE8]">
+                        <option value="0">⏱️ Normal</option>
+                        <option value="10">⏱️ 10 dtk</option>
+                        <option value="30">⏱️ 30 dtk</option>
+                        <option value="60">⏱️ 1 mnt</option>
+                        <option value="300">⏱️ 5 mnt</option>
                     </select>
                 </div>
 
@@ -206,7 +206,7 @@
         </div>
 
         <!-- 4. SLIDING MEMBERS DRAWER -->
-        <aside id="members-drawer" class="hidden absolute top-0 right-0 bottom-0 w-72 border-l border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#1B2230] p-4 flex flex-col justify-between z-30 shadow-xl overflow-y-auto">
+        <aside id="members-drawer" class="hidden absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] border-l border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#1B2230] p-4 flex flex-col justify-between z-30 shadow-xl overflow-y-auto">
             <div class="space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-[#E3E7EF] dark:border-[#344052]">
                     <div class="flex items-center gap-2">
@@ -346,8 +346,10 @@
 
     function cancelReply() {
         activeReply = null;
-        document.getElementById('reply-bar').classList.add('hidden');
+        const bar = document.getElementById('reply-bar');
+        if (bar) bar.classList.add('hidden');
     }
+    window.cancelReply = cancelReply;
 
     function addReaction(bubbleElement, emoji) {
         let reactionContainer = bubbleElement.querySelector('.reaction-pills');
