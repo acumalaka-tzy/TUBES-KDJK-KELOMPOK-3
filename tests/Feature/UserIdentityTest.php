@@ -161,4 +161,31 @@ class UserIdentityTest extends TestCase
         $this->assertEquals('offline', $user->fresh()->connection_status);
         $this->assertNull(session('securelink_user_id'));
     }
+
+    public function test_setup_and_update_with_avatar_icon(): void
+    {
+        $response = $this->postJson('/api/identity/setup', [
+            'display_name' => 'Cyber Ninja',
+            'avatar_color' => '#008069',
+            'avatar_icon' => 'ninja',
+        ]);
+
+        $response->assertStatus(200);
+        $userId = $response->json('user.user_id');
+
+        $user = UserSession::where('user_id', $userId)->first();
+        $this->assertEquals('ninja', $user->avatar_icon);
+        $this->assertEquals('🕶️', $user->avatar_display);
+
+        // Update avatar icon to shield
+        $updateResponse = $this->withSession(['securelink_user_id' => $userId])
+            ->putJson('/api/identity', [
+                'avatar_icon' => 'shield',
+            ]);
+
+        $updateResponse->assertStatus(200);
+        $user->refresh();
+        $this->assertEquals('shield', $user->avatar_icon);
+        $this->assertEquals('🛡️', $user->avatar_display);
+    }
 }

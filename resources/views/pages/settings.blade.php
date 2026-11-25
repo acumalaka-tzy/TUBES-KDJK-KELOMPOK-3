@@ -12,37 +12,118 @@
     </div>
 
     <!-- Section 1: Profil Akun Sesi -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <h2 class="text-xs font-bold text-[#315CE8] dark:text-[#7895FF] uppercase tracking-wider">1. Identitas Sesi Pengguna</h2>
+    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-5">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">1. Identitas Sesi Pengguna</h2>
+            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200 dark:border-emerald-800/60">
+                Sesi Aktif
+            </span>
+        </div>
 
-        <form action="{{ route('identity.update.web') }}" method="POST" class="space-y-4">
+        <form action="{{ route('identity.update.web') }}" method="POST" class="space-y-5">
             @csrf
+            @php
+                $settingsColor = old('avatar_color', $user->avatar_color ?? '#008069');
+                $settingsIcon = old('avatar_icon', $user->avatar_icon ?? 'initial');
+                $displaySymbols = \App\Models\UserSession::$avatarSymbols;
+                $settingsDisplay = ($settingsIcon !== 'initial' && isset($displaySymbols[$settingsIcon]))
+                    ? $displaySymbols[$settingsIcon]
+                    : strtoupper(substr(old('display_name', $user->display_name ?? 'A'), 0, 1) ?: 'U');
+            @endphp
+            <input type="hidden" id="settings_avatar_icon" name="avatar_icon" value="{{ $settingsIcon }}">
+
+            <!-- Avatar Preview Badge -->
+            <div class="flex items-center gap-4 p-4 rounded-2xl bg-white/50 dark:bg-[#111B21]/50 border border-[#E9EDEF] dark:border-[#222D34]">
+                <div id="settings-avatar-preview" class="w-16 h-16 rounded-2xl text-white flex items-center justify-center text-2xl font-extrabold shadow-md shadow-emerald-500/20 shrink-0 uppercase transition-all duration-300" style="background-color: {{ $settingsColor }};">
+                    {{ $settingsDisplay }}
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">Avatar &amp; Karakter Anda</h3>
+                    <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-0.5">
+                        Pilih karakter dan warna latar belakang yang merepresentasikan Anda di room.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Avatar Preset Grid -->
             <div>
-                <label for="display_name" class="block text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] mb-1">
-                    Display Name
+                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-2">
+                    Pilihan Karakter Avatar
                 </label>
-                <input type="text" id="display_name" name="display_name" value="{{ old('display_name', $user->display_name) }}" required minlength="2" maxlength="50"
-                    class="w-full sm:w-80 px-3.5 py-2.5 rounded-xl border border-[#E3E7EF] dark:border-[#344052] bg-white dark:bg-[#151A24] text-xs sm:text-sm text-[#182033] dark:text-[#F1F4FA] focus:outline-none focus:ring-2 focus:ring-[#315CE8] dark:focus:ring-[#7895FF]">
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    @php
+                        $presets = [
+                            'initial' => ['symbol' => '🔤', 'label' => 'Inisial'],
+                            'shield' => ['symbol' => '🛡️', 'label' => 'Shield'],
+                            'flash' => ['symbol' => '⚡', 'label' => 'Flash'],
+                            'bot' => ['symbol' => '🤖', 'label' => 'Robot'],
+                            'fox' => ['symbol' => '🦊', 'label' => 'Fox'],
+                            'lock' => ['symbol' => '🔐', 'label' => 'Lock'],
+                            'rocket' => ['symbol' => '🚀', 'label' => 'Rocket'],
+                            'cat' => ['symbol' => '🐱', 'label' => 'Cat'],
+                            'owl' => ['symbol' => '🦉', 'label' => 'Owl'],
+                            'diamond' => ['symbol' => '💎', 'label' => 'Diamond'],
+                            'globe' => ['symbol' => '🌐', 'label' => 'Globe'],
+                            'ninja' => ['symbol' => '🕶️', 'label' => 'Agent'],
+                        ];
+                    @endphp
+                    @foreach($presets as $key => $preset)
+                        <button type="button"
+                            onclick="selectSettingsAvatarPreset('{{ $key }}', '{{ $preset['symbol'] }}')"
+                            id="settings-preset-btn-{{ $key }}"
+                            class="settings-avatar-btn p-2 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 {{ $settingsIcon === $key ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}">
+                            <span class="text-xl select-none">{{ $preset['symbol'] }}</span>
+                            <span class="text-[10px] font-medium text-[#667781] dark:text-[#8696A0]">{{ $preset['label'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- WhatsApp Color Swatches -->
+            <div>
+                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-2">
+                    Warna Latar Avatar (Palet WhatsApp)
+                </label>
+                <div class="flex items-center gap-2.5 flex-wrap pt-1">
+                    @php
+                        $colors = ['#008069', '#25D366', '#128C7E', '#00A884', '#075E54', '#34B7F1', '#1F2C34'];
+                    @endphp
+                    @foreach($colors as $c)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="avatar_color" value="{{ $c }}" class="sr-only peer" {{ $settingsColor === $c ? 'checked' : '' }} onchange="updateSettingsAvatarColor('{{ $c }}')">
+                            <div class="w-8 h-8 rounded-full peer-checked:ring-3 peer-checked:ring-offset-2 peer-checked:ring-[#008069] dark:peer-checked:ring-[#00A884] dark:peer-checked:ring-offset-[#111B21] transition-all duration-200 hover:scale-110 shadow-sm" style="background-color: {{ $c }};"></div>
+                        </label>
+                    @endforeach
+                </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-[#182033] dark:text-[#F1F4FA] mb-1">User ID Sesi Unik</label>
+                <label for="display_name" class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-1">
+                    Display Name
+                </label>
+                <input type="text" id="display_name" name="display_name" value="{{ old('display_name', $user->display_name) }}" required minlength="2" maxlength="50"
+                    oninput="updateSettingsAvatarPreview()"
+                    class="w-full sm:w-80 px-3.5 py-2.5 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] text-xs sm:text-sm text-[#111B21] dark:text-[#E9EDEF] focus:outline-none focus:ring-2 focus:ring-[#008069] dark:focus:ring-[#00A884]">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-1">User ID Sesi Unik</label>
                 <div class="flex items-center gap-2">
-                    <span class="inline-block px-3 py-1.5 rounded-xl bg-[#EEF1F7]/60 dark:bg-[#222B3A] font-mono text-xs text-[#667085] dark:text-[#A8B2C3]">
+                    <span class="inline-block px-3 py-1.5 rounded-xl bg-[#F0F2F5]/80 dark:bg-[#202C33] font-mono text-xs text-[#667781] dark:text-[#8696A0]">
                         {{ $user->user_id }}
                     </span>
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="px-2.5 py-1.5 rounded-lg border border-[#E3E7EF] dark:border-[#344052] text-xs text-[#315CE8] dark:text-[#7895FF] hover:bg-[#EEF1F7] dark:hover:bg-[#222B3A]">
+                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="px-2.5 py-1.5 rounded-lg border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#008069] dark:text-[#25D366] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
                         Salin
                     </button>
                 </div>
-                <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3] mt-1">
+                <p class="text-[11px] text-[#667781] dark:text-[#8696A0] mt-1">
                     User ID ini digunakan oleh modul signaling untuk perutean SDP Offer/Answer.
                 </p>
             </div>
 
             <div class="pt-2">
-                <button type="submit" class="px-4 py-2 rounded-xl bg-[#315CE8] hover:bg-[#254BC5] text-white text-xs font-semibold shadow-sm transition">
-                    Simpan Perubahan
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">
+                    Simpan Perubahan Identitas
                 </button>
             </div>
         </form>
@@ -227,6 +308,44 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    // Avatar preview controls for Settings
+    let currentSettingsIcon = "{{ $settingsIcon }}";
+    let currentSettingsSymbol = "{{ $settingsIcon === 'initial' ? '' : ($displaySymbols[$settingsIcon] ?? '') }}";
+
+    function selectSettingsAvatarPreset(key, symbol) {
+        currentSettingsIcon = key;
+        currentSettingsSymbol = (key === 'initial') ? '' : symbol;
+        document.getElementById('settings_avatar_icon').value = key;
+
+        document.querySelectorAll('.settings-avatar-btn').forEach(btn => {
+            btn.classList.remove('border-[#008069]', 'dark:border-[#00A884]', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-[#008069]', 'dark:ring-[#00A884]');
+            btn.classList.add('border-[#E9EDEF]', 'dark:border-[#222D34]', 'bg-white/60', 'dark:bg-[#202C33]/60');
+        });
+
+        const selectedBtn = document.getElementById('settings-preset-btn-' + key);
+        if (selectedBtn) {
+            selectedBtn.classList.remove('border-[#E9EDEF]', 'dark:border-[#222D34]', 'bg-white/60', 'dark:bg-[#202C33]/60');
+            selectedBtn.classList.add('border-[#008069]', 'dark:border-[#00A884]', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-[#008069]', 'dark:ring-[#00A884]');
+        }
+
+        updateSettingsAvatarPreview();
+    }
+
+    function updateSettingsAvatarPreview() {
+        const preview = document.getElementById('settings-avatar-preview');
+        if (currentSettingsIcon !== 'initial' && currentSettingsSymbol) {
+            preview.textContent = currentSettingsSymbol;
+        } else {
+            const name = document.getElementById('display_name').value.trim();
+            preview.textContent = name ? name.charAt(0).toUpperCase() : 'U';
+        }
+    }
+
+    function updateSettingsAvatarColor(color) {
+        const preview = document.getElementById('settings-avatar-preview');
+        preview.style.backgroundColor = color;
     }
 </script>
 @endpush

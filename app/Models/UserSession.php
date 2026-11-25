@@ -32,6 +32,44 @@ class UserSession extends Model
     }
 
     /**
+     * Map of avatar icon identifiers to display characters.
+     */
+    public static array $avatarSymbols = [
+        'shield' => '🛡️',
+        'flash' => '⚡',
+        'bot' => '🤖',
+        'fox' => '🦊',
+        'lock' => '🔐',
+        'rocket' => '🚀',
+        'cat' => '🐱',
+        'owl' => '🦉',
+        'diamond' => '💎',
+        'globe' => '🌐',
+        'ninja' => '🕶️',
+    ];
+
+    /**
+     * Get avatar icon / preset if selected.
+     */
+    public function getAvatarIconAttribute(): string
+    {
+        return $this->preferences['avatar_icon'] ?? 'initial';
+    }
+
+    /**
+     * Get avatar display character or emoji.
+     */
+    public function getAvatarDisplayAttribute(): string
+    {
+        $icon = $this->avatar_icon;
+        if (!empty($icon) && isset(self::$avatarSymbols[$icon])) {
+            return self::$avatarSymbols[$icon];
+        }
+
+        return strtoupper(substr(trim($this->display_name ?? 'U'), 0, 1) ?: 'U');
+    }
+
+    /**
      * Rooms created by this user.
      */
     public function createdRooms(): HasMany

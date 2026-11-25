@@ -221,7 +221,7 @@
                 @if(isset($user) && $user)
                     <div class="flex items-center gap-2 pl-2 border-l border-[#E9EDEF] dark:border-[#222D34]">
                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm" style="background-color: {{ $user->avatar_color }}">
-                            {{ substr($user->display_name, 0, 1) }}
+                            {{ $user->avatar_display }}
                         </div>
                         <div class="hidden sm:flex flex-col text-left">
                             <span class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] leading-none">{{ $user->display_name }}</span>

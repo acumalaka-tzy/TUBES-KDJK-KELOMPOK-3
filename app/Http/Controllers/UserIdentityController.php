@@ -35,6 +35,8 @@ class UserIdentityController extends Controller
                 'user_id' => $user->user_id,
                 'display_name' => $user->display_name,
                 'avatar_color' => $user->avatar_color,
+                'avatar_icon' => $user->avatar_icon,
+                'avatar_display' => $user->avatar_display,
                 'connection_status' => $user->connection_status,
                 'preferences' => $user->preferences,
                 'last_seen_at' => $user->last_seen_at?->toIso8601String(),
@@ -47,11 +49,16 @@ class UserIdentityController extends Controller
      */
     public function setup(SetupIdentityRequest $request): JsonResponse|RedirectResponse
     {
+        $preferences = $request->validated('preferences') ?: [];
+        if ($request->filled('avatar_icon')) {
+            $preferences['avatar_icon'] = $request->input('avatar_icon');
+        }
+
         $user = $this->identityService->setupIdentity(
             request: $request,
             displayName: $request->validated('display_name'),
             avatarColor: $request->validated('avatar_color'),
-            preferences: $request->validated('preferences'),
+            preferences: $preferences,
             existingUserId: $request->validated('user_id')
         );
 
@@ -88,11 +95,19 @@ class UserIdentityController extends Controller
             return redirect()->route('identity.setup')->withErrors(['error' => 'Silakan setup identitas terlebih dahulu.']);
         }
 
+        $preferences = $user->preferences ?: [];
+        if ($request->has('preferences')) {
+            $preferences = array_merge($preferences, $request->validated('preferences') ?: []);
+        }
+        if ($request->filled('avatar_icon')) {
+            $preferences['avatar_icon'] = $request->input('avatar_icon');
+        }
+
         $updatedUser = $this->identityService->updateIdentity(
             user: $user,
             displayName: $request->validated('display_name'),
             avatarColor: $request->validated('avatar_color'),
-            preferences: $request->validated('preferences')
+            preferences: $preferences
         );
 
         if ($request->wantsJson()) {
