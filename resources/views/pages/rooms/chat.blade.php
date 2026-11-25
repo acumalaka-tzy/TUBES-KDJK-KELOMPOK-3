@@ -274,12 +274,10 @@
             <p class="text-[11px] text-[#667085] dark:text-[#A8B2C3] mt-1">Bagikan Room ID ini untuk akses langsung</p>
         </div>
 
-        <!-- Simulated SVG QR Code -->
-        <div class="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-[#E3E7EF] mx-auto w-40 h-40">
-            <svg class="w-32 h-32 text-slate-900" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm14 0h2v2h-2v-2zm-4 0h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4-4h2v2h-2v-2zm4-4h2v2h-2v-2zm-2 2h2v2h-2v-2z"/>
-            </svg>
-            <span class="text-[9px] font-mono text-slate-500 mt-1">QR Undangan Room</span>
+        <!-- Dynamic QR Code Canvas -->
+        <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-[#E3E7EF] mx-auto w-44 h-44 shadow-2xs">
+            <canvas id="invite-qr-canvas" class="w-36 h-36 rounded-lg"></canvas>
+            <span class="text-[9px] font-mono text-slate-500 mt-1">QR Undangan WebRTC</span>
         </div>
 
         <div>
@@ -321,6 +319,11 @@
 
     function openInviteModal() {
         document.getElementById('invite-modal').classList.remove('hidden');
+        const canvas = document.getElementById('invite-qr-canvas');
+        const inviteUrl = document.getElementById('invite-link-input').value;
+        if (canvas && window.renderQrToCanvas) {
+            window.renderQrToCanvas(canvas, inviteUrl, { size: 144 });
+        }
     }
 
     function closeInviteModal() {
