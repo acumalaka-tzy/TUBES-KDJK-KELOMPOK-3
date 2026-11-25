@@ -447,7 +447,144 @@
                 }
             }, 1000);
         }
+
+        // Broadcast over WebRTC DataChannel if peerManager is ready
+        if (window.peerManager) {
+            window.peerManager.broadcastMessage(text, duration, replyPayload);
+        }
     }
+
+    function renderIncomingMessage(data) {
+        const list = document.getElementById('messages-list');
+        const bubbleId = 'bubble_peer_' + data.id;
+
+        const bubbleWrapper = document.createElement('div');
+        bubbleWrapper.id = bubbleId;
+        bubbleWrapper.className = 'flex items-start gap-2.5 group';
+
+        let replyHtml = '';
+        if (data.replyTo) {
+            replyHtml = `
+                <div class="mb-1 p-2 rounded-lg bg-[#EEF1F7]/80 dark:bg-[#151A24]/80 border-l-2 border-[#315CE8] dark:border-[#7895FF] text-[11px]">
+                    <div class="font-bold text-[#315CE8] dark:text-[#7895FF]">${data.replyTo.authorName}</div>
+                    <div class="truncate opacity-80 text-[#182033] dark:text-[#F1F4FA]">${data.replyTo.text}</div>
+                </div>
+            `;
+        }
+
+        bubbleWrapper.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs">
+                ${(data.senderName || 'P').charAt(0)}
+            </div>
+            <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
+                <div class="flex items-center gap-1.5 text-[11px] text-[#667085] dark:text-[#A8B2C3] mb-1">
+                    <span class="font-semibold text-[#182033] dark:text-[#F1F4FA]">${data.senderName}</span>
+                    <span>${data.timestamp}</span>
+                </div>
+                <div class="relative p-3.5 rounded-2xl rounded-tl-sm bg-[#EEF1F7] dark:bg-[#222B3A] border border-[#E3E7EF] dark:border-[#344052] text-xs text-[#182033] dark:text-[#F1F4FA] leading-relaxed shadow-2xs">
+                    ${replyHtml}
+                    <div>${data.text}</div>
+
+                    <!-- Quick Reactions & Reply on Hover -->
+                    <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#1B2230] border border-[#E3E7EF] dark:border-[#344052] shadow-sm text-xs">
+                        <button type="button" onclick="setReply('${data.id}', '${data.senderName.replace(/'/g, "\\'")}', '${data.text.replace(/'/g, "\\'")}')" title="Balas">↩️</button>
+                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
+                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
+                        <button type="button" onclick="navigator.clipboard.writeText('${data.text.replace(/'/g, "\\'")}'); alert('Teks disalin!')" title="Salin">📋</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 text-[10px] text-[#667085] dark:text-[#A8B2C3] mt-1 font-mono">
+                    <span class="text-emerald-600 dark:text-[#55C49A] font-bold">✓ E2EE Enkripsi</span>
+                    ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${data.ephemeralDuration}s)</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        list.appendChild(bubbleWrapper);
+        const container = document.getElementById('messages-container');
+        container.scrollTop = container.scrollHeight;
+
+        if (data.ephemeralDuration > 0) {
+            let remaining = data.ephemeralDuration;
+            const badge = bubbleWrapper.querySelector('.countdown-badge');
+            const timer = setInterval(() => {
+                remaining--;
+                if (badge) badge.textContent = `• Ephemeral (${remaining}s)`;
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    bubbleWrapper.style.transition = 'opacity 0.5s, transform 0.5s';
+                    bubbleWrapper.style.opacity = '0';
+                    bubbleWrapper.style.transform = 'translateY(-10px)';
+                    setTimeout(() => bubbleWrapper.remove(), 500);
+                }
+            }, 1000);
+        }
+    }
+
+    // Initialize WebRTC Peer Engine
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.SecureLinkPeer) {
+            window.peerManager = new window.SecureLinkPeer({
+                roomId: currentRoomId,
+                userId: currentUserId,
+                userName: currentUserName,
+                userAvatar: currentUserAvatar,
+                onMessageReceived: renderIncomingMessage,
+                onStatusChange: (status) => {
+                    const statusEl = document.getElementById('header-conn-status');
+                    if (statusEl) {
+                        statusEl.textContent = `● ${status.label}`;
+                        statusEl.className = `font-semibold font-sans ${status.color}`;
+                    }
+                }
+            });
+
+            // Echo Signaling Integration if Reverb/Echo is active
+            if (window.Echo) {
+                try {
+                    const channel = window.Echo.join(`room.${currentRoomId}`);
+                    channel.here((users) => {
+                        const countEl = document.getElementById('members-count');
+                        if (countEl) countEl.textContent = users.length;
+                        users.forEach(u => {
+                            if (u.id !== currentUserId && currentUserId < u.id) {
+                                window.peerManager.initiateOffer(u.id);
+                            }
+                        });
+                    });
+
+                    channel.joining((u) => {
+                        const countEl = document.getElementById('members-count');
+                        if (countEl) countEl.textContent = parseInt(countEl.textContent || '1') + 1;
+                        if (currentUserId < u.id) {
+                            window.peerManager.initiateOffer(u.id);
+                        }
+                    });
+
+                    channel.leaving(() => {
+                        const countEl = document.getElementById('members-count');
+                        if (countEl) countEl.textContent = Math.max(1, parseInt(countEl.textContent || '1') - 1);
+                    });
+
+                    channel.listenForWhisper('signal', (data) => {
+                        if (data.to === currentUserId && window.peerManager) {
+                            window.peerManager.handleSignal(data.from, data.signal);
+                        }
+                    });
+
+                    window.peerManager.signalSender = (targetUserId, signal) => {
+                        channel.whisper('signal', {
+                            from: currentUserId,
+                            to: targetUserId,
+                            signal: signal
+                        });
+                    };
+                } catch (e) {
+                    console.log('[SecureLink] Echo signaling running in local direct mode:', e);
+                }
+            }
+        }
+    });
 
     function toggleRoomLock() {
         fetch(`/api/rooms/${currentRoomId}/lock`, {

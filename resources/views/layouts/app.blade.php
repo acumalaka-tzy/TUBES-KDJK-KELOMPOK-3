@@ -6,6 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SecureLink — Secure Peer-to-Peer Messaging')</title>
 
+    @if(file_exists(public_path('build/manifest.json')))
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
+
     <!-- Tailwind CSS with PRD v2.1 Color Tokens -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
