@@ -56,8 +56,8 @@
         <!-- Sidebar User Footer -->
         <div class="p-3 border-t border-[#E9EDEF] dark:border-[#222D34] bg-white/40 dark:bg-[#111B21]/40 flex items-center justify-between">
             <div class="flex items-center gap-2 min-w-0">
-                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase" style="background-color: {{ $user->avatar_color }}">
-                    {{ $user->avatar_display }}
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase overflow-hidden p-0.5" style="background-color: {{ $user->avatar_color }}">
+                    {!! $user->avatar_html !!}
                 </div>
                 <div class="truncate">
                     <div class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate">{{ $user->display_name }}</div>
@@ -222,8 +222,8 @@
                     @foreach($metadata['participants'] as $p)
                         <div class="p-2.5 rounded-xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] flex items-center justify-between gap-2 shadow-2xs">
                             <div class="flex items-center gap-2 min-w-0">
-                                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase" style="background-color: {{ $p['avatar_color'] }}">
-                                    {{ $p['avatar_display'] ?? substr($p['display_name'], 0, 1) }}
+                                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase overflow-hidden p-0.5" style="background-color: {{ $p['avatar_color'] }}">
+                                    {!! $p['avatar_html'] ?? ($p['avatar_display'] ?? strtoupper(substr($p['display_name'], 0, 1))) !!}
                                 </div>
                                 <div class="truncate">
                                     <div class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate">{{ $p['display_name'] }}</div>
@@ -305,6 +305,19 @@
     const currentUserId = "{{ $user->user_id }}";
     const currentUserName = "{{ $user->display_name }}";
     const currentUserAvatar = "{{ $user->avatar_color }}";
+    const currentUserAvatarIcon = "{{ $user->avatar_icon }}";
+    const avatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
+
+    function getAvatarMarkup(icon, display, name) {
+        if (icon && avatarSvgs[icon]) {
+            return `<div class="w-full h-full flex items-center justify-center p-0.5 pointer-events-none">${avatarSvgs[icon]}</div>`;
+        }
+        if (display && display.includes('<svg')) {
+            return `<div class="w-full h-full flex items-center justify-center p-0.5 pointer-events-none">${display}</div>`;
+        }
+        const letter = (name || 'P').charAt(0).toUpperCase();
+        return `<span class="font-bold select-none leading-none">${letter}</span>`;
+    }
 
     let activeReply = null; // { messageId, authorName, text }
 
@@ -475,8 +488,8 @@
         }
 
         bubbleWrapper.innerHTML = `
-            <div class="w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs" style="background-color: ${data.senderAvatarColor || '#008069'}">
-                ${data.senderAvatarDisplay || (data.senderName || 'P').charAt(0)}
+            <div class="w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs overflow-hidden" style="background-color: ${data.senderAvatarColor || '#008069'}">
+                ${getAvatarMarkup(data.senderAvatarIcon, data.senderAvatarDisplay, data.senderName)}
             </div>
             <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
                 <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">

@@ -12,17 +12,24 @@
             @php
                 $initialColor = old('avatar_color', $user?->avatar_color ?? '#008069');
                 $selectedIcon = old('avatar_icon', $user?->avatar_icon ?? 'initial');
-                $displaySymbols = \App\Models\UserSession::$avatarSymbols;
-                $initialDisplay = ($selectedIcon !== 'initial' && isset($displaySymbols[$selectedIcon]))
-                    ? $displaySymbols[$selectedIcon]
-                    : strtoupper(substr(old('display_name', $user?->display_name ?? 'A'), 0, 1) ?: 'U');
+                $characterMetadata = \App\Models\UserSession::$characterMetadata;
+                $characterSvgs = \App\Models\UserSession::$avatarSvgs;
+                $resolvedKey = \App\Models\UserSession::$legacyAliases[$selectedIcon] ?? $selectedIcon;
+                $hasSvg = ($resolvedKey !== 'initial' && isset($characterSvgs[$resolvedKey]));
+                $initialLetter = strtoupper(substr(old('display_name', $user?->display_name ?? 'A'), 0, 1) ?: 'U');
             @endphp
-            <div id="avatar-preview" class="w-20 h-20 rounded-3xl text-white flex items-center justify-center mx-auto mb-3 text-3xl font-extrabold shadow-lg shadow-emerald-500/25 transition-all duration-300 uppercase transform hover:scale-105" style="background-color: {{ $initialColor }};">
-                {{ $initialDisplay }}
+            <div id="avatar-preview" class="w-20 h-20 rounded-3xl text-white flex items-center justify-center mx-auto mb-3 text-3xl font-extrabold shadow-lg shadow-emerald-500/25 transition-all duration-300 uppercase transform hover:scale-105 p-3 overflow-hidden" style="background-color: {{ $initialColor }};">
+                @if($hasSvg)
+                    <div class="w-full h-full flex items-center justify-center">
+                        {!! $characterSvgs[$resolvedKey] !!}
+                    </div>
+                @else
+                    <span class="font-extrabold select-none leading-none">{{ $initialLetter }}</span>
+                @endif
             </div>
             <h1 class="text-xl sm:text-2xl font-extrabold text-[#111B21] dark:text-[#E9EDEF]">Identitas Sesi Pengguna</h1>
             <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-1.5 leading-relaxed max-w-sm mx-auto">
-                Pilih karakter avatar dan nama tampilan Anda untuk berkomunikasi di ruang obrolan P2P privat.
+                Pilih karakter avatar vektor dan nama tampilan Anda untuk berkomunikasi di ruang obrolan P2P privat.
             </p>
         </div>
 
@@ -42,35 +49,30 @@
                     class="w-full px-4 py-3 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] bg-white/80 dark:bg-[#111B21]/80 text-sm text-[#111B21] dark:text-[#E9EDEF] placeholder-[#667781]/60 dark:placeholder-[#8696A0]/40 focus:outline-none focus:ring-2 focus:ring-[#008069] dark:focus:ring-[#00A884] transition">
             </div>
 
-            <!-- Avatar Preset Selection Grid -->
+            <!-- Avatar Preset Selection Grid (Vector Characters, Non-Emoji) -->
             <div>
                 <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-2">
-                    Pilihan Karakter Avatar
+                    Pilihan Karakter Avatar (Vektor Grafis)
                 </label>
-                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    @php
-                        $presets = [
-                            'initial' => ['symbol' => '🔤', 'label' => 'Inisial'],
-                            'shield' => ['symbol' => '🛡️', 'label' => 'Shield'],
-                            'flash' => ['symbol' => '⚡', 'label' => 'Flash'],
-                            'bot' => ['symbol' => '🤖', 'label' => 'Robot'],
-                            'fox' => ['symbol' => '🦊', 'label' => 'Fox'],
-                            'lock' => ['symbol' => '🔐', 'label' => 'Lock'],
-                            'rocket' => ['symbol' => '🚀', 'label' => 'Rocket'],
-                            'cat' => ['symbol' => '🐱', 'label' => 'Cat'],
-                            'owl' => ['symbol' => '🦉', 'label' => 'Owl'],
-                            'diamond' => ['symbol' => '💎', 'label' => 'Diamond'],
-                            'globe' => ['symbol' => '🌐', 'label' => 'Globe'],
-                            'ninja' => ['symbol' => '🕶️', 'label' => 'Agent'],
-                        ];
-                    @endphp
-                    @foreach($presets as $key => $preset)
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                    @foreach($characterMetadata as $key => $meta)
+                        @php
+                            $isSvg = ($key !== 'initial' && isset($characterSvgs[$key]));
+                            $isActive = ($selectedIcon === $key || (isset(\App\Models\UserSession::$legacyAliases[$selectedIcon]) && \App\Models\UserSession::$legacyAliases[$selectedIcon] === $key));
+                        @endphp
                         <button type="button"
-                            onclick="selectAvatarPreset('{{ $key }}', '{{ $preset['symbol'] }}')"
+                            onclick="selectAvatarPreset('{{ $key }}')"
                             id="preset-btn-{{ $key }}"
-                            class="avatar-preset-btn p-2 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 {{ $selectedIcon === $key ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}">
-                            <span class="text-xl select-none">{{ $preset['symbol'] }}</span>
-                            <span class="text-[10px] font-medium text-[#667781] dark:text-[#8696A0]">{{ $preset['label'] }}</span>
+                            class="avatar-preset-btn p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 {{ $isActive ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}"
+                            title="{{ $meta['desc'] }}">
+                            <div class="w-7 h-7 flex items-center justify-center text-[#008069] dark:text-[#25D366]">
+                                @if($isSvg)
+                                    {!! $characterSvgs[$key] !!}
+                                @else
+                                    <span class="text-xs font-black tracking-tight bg-[#E9EDEF] dark:bg-[#202C33] px-1.5 py-0.5 rounded text-[#111B21] dark:text-[#E9EDEF]">Aa</span>
+                                @endif
+                            </div>
+                            <span class="text-[10px] font-semibold text-[#111B21] dark:text-[#E9EDEF]">{{ $meta['label'] }}</span>
                         </button>
                     @endforeach
                 </div>
@@ -125,13 +127,12 @@
 
 @push('scripts')
 <script>
+    const avatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
     let currentIcon = "{{ $selectedIcon }}";
-    let currentSymbol = "{{ $selectedIcon === 'initial' ? '' : ($displaySymbols[$selectedIcon] ?? '') }}";
     let currentColor = "{{ $selectedColor }}";
 
-    function selectAvatarPreset(key, symbol) {
+    function selectAvatarPreset(key) {
         currentIcon = key;
-        currentSymbol = (key === 'initial') ? '' : symbol;
         document.getElementById('avatar_icon').value = key;
 
         // Update preset buttons styling
@@ -151,11 +152,12 @@
 
     function updateAvatarPreview() {
         const preview = document.getElementById('avatar-preview');
-        if (currentIcon !== 'initial' && currentSymbol) {
-            preview.textContent = currentSymbol;
+        const name = document.getElementById('display_name').value.trim();
+        if (currentIcon !== 'initial' && avatarSvgs[currentIcon]) {
+            preview.innerHTML = '<div class="w-full h-full flex items-center justify-center p-0.5">' + avatarSvgs[currentIcon] + '</div>';
         } else {
-            const name = document.getElementById('display_name').value.trim();
-            preview.textContent = name ? name.charAt(0).toUpperCase() : 'U';
+            const letter = name ? name.charAt(0).toUpperCase() : 'U';
+            preview.innerHTML = '<span class="font-extrabold select-none leading-none">' + letter + '</span>';
         }
     }
 

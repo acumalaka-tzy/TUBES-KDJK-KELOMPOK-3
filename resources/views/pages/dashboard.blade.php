@@ -7,8 +7,8 @@
     <!-- User Profile Banner (Glassmorphic) -->
     <div class="glass-card p-6 sm:p-7 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
         <div class="flex items-center gap-4.5">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold uppercase shadow-lg shadow-emerald-500/20 shrink-0 transform transition duration-300 hover:rotate-3" style="background-color: {{ $user->avatar_color }}">
-                {{ $user->avatar_display }}
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold uppercase shadow-lg shadow-emerald-500/20 shrink-0 transform transition duration-300 hover:rotate-3 overflow-hidden p-2.5" style="background-color: {{ $user->avatar_color }}">
+                {!! $user->avatar_html !!}
             </div>
             <div>
                 <div class="flex items-center gap-2.5">

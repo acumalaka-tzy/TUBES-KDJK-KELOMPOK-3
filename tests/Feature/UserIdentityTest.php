@@ -175,9 +175,10 @@ class UserIdentityTest extends TestCase
 
         $user = UserSession::where('user_id', $userId)->first();
         $this->assertEquals('ninja', $user->avatar_icon);
-        $this->assertEquals('🕶️', $user->avatar_display);
+        $this->assertStringContainsString('<svg', $user->avatar_display);
+        $this->assertStringContainsString('<svg', $user->avatar_html);
 
-        // Update avatar icon to shield
+        // Update avatar icon to shield (legacy alias for guardian)
         $updateResponse = $this->withSession(['securelink_user_id' => $userId])
             ->putJson('/api/identity', [
                 'avatar_icon' => 'shield',
@@ -186,6 +187,7 @@ class UserIdentityTest extends TestCase
         $updateResponse->assertStatus(200);
         $user->refresh();
         $this->assertEquals('shield', $user->avatar_icon);
-        $this->assertEquals('🛡️', $user->avatar_display);
+        $this->assertStringContainsString('<svg', $user->avatar_display);
+        $this->assertStringContainsString('<svg', $user->avatar_html);
     }
 }

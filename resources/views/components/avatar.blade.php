@@ -13,7 +13,7 @@
         'md' => 'w-8 h-8 text-xs',
         'lg' => 'w-10 h-10 text-sm',
         'xl' => 'w-14 h-14 text-xl',
-        '2xl' => 'w-18 h-18 text-3xl',
+        '2xl' => 'w-20 h-20 text-3xl',
     ];
 
     $badgeSizes = [
@@ -27,15 +27,24 @@
 
     $selectedSize = $sizeClasses[$size] ?? $sizeClasses['md'];
     $selectedBadge = $badgeSizes[$size] ?? $badgeSizes['md'];
+
+    $resolvedKey = \App\Models\UserSession::$legacyAliases[$icon] ?? $icon;
+    $hasSvg = (!empty($resolvedKey) && $resolvedKey !== 'initial' && isset(\App\Models\UserSession::$avatarSvgs[$resolvedKey]));
+    $svgContent = $hasSvg ? \App\Models\UserSession::$avatarSvgs[$resolvedKey] : null;
     $initial = strtoupper(substr(trim($name), 0, 1) ?: 'U');
-    $display = (!empty($icon) && $icon !== 'initial') ? $icon : $initial;
 @endphp
 
 <div class="relative inline-flex shrink-0">
-    <div class="{{ $selectedSize }} rounded-full flex items-center justify-center text-white font-bold uppercase shadow-2xs select-none"
+    <div class="{{ $selectedSize }} rounded-full flex items-center justify-center text-white font-bold uppercase shadow-2xs select-none overflow-hidden"
         style="background-color: {{ $color }};"
         title="{{ $name }}">
-        {{ $display }}
+        @if($hasSvg)
+            <div class="w-full h-full flex items-center justify-center p-0.5 pointer-events-none">
+                {!! $svgContent !!}
+            </div>
+        @else
+            <span class="font-bold select-none leading-none">{{ $initial }}</span>
+        @endif
     </div>
 
     @if($online)
