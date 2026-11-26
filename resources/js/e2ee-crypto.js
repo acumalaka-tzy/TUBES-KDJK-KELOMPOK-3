@@ -5,6 +5,7 @@
 
 export const E2EE_CURVE = 'P-256';
 export const AES_GCM_IV_LENGTH = 12; // 96-bit IV recommended for AES-GCM (NIST SP 800-38D)
+export const AES_GCM_TAG_LENGTH = 128; // 128-bit authentication tag
 export const MAX_NONCE_HISTORY = 10000;
 
 /**
@@ -525,6 +526,112 @@ export class NonceManager {
         };
     }
 }
+
+/**
+ * Build canonical Additional Authenticated Data (AAD) binding room, sender, and message ID.
+ * @param {Object|null} aadContext
+ * @returns {Uint8Array}
+ */
+export function buildMessageAad(aadContext) {
+    if (!aadContext || typeof aadContext !== 'object') {
+        return new Uint8Array(0);
+    }
+
+    const canonical = JSON.stringify({
+        roomId: aadContext.roomId ?? '',
+        senderId: aadContext.senderId ?? '',
+        messageId: aadContext.messageId ?? '',
+    });
+    return new TextEncoder().encode(canonical);
+}
+
+/**
+ * Encrypt plain-text message with AES-GCM (256-bit) and 128-bit authentication tag.
+ * @param {string} plaintext
+ * @param {CryptoKey} aesKey
+ * @param {NonceManager} nonceManager
+ * @param {Object|null} [aadContext=null]
+ * @returns {Promise<{ciphertext: string, iv: string, algorithm: string, tagLength: number, encrypted: boolean}>}
+ */
+export async function encryptAesGcm(plaintext, aesKey, nonceManager, aadContext = null) {
+    if (typeof plaintext !== 'string') {
+        throw new Error('Plaintext pesan harus berupa string.');
+    }
+    if (!aesKey || aesKey.algorithm?.name !== 'AES-GCM') {
+        throw new Error('Kunci enkripsi AES-GCM tidak tersedia atau tidak valid.');
+    }
+    if (!(nonceManager instanceof NonceManager)) {
+        throw new Error('NonceManager wajib disediakan untuk enkripsi AES-GCM.');
+    }
+
+    const iv = nonceManager.nextIv();
+    const encoded = new TextEncoder().encode(plaintext);
+    const additionalData = buildMessageAad(aadContext);
+
+    const encryptedBuffer = await getSubtleCrypto().encrypt(
+        {
+            name: 'AES-GCM',
+            iv,
+            additionalData,
+            tagLength: AES_GCM_TAG_LENGTH,
+        },
+        aesKey,
+        encoded
+    );
+
+    return {
+        ciphertext: bytesToBase64(new Uint8Array(encryptedBuffer)),
+        iv: bytesToBase64(iv),
+        algorithm: 'AES-GCM-256',
+        tagLength: AES_GCM_TAG_LENGTH,
+        encrypted: true,
+    };
+}
+
+/**
+ * Decrypt and authenticate AES-GCM payload. Rejects tampered, replayed, or unauthenticated data.
+ * @param {{ciphertext: string, iv: string, encrypted?: boolean}} payload
+ * @param {CryptoKey} aesKey
+ * @param {NonceManager|null} [nonceManager=null]
+ * @param {Object|null} [aadContext=null]
+ * @returns {Promise<string>}
+ */
+export async function decryptAesGcm(payload, aesKey, nonceManager = null, aadContext = null) {
+    if (!payload || typeof payload.ciphertext !== 'string' || typeof payload.iv !== 'string') {
+        throw new Error('Payload terenkripsi tidak lengkap (ciphertext atau IV hilang).');
+    }
+    if (payload.encrypted === false) {
+        throw new Error('Payload tidak terenkripsi ditolak oleh kebijakan E2EE.');
+    }
+    if (!aesKey || aesKey.algorithm?.name !== 'AES-GCM') {
+        throw new Error('Kunci dekripsi AES-GCM tidak tersedia atau tidak valid.');
+    }
+
+    const iv = nonceManager instanceof NonceManager
+        ? nonceManager.registerIncomingIv(payload.iv)
+        : decodeAndValidateIv(payload.iv);
+
+    const ciphertextBytes = base64ToBytes(payload.ciphertext);
+    const additionalData = buildMessageAad(aadContext);
+
+    try {
+        const decryptedBuffer = await getSubtleCrypto().decrypt(
+            {
+                name: 'AES-GCM',
+                iv,
+                additionalData,
+                tagLength: AES_GCM_TAG_LENGTH,
+            },
+            aesKey,
+            ciphertextBytes
+        );
+
+        return new TextDecoder().decode(decryptedBuffer);
+    } catch (err) {
+        throw new Error('Autentikasi atau dekripsi AES-GCM gagal: integritas ciphertext atau tag tidak valid.');
+    }
+}
+
 
 
 
