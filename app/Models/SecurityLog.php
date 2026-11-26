@@ -37,8 +37,42 @@ class SecurityLog extends Model
     }
 
     /**
+     * Forbidden keys that must never be persisted to security logs (PRD Section 3.8).
+     *
+     * @var array<int, string>
+     */
+    public const FORBIDDEN_KEYS = [
+        'pin',
+        'room_pin',
+        'room_pin_hash',
+        'pin_value',
+        'password',
+        'passphrase',
+        'key',
+        'private_key',
+        'privatekey',
+        'public_key_private',
+        'shared_secret',
+        'sharedsecret',
+        'secret',
+        'totp_secret',
+        'dynamic_pin_secret',
+        'plain_text',
+        'plaintext',
+        'message',
+        'text',
+        'body',
+        'payload',
+        'ciphertext',
+        'token',
+        'raw_token',
+        'session_token',
+        'session_id',
+    ];
+
+    /**
      * Safe logger adhering to PRD requirements:
-     * Never store plain-text messages, private keys, shared secrets, or PINs.
+     * Never store plain-text messages, private keys, shared secrets, tokens, or PINs.
      */
     public static function logEvent(
         string $eventType,
@@ -46,17 +80,53 @@ class SecurityLog extends Model
         ?string $userId = null,
         array $details = []
     ): self {
-        // Strip out forbidden keys if accidentally provided
-        $forbiddenKeys = ['pin', 'password', 'key', 'secret', 'private_key', 'plain_text', 'message'];
-        $cleanDetails = array_filter($details, function ($key) use ($forbiddenKeys) {
-            return !in_array(strtolower($key), $forbiddenKeys);
-        }, ARRAY_FILTER_USE_KEY);
-
         return self::create([
             'room_id' => $roomId,
             'user_id' => $userId,
             'event_type' => $eventType,
-            'details' => $cleanDetails,
+            'details' => self::sanitizeDetails($details),
         ]);
+    }
+
+    /**
+     * Recursively remove forbidden sensitive keys from log metadata.
+     *
+     * @param  array<string|int, mixed>  $details
+     * @return array<string|int, mixed>
+     */
+    public static function sanitizeDetails(array $details): array
+    {
+        $clean = [];
+
+        foreach ($details as $key => $value) {
+            if (is_string($key) && self::isForbiddenKey($key)) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $clean[$key] = self::sanitizeDetails($value);
+            } else {
+                $clean[$key] = $value;
+            }
+        }
+
+        return $clean;
+    }
+
+    protected static function isForbiddenKey(string $key): bool
+    {
+        $normalized = strtolower(trim($key));
+
+        if (in_array($normalized, self::FORBIDDEN_KEYS, true)) {
+            return true;
+        }
+
+        foreach (['secret', 'password', 'private_key', 'privatekey', 'shared_secret', 'plaintext', 'plain_text', 'ciphertext', 'session_token'] as $needle) {
+            if (str_contains($normalized, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\UserIdentityController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,8 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
     // Room member routes
     Route::middleware(['room.member'])->group(function () {
         Route::post('/{roomId}/invite', [RoomController::class, 'createInvite'])->name('api.rooms.invite');
+        Route::get('/{roomId}/security-logs', [SecurityLogController::class, 'index'])->name('api.rooms.security_logs.index');
+        Route::post('/{roomId}/security-logs', [SecurityLogController::class, 'store'])->name('api.rooms.security_logs.store');
     });
 
     // Room creator admin routes

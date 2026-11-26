@@ -585,6 +585,19 @@
                 userName: currentUserName,
                 userAvatar: currentUserAvatar,
                 e2eeEnabled: {{ $room->e2ee_enabled ? 'true' : 'false' }},
+                onSecurityEvent: (eventType, details) => {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    if (!csrfToken) return;
+                    fetch(`/api/rooms/${currentRoomId}/security-logs`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ event_type: eventType, details: details || {} })
+                    }).catch(() => {});
+                },
                 onMessageReceived: renderIncomingMessage,
                 onStatusChange: (status) => {
                     const statusEl = document.getElementById('header-conn-status');
