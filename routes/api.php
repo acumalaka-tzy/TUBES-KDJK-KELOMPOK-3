@@ -3,6 +3,7 @@
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SignalingController;
 use App\Http\Controllers\UserIdentityController;
+use App\Http\Controllers\WebRTCConfigController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +20,11 @@ Route::prefix('identity')->group(function () {
     Route::post('/heartbeat', [UserIdentityController::class, 'heartbeat'])->name('api.identity.heartbeat');
     Route::post('/logout', [UserIdentityController::class, 'logout'])->name('api.identity.logout');
 });
+
+// WebRTC ICE (STUN/TURN) Configuration
+Route::get('/webrtc/ice-servers', [WebRTCConfigController::class, 'iceServers'])
+    ->middleware(['identity'])
+    ->name('api.webrtc.ice');
 
 // Protected Room routes (requires user session identity)
 Route::prefix('rooms')->middleware(['identity'])->group(function () {
