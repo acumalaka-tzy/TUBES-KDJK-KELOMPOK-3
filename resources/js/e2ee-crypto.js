@@ -245,3 +245,82 @@ export class E2EEKeyManager {
         };
     }
 }
+
+/**
+ * Derive a 256-bit ECDH shared secret from local private key and peer public key.
+ * @param {CryptoKey} localPrivateKey
+ * @param {CryptoKey} remotePublicKey
+ * @returns {Promise<Uint8Array>}
+ */
+export async function deriveEcdhSharedSecretBits(localPrivateKey, remotePublicKey) {
+    if (!localPrivateKey || localPrivateKey.type !== 'private' || localPrivateKey.algorithm?.name !== 'ECDH') {
+        throw new Error('Local private key ECDH tidak valid.');
+    }
+    if (!remotePublicKey || remotePublicKey.type !== 'public' || remotePublicKey.algorithm?.name !== 'ECDH') {
+        throw new Error('Remote public key ECDH tidak valid.');
+    }
+
+    const bits = await getSubtleCrypto().deriveBits(
+        {
+            name: 'ECDH',
+            public: remotePublicKey,
+        },
+        localPrivateKey,
+        256
+    );
+
+    const secretBytes = new Uint8Array(bits);
+    if (secretBytes.length !== 32) {
+        throw new Error('Panjang shared secret ECDH tidak sesuai (harus 256-bit).');
+    }
+    return secretBytes;
+}
+
+/**
+ * Validate remote JWK, ensure it differs from local public key, and derive ECDH shared secret bits.
+ * @param {CryptoKeyPair} localKeyPair
+ * @param {JsonWebKey} remoteJwk
+ * @returns {Promise<{sharedSecret: Uint8Array, remoteKeyId: string}>}
+ */
+export async function deriveSharedSecretFromJwk(localKeyPair, remoteJwk) {
+    if (!localKeyPair?.privateKey || !localKeyPair?.publicKey) {
+        throw new Error('Key pair lokal belum diinisialisasi.');
+    }
+
+    const cleanRemoteJwk = sanitizePublicJwk(remoteJwk);
+    const localPublicJwk = await exportPublicKeyJwk(localKeyPair.publicKey);
+    const localKeyId = await computePublicKeyId(localPublicJwk);
+    const remoteKeyId = await computePublicKeyId(cleanRemoteJwk);
+
+    if (localKeyId === remoteKeyId) {
+        throw new Error('Remote public key identik dengan key lokal; pertukaran ECDH ditolak.');
+    }
+
+    const remotePublicKey = await importRemotePublicKeyJwk(cleanRemoteJwk);
+    const sharedSecret = await deriveEcdhSharedSecretBits(localKeyPair.privateKey, remotePublicKey);
+
+    return {
+        sharedSecret,
+        remoteKeyId,
+    };
+}
+
+/**
+ * Build deterministic bilateral ECDH session context independent of initiator/responder order.
+ * @param {string} roomId
+ * @param {string} localUserId
+ * @param {string} remoteUserId
+ * @returns {{roomId: string, participants: [string, string], contextLabel: string}}
+ */
+export function buildEcdhSessionContext(roomId, localUserId, remoteUserId) {
+    if (!roomId || !localUserId || !remoteUserId) {
+        throw new Error('roomId, localUserId, dan remoteUserId wajib diisi untuk konteks ECDH.');
+    }
+    const participants = [String(localUserId), String(remoteUserId)].sort();
+    return {
+        roomId: String(roomId),
+        participants,
+        contextLabel: `SecureLink-ECDH-v1:${roomId}:${participants[0]}:${participants[1]}`,
+    };
+}
+
