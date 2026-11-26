@@ -424,10 +424,37 @@ class RoomService
 
         // If current user is the creator and dynamic PIN is enabled, provide the current TOTP for display
         if ($isCreator && $room->dynamic_pin_enabled && ! empty($room->dynamic_pin_secret)) {
-            $metadata['current_dynamic_pin'] = $this->pinService->getTotpCode($room->dynamic_pin_secret);
+            $dynamicStatus = $this->pinService->getDynamicPinStatus($room);
+            $metadata['current_dynamic_pin'] = $dynamicStatus['current_pin'];
+            $metadata['dynamic_pin_expires_in'] = $dynamicStatus['expires_in_seconds'];
         }
 
         return $metadata;
+    }
+
+    /**
+     * Rotate a room's Dynamic TOTP PIN secret (Creator only).
+     *
+     * @return ?array{enabled: bool, current_pin: ?string, expires_in_seconds: ?int, time_step: int, digits: int}
+     */
+    public function rotateDynamicPinSecret(UserSession $actor, Room $room): ?array
+    {
+        if (! $room->isCreator($actor->user_id)) {
+            return null;
+        }
+
+        $room->update([
+            'dynamic_pin_enabled' => true,
+            'dynamic_pin_secret' => $this->pinService->generateTotpSecret(),
+        ]);
+
+        SecurityLog::logEvent(
+            eventType: 'dynamic_pin_secret_rotated',
+            roomId: $room->room_id,
+            userId: $actor->user_id
+        );
+
+        return $this->pinService->getDynamicPinStatus($room->fresh());
     }
 
     /**

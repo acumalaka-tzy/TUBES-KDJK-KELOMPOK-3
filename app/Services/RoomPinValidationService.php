@@ -177,10 +177,10 @@ class RoomPinValidationService
     public function getTotpCode(string $secret, ?int $timestamp = null, int $timeStep = 30, int $digits = 6): string
     {
         $time = $timestamp ?? time();
-        $counter = floor($time / $timeStep);
+        $counter = intdiv($time, $timeStep);
 
-        // Pack counter into 8-byte big-endian binary
-        $binaryCounter = pack('N*', 0).pack('N*', $counter);
+        // Pack 64-bit counter into 8-byte big-endian binary
+        $binaryCounter = pack('NN', ($counter >> 32) & 0xFFFFFFFF, $counter & 0xFFFFFFFF);
 
         // Decode Base32 secret
         $decodedSecret = $this->base32Decode($secret);
@@ -200,6 +200,44 @@ class RoomPinValidationService
         $totp = $binaryCode % (10 ** $digits);
 
         return str_pad((string) $totp, $digits, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get remaining validity seconds for the current TOTP window.
+     */
+    public function getTotpRemainingSeconds(int $timeStep = 30, ?int $timestamp = null): int
+    {
+        $time = $timestamp ?? time();
+        $elapsed = $time % $timeStep;
+
+        return $timeStep - $elapsed;
+    }
+
+    /**
+     * Build safe Dynamic PIN (TOTP) status payload for Room Creator display.
+     * Never returns the underlying TOTP secret.
+     *
+     * @return array{enabled: bool, current_pin: ?string, expires_in_seconds: ?int, time_step: int, digits: int}
+     */
+    public function getDynamicPinStatus(Room $room, int $timeStep = 30, int $digits = 6): array
+    {
+        if (! $room->dynamic_pin_enabled || empty($room->dynamic_pin_secret)) {
+            return [
+                'enabled' => false,
+                'current_pin' => null,
+                'expires_in_seconds' => null,
+                'time_step' => $timeStep,
+                'digits' => $digits,
+            ];
+        }
+
+        return [
+            'enabled' => true,
+            'current_pin' => $this->getTotpCode($room->dynamic_pin_secret, null, $timeStep, $digits),
+            'expires_in_seconds' => $this->getTotpRemainingSeconds($timeStep),
+            'time_step' => $timeStep,
+            'digits' => $digits,
+        ];
     }
 
     /**

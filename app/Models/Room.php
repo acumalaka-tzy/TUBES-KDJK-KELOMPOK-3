@@ -42,6 +42,7 @@ class Room extends Model
     {
         return [
             'dynamic_pin_enabled' => 'boolean',
+            'dynamic_pin_secret' => 'encrypted',
             'pin_expires_at' => 'datetime',
             'e2ee_enabled' => 'boolean',
             'ephemeral_enabled' => 'boolean',

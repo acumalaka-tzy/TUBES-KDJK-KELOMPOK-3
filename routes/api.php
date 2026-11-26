@@ -37,5 +37,7 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/kick', [RoomController::class, 'kick'])->name('api.rooms.kick');
         Route::post('/{roomId}/lock', [RoomController::class, 'toggleLock'])->name('api.rooms.lock');
         Route::put('/{roomId}/settings', [RoomController::class, 'updateSettings'])->name('api.rooms.settings');
+        Route::get('/{roomId}/dynamic-pin', [RoomController::class, 'dynamicPin'])->name('api.rooms.dynamic_pin');
+        Route::post('/{roomId}/dynamic-pin/rotate', [RoomController::class, 'rotateDynamicPin'])->name('api.rooms.dynamic_pin.rotate');
     });
 });
