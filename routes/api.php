@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BroadcastComparisonController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SignalingController;
 use App\Http\Controllers\UserIdentityController;
@@ -40,6 +41,9 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/signal', [SignalingController::class, 'send'])
             ->middleware('throttle:120,1')
             ->name('api.rooms.signal');
+        Route::post('/{roomId}/broadcast-message', [BroadcastComparisonController::class, 'send'])
+            ->middleware('throttle:60,1')
+            ->name('api.rooms.broadcast');
     });
 
     // Room creator admin routes

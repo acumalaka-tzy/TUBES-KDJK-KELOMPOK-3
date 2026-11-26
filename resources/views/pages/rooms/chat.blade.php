@@ -114,6 +114,16 @@
 
             <!-- Header Action Controls -->
             <div class="flex items-center gap-2 shrink-0">
+                <!-- P2P vs Broadcast Comparison Mode Toggle -->
+                <div class="hidden sm:flex items-center p-0.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[11px] font-semibold" title="Pilih mode transmisi untuk perbandingan">
+                    <button type="button" id="mode-btn-p2p" onclick="setCommunicationMode('p2p')" class="px-2.5 py-1 rounded-lg bg-[#008069] text-white transition">
+                        P2P WebRTC
+                    </button>
+                    <button type="button" id="mode-btn-broadcast" onclick="setCommunicationMode('broadcast')" class="px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition">
+                        Broadcast
+                    </button>
+                </div>
+
                 <!-- Dynamic PIN Display for Creator -->
                 @if($metadata['is_creator'] && !empty($metadata['current_dynamic_pin']))
                     <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs">
@@ -148,9 +158,9 @@
         <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#EFEAE2]/60 dark:bg-[#0B141A]">
             <!-- System Security Badge -->
             <div class="text-center my-1">
-                <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F0F2F5]/80 dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[11px] text-[#667781] dark:text-[#8696A0]">
+                <div id="mode-security-banner" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F0F2F5]/80 dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[11px] text-[#667781] dark:text-[#8696A0]">
                     <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    <span>P2P WebRTC DataChannel aktif &bull; Enkripsi AES-GCM &bull; Server tidak menyimpan obrolan</span>
+                    <span id="mode-security-text">P2P WebRTC DataChannel aktif &bull; Enkripsi AES-GCM &bull; Server tidak menyimpan obrolan</span>
                 </div>
             </div>
 
@@ -474,7 +484,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
-                    <span class="text-[#53BDEB] font-bold">✓✓ Delivered</span>
+                    <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-amber-500' : 'text-[#53BDEB]'} font-bold">${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}</span>
                     ${duration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${duration}s)</span>` : ''}
                 </div>
             </div>
@@ -503,9 +513,27 @@
             }, 1000);
         }
 
-        // Broadcast over WebRTC DataChannel if peerManager is ready
-        if (window.peerManager) {
-            window.peerManager.broadcastMessage(text, duration, replyPayload);
+        // Route message according to active communication mode (P2P WebRTC vs Server Broadcast)
+        if (communicationMode === 'broadcast') {
+            fetch(`/api/rooms/${currentRoomId}/broadcast-message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: text,
+                    ephemeral_duration: duration,
+                    reply_to: replyPayload
+                })
+            }).catch((err) => console.error('[SecureLink] Broadcast mode send error:', err));
+        } else if (window.peerManager) {
+            window.peerManager.broadcastMessage(text, duration, replyPayload).then((sent) => {
+                if (sent && sent.id) {
+                    bubbleWrapper.dataset.messageId = sent.id;
+                }
+            });
         }
     }
 
@@ -549,7 +577,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
-                    <span class="text-[#25D366] font-bold">✓ E2EE Enkripsi</span>
+                    ${data.transport === 'broadcast'
+                        ? '<span class="text-amber-500 font-bold">⚠ Server Broadcast (Non-P2P)</span>'
+                        : '<span class="text-[#25D366] font-bold">✓ E2EE Enkripsi (P2P)</span>'}
                     ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${data.ephemeralDuration}s)</span>` : ''}
                 </div>
             </div>
@@ -576,69 +606,140 @@
         }
     }
 
+    let communicationMode = 'p2p';
+
+    function setCommunicationMode(mode) {
+        communicationMode = mode === 'broadcast' ? 'broadcast' : 'p2p';
+        const p2pBtn = document.getElementById('mode-btn-p2p');
+        const bcastBtn = document.getElementById('mode-btn-broadcast');
+        const bannerText = document.getElementById('mode-security-text');
+
+        if (communicationMode === 'broadcast') {
+            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition';
+            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-lg bg-amber-500 text-white transition';
+            if (bannerText) bannerText.textContent = 'Broadcast Comparison Mode aktif • Pesan diteruskan melalui Server Reverb (Non-P2P)';
+        } else {
+            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-lg bg-[#008069] text-white transition';
+            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition';
+            if (bannerText) bannerText.textContent = 'P2P WebRTC DataChannel aktif • Enkripsi AES-GCM • Server tidak menyimpan obrolan';
+        }
+    }
+
     // Initialize WebRTC Peer Engine
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.SecureLinkPeer) {
-            window.peerManager = new window.SecureLinkPeer({
-                roomId: currentRoomId,
-                userId: currentUserId,
-                userName: currentUserName,
-                userAvatar: currentUserAvatar,
-                onMessageReceived: renderIncomingMessage,
-                onStatusChange: (status) => {
-                    const statusEl = document.getElementById('header-conn-status');
-                    if (statusEl) {
-                        statusEl.textContent = `● ${status.label}`;
-                        statusEl.className = `font-semibold font-sans ${status.color}`;
-                    }
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!window.SecureLinkPeer) return;
+
+        window.peerManager = new window.SecureLinkPeer({
+            roomId: currentRoomId,
+            userId: currentUserId,
+            userName: currentUserName,
+            userAvatar: currentUserAvatar,
+            userAvatarColor: '{{ $user->avatar_color ?? "#008069" }}',
+            userAvatarIcon: '{{ $user->preferences["avatar_icon"] ?? "initial" }}',
+            onMessageReceived: renderIncomingMessage,
+            onMessageAck: (messageId) => {
+                const bubble = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
+                if (bubble) bubble.textContent = '✓✓ Delivered (P2P ACK)';
+            },
+            onStatusChange: (status) => {
+                const statusEl = document.getElementById('header-conn-status');
+                if (statusEl) {
+                    statusEl.textContent = `● ${status.label}`;
+                    statusEl.className = `font-semibold font-sans truncate text-[10px] sm:text-xs ${status.color}`;
                 }
-            });
+            }
+        });
 
-            // Echo Signaling Integration if Reverb/Echo is active
-            if (window.Echo) {
-                try {
-                    const channel = window.Echo.join(`room.${currentRoomId}`);
-                    channel.here((users) => {
-                        const countEl = document.getElementById('members-count');
-                        if (countEl) countEl.textContent = users.length;
-                        users.forEach(u => {
-                            if (u.id !== currentUserId && currentUserId < u.id) {
-                                window.peerManager.initiateOffer(u.id);
-                            }
-                        });
-                    });
+        await window.peerManager.loadIceConfig();
 
-                    channel.joining((u) => {
-                        const countEl = document.getElementById('members-count');
-                        if (countEl) countEl.textContent = parseInt(countEl.textContent || '1') + 1;
-                        if (currentUserId < u.id) {
-                            window.peerManager.initiateOffer(u.id);
-                        }
-                    });
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-                    channel.leaving(() => {
-                        const countEl = document.getElementById('members-count');
-                        if (countEl) countEl.textContent = Math.max(1, parseInt(countEl.textContent || '1') - 1);
-                    });
+        // Echo + Reverb Signaling Integration
+        if (window.Echo) {
+            try {
+                const channel = window.Echo.join(`room.${currentRoomId}`);
 
-                    channel.listenForWhisper('signal', (data) => {
-                        if (data.to === currentUserId && window.peerManager) {
-                            window.peerManager.handleSignal(data.from, data.signal);
-                        }
-                    });
-
-                    window.peerManager.signalSender = (targetUserId, signal) => {
+                window.peerManager.signalSender = (targetUserId, signal) => {
+                    fetch(`/api/rooms/${currentRoomId}/signal`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            target_user_id: targetUserId,
+                            type: signal.type,
+                            signal: signal,
+                        }),
+                    }).catch((err) => {
+                        console.warn('[SecureLink] HTTP signaling fallback to whisper:', err);
                         channel.whisper('signal', {
                             from: currentUserId,
                             to: targetUserId,
-                            signal: signal
+                            signal: signal,
                         });
-                    };
-                } catch (e) {
-                    console.log('[SecureLink] Echo signaling running in local direct mode:', e);
-                }
+                    });
+                };
+
+                channel.here((users) => {
+                    const countEl = document.getElementById('members-count');
+                    if (countEl) countEl.textContent = users.length;
+                    users.forEach((u) => {
+                        if (u.id !== currentUserId && currentUserId < u.id) {
+                            window.peerManager.initiateOffer(u.id);
+                        }
+                    });
+                });
+
+                channel.joining((u) => {
+                    const countEl = document.getElementById('members-count');
+                    if (countEl) countEl.textContent = parseInt(countEl.textContent || '1') + 1;
+                    if (u.id !== currentUserId && currentUserId < u.id) {
+                        window.peerManager.initiateOffer(u.id);
+                    }
+                });
+
+                channel.leaving((u) => {
+                    const countEl = document.getElementById('members-count');
+                    if (countEl) countEl.textContent = Math.max(1, parseInt(countEl.textContent || '1') - 1);
+                    if (u && u.id) {
+                        window.peerManager.removePeer(u.id);
+                    }
+                });
+
+                channel.listen('.webrtc.signal', (data) => {
+                    if (data.to === currentUserId && window.peerManager) {
+                        window.peerManager.handleSignal(data.from, data.signal);
+                    }
+                });
+
+                channel.listenForWhisper('signal', (data) => {
+                    if (data.to === currentUserId && window.peerManager) {
+                        window.peerManager.handleSignal(data.from, data.signal);
+                    }
+                });
+
+                channel.listen('.broadcast.message', (data) => {
+                    if (data.senderId !== currentUserId) {
+                        renderIncomingMessage(data);
+                    }
+                });
+
+                window.addEventListener('securelink:ws-state', (e) => {
+                    const wsState = e.detail?.state;
+                    if (wsState === 'connected') {
+                        window.peerManager.handleTransportReconnect();
+                    }
+                });
+            } catch (e) {
+                console.log('[SecureLink] Echo signaling running in local direct mode:', e);
             }
         }
+
+        window.addEventListener('beforeunload', () => {
+            window.peerManager?.destroy();
+        });
     });
 
     function toggleRoomLock() {
