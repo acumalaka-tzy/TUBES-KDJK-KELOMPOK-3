@@ -324,3 +324,99 @@ export function buildEcdhSessionContext(roomId, localUserId, remoteUserId) {
     };
 }
 
+/**
+ * Derive a 32-byte deterministic HKDF salt bound to room and optional key-exchange salt.
+ * @param {string} roomId
+ * @param {string} [extraSalt='']
+ * @returns {Promise<Uint8Array>}
+ */
+export async function buildHkdfSalt(roomId, extraSalt = '') {
+    if (!roomId) {
+        throw new Error('roomId wajib diisi untuk derivasi salt HKDF.');
+    }
+    const seed = `SecureLink-HKDF-Salt-v1:${roomId}:${extraSalt}`;
+    const digest = await getSubtleCrypto().digest('SHA-256', new TextEncoder().encode(seed));
+    return new Uint8Array(digest);
+}
+
+/**
+ * Derive a non-extractable 256-bit AES-GCM CryptoKey from an ECDH shared secret using HKDF-SHA-256.
+ * @param {Uint8Array} sharedSecret
+ * @param {Object} options
+ * @param {string} options.roomId
+ * @param {string} options.localUserId
+ * @param {string} options.remoteUserId
+ * @param {string} [options.extraSalt='']
+ * @returns {Promise<CryptoKey>}
+ */
+export async function deriveAesGcmKeyWithHkdf(sharedSecret, options) {
+    if (!(sharedSecret instanceof Uint8Array) || sharedSecret.length < 32) {
+        throw new Error('Shared secret HKDF harus berupa Uint8Array minimal 32 byte.');
+    }
+
+    const subtle = getSubtleCrypto();
+    const { contextLabel } = buildEcdhSessionContext(
+        options?.roomId,
+        options?.localUserId,
+        options?.remoteUserId
+    );
+    const salt = await buildHkdfSalt(options.roomId, options?.extraSalt || '');
+    const info = new TextEncoder().encode(`${contextLabel}:AES-GCM-256`);
+
+    // Copy before zeroing caller buffer after import
+    const secretCopy = new Uint8Array(sharedSecret);
+    try {
+        const hkdfBaseKey = await subtle.importKey(
+            'raw',
+            secretCopy,
+            'HKDF',
+            false,
+            ['deriveKey']
+        );
+
+        return await subtle.deriveKey(
+            {
+                name: 'HKDF',
+                hash: 'SHA-256',
+                salt,
+                info,
+            },
+            hkdfBaseKey,
+            {
+                name: 'AES-GCM',
+                length: 256,
+            },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    } finally {
+        secretCopy.fill(0);
+    }
+}
+
+/**
+ * Complete ECDH + HKDF pipeline to establish a non-extractable AES-GCM-256 peer session key.
+ * @param {CryptoKeyPair} localKeyPair
+ * @param {JsonWebKey} remoteJwk
+ * @param {Object} context
+ * @param {string} context.roomId
+ * @param {string} context.localUserId
+ * @param {string} context.remoteUserId
+ * @param {string} [context.extraSalt='']
+ * @returns {Promise<{aesKey: CryptoKey, remoteKeyId: string, algorithm: string}>}
+ */
+export async function derivePeerEncryptionKey(localKeyPair, remoteJwk, context) {
+    const { sharedSecret, remoteKeyId } = await deriveSharedSecretFromJwk(localKeyPair, remoteJwk);
+    try {
+        const aesKey = await deriveAesGcmKeyWithHkdf(sharedSecret, context);
+        return {
+            aesKey,
+            remoteKeyId,
+            algorithm: 'ECDH-P256+HKDF-SHA256+AES-GCM-256',
+        };
+    } finally {
+        sharedSecret.fill(0);
+    }
+}
+
+
