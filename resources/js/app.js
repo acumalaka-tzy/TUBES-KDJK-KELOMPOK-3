@@ -1,7 +1,9 @@
 import './echo';
 import { SecureLinkPeer } from './webrtc-chat';
+import * as SecureLinkE2EE from './e2ee-crypto';
 
 window.SecureLinkPeer = SecureLinkPeer;
+window.SecureLinkE2EE = SecureLinkE2EE;
 
 // Global keyboard listeners (e.g. Escape to dismiss modals and cancel active reply)
 document.addEventListener('keydown', (e) => {

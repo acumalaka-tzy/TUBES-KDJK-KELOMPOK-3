@@ -1,15 +1,27 @@
 /**
  * SecureLink WebRTC & E2EE Client Engine
  * Implements PRD Section 3.4, 4.1, 6.1-6.3, and 12.1.
- * 
+ *
  * Features:
  * - RTCPeerConnection with STUN servers
  * - RTCDataChannel for zero-server-retention direct chat
- * - Web Crypto API (ECDH P-256 + AES-GCM 256-bit encryption/decryption)
+ * - Web Crypto API (ECDH P-256 + HKDF-SHA256 + AES-GCM 256-bit + 96-bit Nonce/IV)
  * - Reliable delivery with ACK and exponential retry
  * - Ephemeral message automatic destruction
  * - Honest connection detection (Direct P2P vs TURN Relay)
  */
+
+import {
+    E2EEKeyManager,
+    NonceManager,
+    bytesToBase64,
+    base64ToBytes,
+    computePublicKeyId,
+    sanitizePublicJwk,
+    derivePeerEncryptionKey,
+    encryptAesGcm,
+    decryptAesGcm,
+} from './e2ee-crypto.js';
 
 export class SecureLinkPeer {
     constructor(config) {
@@ -21,13 +33,17 @@ export class SecureLinkPeer {
         this.e2eeEnabled = config.e2eeEnabled !== false;
         this.onMessageReceived = config.onMessageReceived || (() => {});
         this.onStatusChange = config.onStatusChange || (() => {});
+        this.onSecurityStatusChange = config.onSecurityStatusChange || (() => {});
+        this.onSecurityEvent = config.onSecurityEvent || (() => {});
         this.onPeerListChange = config.onPeerListChange || (() => {});
         this.onMessageAck = config.onMessageAck || (() => {});
 
-        this.peers = new Map(); // peerId -> { pc, dc, keyPair, sharedKey, remotePublicKey }
+        this.peers = new Map(); // peerId -> { pc, dc, sharedKey, nonceManager, remoteKeyId, e2eeStatus, connectionType }
         this.messageStore = new Map(); // msgId -> { payload, retries, timeoutId }
         this.seenMessages = new Set();
+        this.keyManager = new E2EEKeyManager();
         this.localKeyPair = null;
+        this.e2eeStatus = this.e2eeEnabled ? 'initializing' : 'disabled';
 
         this.iceServers = [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -35,94 +51,190 @@ export class SecureLinkPeer {
             { urls: 'stun:stun2.l.google.com:19302' }
         ];
 
-        this.initCrypto();
+        this.cryptoReady = this.initCrypto();
     }
 
     async initCrypto() {
-        if (!window.crypto || !window.crypto.subtle) {
+        if (!this.e2eeEnabled) {
+            this.e2eeStatus = 'disabled';
+            return null;
+        }
+
+        if (!globalThis.crypto || !globalThis.crypto.subtle) {
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { reason: 'web_crypto_unavailable' });
             console.warn('[SecureLink] Web Crypto API not available in this environment');
-            return;
+            return null;
         }
 
         try {
-            this.localKeyPair = await window.crypto.subtle.generateKey(
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                ['deriveKey', 'deriveBits']
-            );
-            console.log('[SecureLink] ECDH Key Pair successfully generated for session');
+            const state = await this.keyManager.initialize();
+            this.localKeyPair = state.keyPair;
+            this.e2eeStatus = 'key_pair_ready';
+            this.onSecurityStatusChange(this.getE2eeSummary());
+            console.log('[SecureLink] ECDH P-256 non-extractable Key Pair initialized');
+            return state;
         } catch (e) {
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { reason: 'key_pair_generation_failed' });
             console.error('[SecureLink] Failed to generate ECDH keys:', e);
-        }
-    }
-
-    async exportPublicKey() {
-        if (!this.localKeyPair) await this.initCrypto();
-        return await window.crypto.subtle.exportKey('jwk', this.localKeyPair.publicKey);
-    }
-
-    async deriveSharedKey(remoteJwkKey) {
-        try {
-            const remoteKey = await window.crypto.subtle.importKey(
-                'jwk',
-                remoteJwkKey,
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                []
-            );
-
-            return await window.crypto.subtle.deriveKey(
-                { name: 'ECDH', public: remoteKey },
-                this.localKeyPair.privateKey,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt', 'decrypt']
-            );
-        } catch (err) {
-            console.error('[SecureLink] Key derivation error:', err);
             return null;
         }
     }
 
-    async encryptText(text, sharedKey) {
-        if (!sharedKey) return { ciphertext: btoa(text), iv: null, encrypted: false };
-        const encoder = new TextEncoder();
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const encoded = encoder.encode(text);
-
-        const encrypted = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            sharedKey,
-            encoded
-        );
-
-        return {
-            ciphertext: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-            iv: btoa(String.fromCharCode(...iv)),
-            encrypted: true
-        };
+    async exportPublicKey() {
+        await this.cryptoReady;
+        const bundle = await this.keyManager.getPublicKeyBundle();
+        this.localKeyPair = this.keyManager.keyPair;
+        return bundle.publicJwk;
     }
 
-    async decryptPayload(ciphertextB64, ivB64, sharedKey) {
-        if (!sharedKey || !ivB64) {
-            return atob(ciphertextB64);
+    async deriveSharedKey(remoteJwkKey, targetUserId = 'peer', peerRecord = null) {
+        try {
+            await this.cryptoReady;
+            if (!this.keyManager.keyPair) {
+                await this.keyManager.initialize();
+                this.localKeyPair = this.keyManager.keyPair;
+            }
+
+            const localBundle = await this.keyManager.getPublicKeyBundle();
+            const remoteKeyId = await computePublicKeyId(sanitizePublicJwk(remoteJwkKey));
+            const saltSeed = [localBundle.keyId, remoteKeyId].sort().join(':');
+
+            const derived = await derivePeerEncryptionKey(this.keyManager.keyPair, remoteJwkKey, {
+                roomId: this.roomId || 'default-room',
+                localUserId: this.userId,
+                remoteUserId: targetUserId,
+                extraSalt: saltSeed,
+            });
+
+            if (peerRecord) {
+                peerRecord.sharedKey = derived.aesKey;
+                peerRecord.remoteKeyId = derived.remoteKeyId;
+                peerRecord.e2eeStatus = 'active';
+                if (!peerRecord.nonceManager) {
+                    peerRecord.nonceManager = new NonceManager();
+                } else {
+                    peerRecord.nonceManager.reset();
+                }
+            }
+
+            this.e2eeStatus = 'active';
+            this.onSecurityEvent('e2ee_initialized', {
+                target_user_id: targetUserId,
+                algorithm: derived.algorithm,
+            });
+            this.onSecurityStatusChange(this.getE2eeSummary());
+
+            return derived.aesKey;
+        } catch (err) {
+            if (peerRecord) {
+                peerRecord.sharedKey = null;
+                peerRecord.e2eeStatus = 'failed';
+            }
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { target_user_id: targetUserId });
+            this.onSecurityStatusChange(this.getE2eeSummary());
+            console.error('[SecureLink] ECDH+HKDF key derivation error:', err);
+            return null;
+        }
+    }
+
+    async encryptText(text, peerOrKey, messageId = '') {
+        const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
+        const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
+        const nonceManager = isPeerRecord ? peerOrKey.nonceManager : new NonceManager();
+
+        if (!this.e2eeEnabled) {
+            return {
+                ciphertext: bytesToBase64(new TextEncoder().encode(text)),
+                iv: null,
+                encrypted: false,
+            };
+        }
+
+        if (!sharedKey) {
+            throw new Error('Kunci E2EE belum tersedia untuk peer; pengiriman plaintext dibatalkan.');
+        }
+
+        return await encryptAesGcm(text, sharedKey, nonceManager, {
+            roomId: this.roomId,
+            senderId: this.userId,
+            messageId,
+        });
+    }
+
+    async decryptPayload(ciphertextB64, ivB64, peerOrKey, metadata = {}) {
+        const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
+        const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
+        const nonceManager = isPeerRecord ? peerOrKey.nonceManager : null;
+
+        if (!this.e2eeEnabled && !ivB64 && metadata.encrypted === false) {
+            return new TextDecoder().decode(base64ToBytes(ciphertextB64));
+        }
+
+        if (this.e2eeEnabled && (!ivB64 || metadata.encrypted === false || !sharedKey)) {
+            this.onSecurityEvent('e2ee_failed', { reason: 'downgrade_or_missing_key' });
+            return '⚠️ [Pesan ditolak: payload tidak terenkripsi atau kunci E2EE belum aktif]';
         }
 
         try {
-            const ciphertext = Uint8Array.from(atob(ciphertextB64), c => c.charCodeAt(0));
-            const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
-
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv },
+            return await decryptAesGcm(
+                {
+                    ciphertext: ciphertextB64,
+                    iv: ivB64,
+                    encrypted: metadata.encrypted !== false,
+                },
                 sharedKey,
-                ciphertext
+                nonceManager,
+                metadata.aadContext || null
             );
-
-            return new TextDecoder().decode(decrypted);
         } catch (err) {
+            this.onSecurityEvent('e2ee_failed', { reason: 'decryption_or_auth_tag_failed' });
             console.error('[SecureLink] Decryption failed:', err);
             return '⚠️ [Pesan gagal didekripsi: integritas rusak]';
         }
+    }
+
+    async rotateSessionKeys() {
+        if (!this.e2eeEnabled) return null;
+
+        const state = await this.keyManager.rotateKeyPair();
+        this.localKeyPair = state.keyPair;
+        this.e2eeStatus = 'key_pair_ready';
+
+        for (const peerRecord of this.peers.values()) {
+            peerRecord.sharedKey = null;
+            peerRecord.remoteKeyId = null;
+            peerRecord.e2eeStatus = 'exchanging';
+            if (peerRecord.nonceManager) {
+                peerRecord.nonceManager.reset();
+            }
+            if (peerRecord.dc && peerRecord.dc.readyState === 'open') {
+                peerRecord.dc.send(JSON.stringify({
+                    type: 'key-exchange',
+                    senderId: this.userId,
+                    keyId: state.keyId,
+                    publicKey: state.publicJwk,
+                }));
+            }
+        }
+
+        this.onSecurityStatusChange(this.getE2eeSummary());
+        return state;
+    }
+
+    getE2eeSummary() {
+        const peerStatuses = Array.from(this.peers.values()).map((p) => p.e2eeStatus);
+        const activeCount = peerStatuses.filter((s) => s === 'active').length;
+        return {
+            enabled: this.e2eeEnabled,
+            status: this.e2eeStatus,
+            algorithm: 'ECDH P-256 + HKDF-SHA256 + AES-GCM-256',
+            activePeerKeys: activeCount,
+            totalPeers: this.peers.size,
+            keyManager: this.keyManager.getStatus(),
+        };
     }
 
     createPeerConnection(targetUserId) {
@@ -136,6 +248,9 @@ export class SecureLinkPeer {
             pc,
             dc: null,
             sharedKey: null,
+            remoteKeyId: null,
+            nonceManager: new NonceManager(),
+            e2eeStatus: this.e2eeEnabled ? 'exchanging' : 'disabled',
             connectionType: 'direct'
         };
 
@@ -169,27 +284,46 @@ export class SecureLinkPeer {
             console.log(`[SecureLink] DataChannel opened with ${peerRecord.targetUserId}`);
             this.onStatusChange(this.getOverallStatus());
 
-            // Send local public key for E2EE handshake
-            const pubKey = await this.exportPublicKey();
-            dc.send(JSON.stringify({
-                type: 'key-exchange',
-                senderId: this.userId,
-                publicKey: pubKey
-            }));
+            if (this.e2eeEnabled) {
+                await this.cryptoReady;
+                const bundle = await this.keyManager.getPublicKeyBundle();
+                peerRecord.e2eeStatus = 'exchanging';
+                dc.send(JSON.stringify({
+                    type: 'key-exchange',
+                    senderId: this.userId,
+                    keyId: bundle.keyId,
+                    publicKey: bundle.publicJwk
+                }));
+            }
         };
 
         dc.onmessage = async (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'key-exchange') {
-                    peerRecord.sharedKey = await this.deriveSharedKey(data.publicKey);
-                    console.log(`[SecureLink] E2EE AES-GCM key derived for peer ${peerRecord.targetUserId}`);
+                    if (!this.e2eeEnabled) return;
+                    const derived = await this.deriveSharedKey(data.publicKey, peerRecord.targetUserId, peerRecord);
+                    if (derived && dc.readyState === 'open') {
+                        dc.send(JSON.stringify({
+                            type: 'key-exchange-ack',
+                            senderId: this.userId,
+                            keyId: this.keyManager.keyId,
+                        }));
+                    }
+                    console.log(`[SecureLink] E2EE HKDF+AES-GCM key derived for peer ${peerRecord.targetUserId}`);
+                    return;
+                }
+
+                if (data.type === 'key-exchange-ack') {
+                    peerRecord.peerAckedKey = true;
+                    this.onSecurityStatusChange(this.getE2eeSummary());
                     return;
                 }
 
                 if (data.type === 'ack') {
                     this.handleAck(data.messageId);
                     this.onMessageAck(data.messageId);
+                    this.onSecurityEvent('message_delivery_acknowledged', { message_id: data.messageId });
                     return;
                 }
 
@@ -204,7 +338,16 @@ export class SecureLinkPeer {
                     // Send ACK back to sender
                     dc.send(JSON.stringify({ type: 'ack', messageId: data.id }));
 
-                    const text = await this.decryptPayload(data.ciphertext, data.iv, peerRecord.sharedKey);
+                    const aadContext = {
+                        roomId: this.roomId,
+                        senderId: data.senderId || peerRecord.targetUserId,
+                        messageId: data.id,
+                    };
+                    const text = await this.decryptPayload(data.ciphertext, data.iv, peerRecord, {
+                        encrypted: data.encrypted,
+                        aadContext,
+                    });
+                    const verifiedE2ee = Boolean(data.iv && data.encrypted !== false && peerRecord.sharedKey);
                     this.onMessageReceived({
                         id: data.id,
                         senderId: data.senderId,
@@ -213,7 +356,7 @@ export class SecureLinkPeer {
                         timestamp: data.timestamp,
                         ephemeralDuration: data.ephemeralDuration,
                         replyTo: data.replyTo,
-                        isE2EE: !!data.iv
+                        isE2EE: verifiedE2ee
                     });
                 }
             } catch (e) {
@@ -320,21 +463,32 @@ export class SecureLinkPeer {
         const promises = Array.from(this.peers.values()).map(async (peer) => {
             if (!peer.dc || peer.dc.readyState !== 'open') return false;
 
-            const { ciphertext, iv } = await this.encryptText(text, peer.sharedKey);
-            const payload = JSON.stringify({
-                type: 'chat',
-                id: messageId,
-                senderId: this.userId,
-                senderName: this.userName,
-                ciphertext,
-                iv,
-                timestamp,
-                ephemeralDuration,
-                replyTo
-            });
+            try {
+                const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(text, peer, messageId);
+                const payload = JSON.stringify({
+                    type: 'chat',
+                    id: messageId,
+                    senderId: this.userId,
+                    senderName: this.userName,
+                    ciphertext,
+                    iv,
+                    encrypted,
+                    algorithm: algorithm || null,
+                    timestamp,
+                    ephemeralDuration,
+                    replyTo
+                });
 
-            peer.dc.send(payload);
-            return true;
+                peer.dc.send(payload);
+                return true;
+            } catch (err) {
+                console.error(`[SecureLink] Gagal mengirim pesan ke ${peer.targetUserId}:`, err);
+                this.onSecurityEvent('e2ee_failed', {
+                    target_user_id: peer.targetUserId,
+                    reason: 'encrypt_aborted',
+                });
+                return false;
+            }
         });
 
         await Promise.all(promises);

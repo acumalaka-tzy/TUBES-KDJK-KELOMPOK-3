@@ -584,6 +584,7 @@
                 userId: currentUserId,
                 userName: currentUserName,
                 userAvatar: currentUserAvatar,
+                e2eeEnabled: {{ $room->e2ee_enabled ? 'true' : 'false' }},
                 onMessageReceived: renderIncomingMessage,
                 onStatusChange: (status) => {
                     const statusEl = document.getElementById('header-conn-status');
