@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\BroadcastComparisonController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SignalingController;
 use App\Http\Controllers\UserIdentityController;
+use App\Http\Controllers\WebRTCConfigController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +22,11 @@ Route::prefix('identity')->group(function () {
     Route::post('/logout', [UserIdentityController::class, 'logout'])->name('api.identity.logout');
 });
 
+// WebRTC ICE (STUN/TURN) Configuration
+Route::get('/webrtc/ice-servers', [WebRTCConfigController::class, 'iceServers'])
+    ->middleware(['identity'])
+    ->name('api.webrtc.ice');
+
 // Protected Room routes (requires user session identity)
 Route::prefix('rooms')->middleware(['identity'])->group(function () {
     Route::get('/', [RoomController::class, 'index'])->name('api.rooms.index');
@@ -30,6 +38,12 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
     // Room member routes
     Route::middleware(['room.member'])->group(function () {
         Route::post('/{roomId}/invite', [RoomController::class, 'createInvite'])->name('api.rooms.invite');
+        Route::post('/{roomId}/signal', [SignalingController::class, 'send'])
+            ->middleware('throttle:120,1')
+            ->name('api.rooms.signal');
+        Route::post('/{roomId}/broadcast-message', [BroadcastComparisonController::class, 'send'])
+            ->middleware('throttle:60,1')
+            ->name('api.rooms.broadcast');
     });
 
     // Room creator admin routes
