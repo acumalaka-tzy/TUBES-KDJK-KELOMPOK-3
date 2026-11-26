@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SignalingController;
 use App\Http\Controllers\UserIdentityController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,9 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
     // Room member routes
     Route::middleware(['room.member'])->group(function () {
         Route::post('/{roomId}/invite', [RoomController::class, 'createInvite'])->name('api.rooms.invite');
+        Route::post('/{roomId}/signal', [SignalingController::class, 'send'])
+            ->middleware('throttle:120,1')
+            ->name('api.rooms.signal');
     });
 
     // Room creator admin routes
