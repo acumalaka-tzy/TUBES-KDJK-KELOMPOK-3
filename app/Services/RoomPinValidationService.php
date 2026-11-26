@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Hash;
 class RoomPinValidationService
 {
     public const MAX_ATTEMPTS = 5;
+
     public const COOLDOWN_SECONDS = 300; // 5 minutes cooldown
+
     public const DECAY_MINUTES = 5;
 
     /**
@@ -21,10 +23,25 @@ class RoomPinValidationService
     public function validatePin(Room $room, ?string $inputPin, string $userId): array
     {
         // Check if room requires PIN
-        if (!$room->hasPin()) {
+        if (! $room->hasPin()) {
             return [
                 'valid' => true,
                 'message' => 'Room tidak memerlukan PIN.',
+                'cooldown' => null,
+            ];
+        }
+
+        // Check PIN expiration (PRD Section 4.3)
+        if ($room->isPinExpired()) {
+            SecurityLog::logEvent(
+                eventType: 'pin_expired_rejected',
+                roomId: $room->room_id,
+                userId: $userId
+            );
+
+            return [
+                'valid' => false,
+                'message' => 'PIN room telah kedaluwarsa. Minta Creator memperbarui PIN.',
                 'cooldown' => null,
             ];
         }
@@ -46,8 +63,8 @@ class RoomPinValidationService
             ];
         }
 
-        // Must provide a PIN
-        if (empty($inputPin)) {
+        // Must provide a non-blank PIN (preserves valid numeric strings like '0000')
+        if ($inputPin === null || trim($inputPin) === '') {
             return [
                 'valid' => false,
                 'message' => 'PIN room wajib diisi.',
@@ -56,18 +73,24 @@ class RoomPinValidationService
         }
 
         $isValid = false;
+        $matchedStatic = false;
 
         // 1. Dynamic TOTP PIN verification if enabled
-        if ($room->dynamic_pin_enabled && !empty($room->dynamic_pin_secret)) {
+        if ($room->dynamic_pin_enabled && ! empty($room->dynamic_pin_secret)) {
             $isValid = $this->verifyTotp($room->dynamic_pin_secret, $inputPin);
         }
 
         // 2. Static PIN verification if dynamic is not enabled or if static was also configured
-        if (!$isValid && !empty($room->room_pin_hash)) {
-            $isValid = Hash::check($inputPin, $room->room_pin_hash);
+        if (! $isValid && ! empty($room->room_pin_hash)) {
+            $isValid = $this->verifyStaticPin($inputPin, $room->room_pin_hash);
+            $matchedStatic = $isValid;
         }
 
         if ($isValid) {
+            if ($matchedStatic && $this->needsPinRehash($room->room_pin_hash)) {
+                $room->update(['room_pin_hash' => $this->hashPin($inputPin)]);
+            }
+
             $this->clearFailedAttempts($room->room_id, $userId);
             SecurityLog::logEvent(
                 eventType: 'pin_verification_success',
@@ -95,6 +118,7 @@ class RoomPinValidationService
 
         if ($remainingAttempts === 0) {
             $cooldown = self::COOLDOWN_SECONDS;
+
             return [
                 'valid' => false,
                 'message' => "PIN salah. Batas percobaan tercapai. Silakan tunggu {$cooldown} detik.",
@@ -110,11 +134,27 @@ class RoomPinValidationService
     }
 
     /**
-     * Hash a static room PIN safely.
+     * Hash a static room PIN safely using Laravel's configured hashing driver (bcrypt).
      */
     public function hashPin(string $pin): string
     {
         return Hash::make($pin);
+    }
+
+    /**
+     * Verify a static room PIN against its stored hash in constant time.
+     */
+    public function verifyStaticPin(string $inputPin, string $hashedPin): bool
+    {
+        return Hash::check($inputPin, $hashedPin);
+    }
+
+    /**
+     * Determine whether an existing PIN hash should be rehashed to current cost settings.
+     */
+    public function needsPinRehash(string $hashedPin): bool
+    {
+        return Hash::needsRehash($hashedPin);
     }
 
     /**
@@ -127,6 +167,7 @@ class RoomPinValidationService
         for ($i = 0; $i < $length; $i++) {
             $secret .= $base32Chars[random_int(0, 31)];
         }
+
         return $secret;
     }
 
@@ -139,7 +180,7 @@ class RoomPinValidationService
         $counter = floor($time / $timeStep);
 
         // Pack counter into 8-byte big-endian binary
-        $binaryCounter = pack('N*', 0) . pack('N*', $counter);
+        $binaryCounter = pack('N*', 0).pack('N*', $counter);
 
         // Decode Base32 secret
         $decodedSecret = $this->base32Decode($secret);
@@ -157,6 +198,7 @@ class RoomPinValidationService
         );
 
         $totp = $binaryCode % (10 ** $digits);
+
         return str_pad((string) $totp, $digits, '0', STR_PAD_LEFT);
     }
 
@@ -186,6 +228,7 @@ class RoomPinValidationService
     {
         $key = $this->getRateLimitKey($roomId, $userId);
         $attempts = (int) Cache::get($key, 0);
+
         return $attempts >= self::MAX_ATTEMPTS;
     }
 
@@ -199,6 +242,7 @@ class RoomPinValidationService
         if ($lockExpiresAt) {
             return max(0, $lockExpiresAt - time());
         }
+
         return self::COOLDOWN_SECONDS;
     }
 
@@ -261,7 +305,7 @@ class RoomPinValidationService
 
         for ($i = 0; $i < strlen($b32); $i++) {
             $char = $b32[$i];
-            if (!isset($lut[$char])) {
+            if (! isset($lut[$char])) {
                 continue;
             }
             $buffer = ($buffer << 5) | $lut[$char];

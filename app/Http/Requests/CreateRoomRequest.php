@@ -19,6 +19,7 @@ class CreateRoomRequest extends FormRequest
             'id_format' => ['nullable', 'string', 'in:code,numeric,slug'],
             'description' => ['nullable', 'string', 'max:500'],
             'pin' => ['nullable', 'string', 'min:4', 'max:16'],
+            'pin_expires_in_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'dynamic_pin_enabled' => ['nullable', 'boolean'],
             'max_participants' => ['nullable', 'integer', 'min:2', 'max:50'],
             'e2ee_enabled' => ['nullable', 'boolean'],

@@ -16,7 +16,8 @@ class UpdateRoomSettingsRequest extends FormRequest
         return [
             'room_name' => ['nullable', 'string', 'min:2', 'max:100'],
             'description' => ['nullable', 'string', 'max:500'],
-            'pin' => ['nullable', 'string', 'max:16'],
+            'pin' => ['nullable', 'string', 'min:4', 'max:16'],
+            'pin_expires_in_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'dynamic_pin_enabled' => ['nullable', 'boolean'],
             'allow_invites' => ['nullable', 'boolean'],
             'allow_reactions' => ['nullable', 'boolean'],
