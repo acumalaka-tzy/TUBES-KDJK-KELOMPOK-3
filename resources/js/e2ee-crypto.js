@@ -4,6 +4,8 @@
  */
 
 export const E2EE_CURVE = 'P-256';
+export const AES_GCM_IV_LENGTH = 12; // 96-bit IV recommended for AES-GCM (NIST SP 800-38D)
+export const MAX_NONCE_HISTORY = 10000;
 
 /**
  * Resolve Web Crypto SubtleCrypto across browser and Node.js runtimes.
@@ -418,5 +420,111 @@ export async function derivePeerEncryptionKey(localKeyPair, remoteJwk, context) 
         sharedSecret.fill(0);
     }
 }
+
+/**
+ * Validate raw IV bytes for AES-GCM (must be exact 12-byte / 96-bit Uint8Array).
+ * @param {Uint8Array} ivBytes
+ * @returns {Uint8Array}
+ */
+export function validateIvBytes(ivBytes) {
+    if (!(ivBytes instanceof Uint8Array) || ivBytes.length !== AES_GCM_IV_LENGTH) {
+        throw new Error(`IV/Nonce AES-GCM harus berukuran tepat ${AES_GCM_IV_LENGTH} byte (96-bit).`);
+    }
+    return ivBytes;
+}
+
+/**
+ * Decode Base64 IV and validate its 96-bit length.
+ * @param {string} ivBase64
+ * @returns {Uint8Array}
+ */
+export function decodeAndValidateIv(ivBase64) {
+    const bytes = base64ToBytes(ivBase64);
+    return validateIvBytes(bytes);
+}
+
+/**
+ * Manages unique 96-bit Nonce/IV generation and replay detection per key epoch.
+ * Layout: 4-byte CSPRNG prefix + 8-byte big-endian monotonic counter.
+ */
+export class NonceManager {
+    constructor(maxIncomingHistory = MAX_NONCE_HISTORY) {
+        this.maxIncomingHistory = maxIncomingHistory;
+        this.reset();
+    }
+
+    /**
+     * Reset prefix, counter, and replay tracking (call when session key rotates).
+     */
+    reset() {
+        this.prefix = getWebCrypto().getRandomValues(new Uint8Array(4));
+        this.counter = 0n;
+        this.usedOutgoingNonces = new Set();
+        this.seenIncomingNonces = new Set();
+    }
+
+    /**
+     * Generate a guaranteed-unique 12-byte (96-bit) IV for encryption.
+     * @returns {Uint8Array}
+     */
+    nextIv() {
+        if (this.counter >= 0xFFFFFFFFFFFFFFFFn) {
+            throw new Error('Batas counter nonce tercapai; rotasi kunci E2EE diperlukan.');
+        }
+
+        this.counter += 1n;
+        const iv = new Uint8Array(AES_GCM_IV_LENGTH);
+        iv.set(this.prefix, 0);
+
+        const view = new DataView(iv.buffer, iv.byteOffset, iv.byteLength);
+        view.setBigUint64(4, this.counter, false);
+
+        const key = bytesToBase64(iv);
+        if (this.usedOutgoingNonces.has(key)) {
+            throw new Error('Deteksi duplikasi Nonce/IV keluar; operasi enkripsi dibatalkan.');
+        }
+
+        this.usedOutgoingNonces.add(key);
+        if (this.usedOutgoingNonces.size > this.maxIncomingHistory) {
+            const oldest = this.usedOutgoingNonces.values().next().value;
+            this.usedOutgoingNonces.delete(oldest);
+        }
+
+        return iv;
+    }
+
+    /**
+     * Validate and record an incoming IV to prevent nonce replay attacks.
+     * @param {Uint8Array|string} ivOrBase64
+     * @returns {Uint8Array}
+     */
+    registerIncomingIv(ivOrBase64) {
+        const ivBytes = typeof ivOrBase64 === 'string'
+            ? decodeAndValidateIv(ivOrBase64)
+            : validateIvBytes(ivOrBase64);
+
+        const key = bytesToBase64(ivBytes);
+        if (this.seenIncomingNonces.has(key)) {
+            throw new Error('Nonce/IV replay terdeteksi untuk kunci sesi saat ini.');
+        }
+
+        this.seenIncomingNonces.add(key);
+        if (this.seenIncomingNonces.size > this.maxIncomingHistory) {
+            const oldest = this.seenIncomingNonces.values().next().value;
+            this.seenIncomingNonces.delete(oldest);
+        }
+
+        return ivBytes;
+    }
+
+    getStats() {
+        return {
+            ivLengthBytes: AES_GCM_IV_LENGTH,
+            outgoingCount: this.counter.toString(),
+            trackedIncomingCount: this.seenIncomingNonces.size,
+        };
+    }
+}
+
 
 
