@@ -22,6 +22,11 @@ import {
     encryptAesGcm,
     decryptAesGcm,
 } from './e2ee-crypto.js';
+import {
+    inspectSdpDtlsFingerprint,
+    verifyPeerDtlsTransport,
+    evaluateTransportAndE2eeSecurity,
+} from './dtls-verifier.js';
 
 export class SecureLinkPeer {
     constructor(config) {
@@ -251,8 +256,16 @@ export class SecureLinkPeer {
             remoteKeyId: null,
             nonceManager: new NonceManager(),
             e2eeStatus: this.e2eeEnabled ? 'exchanging' : 'disabled',
-            connectionType: 'direct'
+            dtlsState: 'new',
+            dtlsVerified: false,
+            dtlsCipher: null,
+            srtpCipher: null,
+            tlsVersion: null,
+            sdpDtls: null,
+            connectionType: 'unknown'
         };
+
+        this.onSecurityEvent('peer_connection_started', { target_user_id: targetUserId });
 
         pc.onicecandidate = (event) => {
             if (event.candidate && this.signalSender) {
@@ -263,10 +276,26 @@ export class SecureLinkPeer {
             }
         };
 
-        pc.oniceconnectionstatechange = () => {
+        pc.oniceconnectionstatechange = async () => {
             console.log(`[SecureLink] ICE State with ${targetUserId}: ${pc.iceConnectionState}`);
-            this.checkConnectionType(pc);
+            await this.verifyDtlsStatus(peerRecord);
             this.onStatusChange(this.getOverallStatus());
+            if (pc.iceConnectionState === 'failed') {
+                this.onSecurityEvent('webrtc_failed', { target_user_id: targetUserId, ice_state: pc.iceConnectionState });
+            }
+        };
+
+        pc.onconnectionstatechange = async () => {
+            await this.verifyDtlsStatus(peerRecord);
+            this.onStatusChange(this.getOverallStatus());
+            if (pc.connectionState === 'connected') {
+                this.onSecurityEvent('webrtc_connected', {
+                    target_user_id: targetUserId,
+                    connection_type: peerRecord.connectionType,
+                });
+            } else if (pc.connectionState === 'failed') {
+                this.onSecurityEvent('webrtc_failed', { target_user_id: targetUserId });
+            }
         };
 
         pc.ondatachannel = (event) => {
@@ -278,10 +307,88 @@ export class SecureLinkPeer {
         return peerRecord;
     }
 
+    attachDtlsTransportListener(peerRecord) {
+        const dtlsTransport = peerRecord.pc?.sctp?.transport;
+        if (!dtlsTransport || peerRecord._dtlsBound) return;
+        peerRecord._dtlsBound = true;
+        dtlsTransport.onstatechange = () => {
+            this.verifyDtlsStatus(peerRecord);
+        };
+    }
+
+    async verifyDtlsStatus(peerRecord) {
+        if (!peerRecord?.pc) return null;
+        this.attachDtlsTransportListener(peerRecord);
+
+        const prevState = peerRecord.dtlsState;
+        const result = await verifyPeerDtlsTransport(peerRecord.pc);
+
+        peerRecord.dtlsState = result.dtlsState;
+        peerRecord.dtlsVerified = result.dtlsVerified;
+        peerRecord.dtlsCipher = result.dtlsCipher;
+        peerRecord.srtpCipher = result.srtpCipher;
+        peerRecord.tlsVersion = result.tlsVersion;
+        if (result.connectionType !== 'unknown') {
+            peerRecord.connectionType = result.connectionType;
+        }
+
+        if (prevState !== result.dtlsState) {
+            if (result.dtlsState === 'connected') {
+                this.onSecurityEvent('dtls_connected', {
+                    target_user_id: peerRecord.targetUserId,
+                    dtls_cipher: result.dtlsCipher,
+                    tls_version: result.tlsVersion,
+                });
+            } else if (result.dtlsState === 'failed') {
+                this.onSecurityEvent('dtls_failed', { target_user_id: peerRecord.targetUserId });
+            }
+            this.onSecurityStatusChange(this.getDtlsSummary());
+        }
+
+        return result;
+    }
+
+    getDtlsSummary() {
+        const peers = Array.from(this.peers.values());
+        const connectedDtls = peers.filter((p) => p.dtlsVerified).length;
+        const anyFailed = peers.some((p) => p.dtlsState === 'failed');
+        const anyConnecting = peers.some((p) => p.dtlsState === 'connecting');
+
+        let overallDtlsState = 'unverified';
+        if (connectedDtls > 0) {
+            overallDtlsState = 'connected';
+        } else if (anyFailed) {
+            overallDtlsState = 'failed';
+        } else if (anyConnecting) {
+            overallDtlsState = 'connecting';
+        }
+
+        const firstConnected = peers.find((p) => p.dtlsVerified);
+        const evaluation = evaluateTransportAndE2eeSecurity({
+            dtlsState: overallDtlsState,
+            e2eeStatus: this.e2eeStatus,
+            e2eeEnabled: this.e2eeEnabled,
+            dataChannelState: peers.some((p) => p.dc?.readyState === 'open') ? 'open' : 'closed',
+        });
+
+        return {
+            dtlsState: overallDtlsState,
+            dtlsVerified: overallDtlsState === 'connected',
+            dtlsCipher: firstConnected?.dtlsCipher || null,
+            srtpCipher: firstConnected?.srtpCipher || null,
+            tlsVersion: firstConnected?.tlsVersion || null,
+            connectedDtlsPeers: connectedDtls,
+            totalPeers: peers.length,
+            e2eeStatus: this.e2eeStatus,
+            evaluation,
+        };
+    }
+
     setupDataChannel(peerRecord) {
         const dc = peerRecord.dc;
         dc.onopen = async () => {
             console.log(`[SecureLink] DataChannel opened with ${peerRecord.targetUserId}`);
+            await this.verifyDtlsStatus(peerRecord);
             this.onStatusChange(this.getOverallStatus());
 
             if (this.e2eeEnabled) {
@@ -391,9 +498,11 @@ export class SecureLinkPeer {
         const peer = this.createPeerConnection(fromUserId);
 
         if (signal.type === 'offer') {
+            peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
             await peer.pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
             const answer = await peer.pc.createAnswer();
             await peer.pc.setLocalDescription(answer);
+            this.onSecurityEvent('sdp_offer_exchanged', { target_user_id: fromUserId });
 
             if (this.signalSender) {
                 this.signalSender(fromUserId, {
@@ -402,30 +511,32 @@ export class SecureLinkPeer {
                 });
             }
         } else if (signal.type === 'answer') {
+            peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
             await peer.pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+            this.onSecurityEvent('sdp_answer_exchanged', { target_user_id: fromUserId });
         } else if (signal.type === 'candidate' && signal.candidate) {
             try {
                 await peer.pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                this.onSecurityEvent('ice_candidate_exchanged', { target_user_id: fromUserId });
             } catch (err) {
                 console.error('[SecureLink] Error adding ICE candidate:', err);
             }
         }
     }
 
-    async checkConnectionType(pc) {
+    async checkConnectionType(pc, peerRecord = null) {
         try {
-            const stats = await pc.getStats();
-            stats.forEach(report => {
-                if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-                    const localCandidate = stats.get(report.localCandidateId);
-                    if (localCandidate && localCandidate.candidateType === 'relay') {
-                        this.connectionType = 'relay';
-                    } else {
-                        this.connectionType = 'direct';
-                    }
+            const result = await verifyPeerDtlsTransport(pc);
+            if (result.connectionType !== 'unknown') {
+                this.connectionType = result.connectionType;
+                if (peerRecord) {
+                    peerRecord.connectionType = result.connectionType;
                 }
-            });
-        } catch (e) {}
+            }
+            return result;
+        } catch (e) {
+            return null;
+        }
     }
 
     getOverallStatus() {
