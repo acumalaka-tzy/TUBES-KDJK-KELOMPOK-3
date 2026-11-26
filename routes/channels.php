@@ -38,5 +38,6 @@ Broadcast::channel('room.{roomId}', function ($user, string $roomId) {
         'name' => $participant->display_name,
         'role' => $participant->role,
         'avatar_color' => $currentUser->avatar_color,
+        'avatar_icon' => $currentUser->preferences['avatar_icon'] ?? 'initial',
     ];
 });
