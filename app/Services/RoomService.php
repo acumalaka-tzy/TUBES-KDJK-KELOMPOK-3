@@ -21,13 +21,13 @@ class RoomService
      */
     public function createRoom(UserSession $creator, array $data): Room
     {
-        $roomId = !empty($data['room_id']) && $this->idGenerator->isValidFormat($data['room_id'])
+        $roomId = ! empty($data['room_id']) && $this->idGenerator->isValidFormat($data['room_id'])
             ? trim($data['room_id'])
             : $this->idGenerator->generate($data['id_format'] ?? 'code');
 
         // Check PIN setup
         $pinHash = null;
-        if (!empty($data['pin'])) {
+        if (! empty($data['pin'])) {
             $pinHash = $this->pinService->hashPin($data['pin']);
         }
 
@@ -38,6 +38,10 @@ class RoomService
             $dynamicPinSecret = $this->pinService->generateTotpSecret();
         }
 
+        $pinExpiresAt = ! empty($data['pin_expires_in_minutes'])
+            ? now()->addMinutes((int) $data['pin_expires_in_minutes'])
+            : null;
+
         $room = Room::create([
             'room_id' => $roomId,
             'room_name' => trim($data['room_name']),
@@ -46,6 +50,7 @@ class RoomService
             'room_pin_hash' => $pinHash,
             'dynamic_pin_enabled' => $dynamicPinEnabled,
             'dynamic_pin_secret' => $dynamicPinSecret,
+            'pin_expires_at' => $pinExpiresAt,
             'max_participants' => max(2, min((int) ($data['max_participants'] ?? 10), 50)),
             'e2ee_enabled' => (bool) ($data['e2ee_enabled'] ?? true),
             'ephemeral_enabled' => (bool) ($data['ephemeral_enabled'] ?? false),
@@ -54,12 +59,12 @@ class RoomService
             'allow_invites' => (bool) ($data['allow_invites'] ?? true),
             'allow_reactions' => (bool) ($data['allow_reactions'] ?? true),
             'allow_replies' => (bool) ($data['allow_replies'] ?? true),
-            'expires_at' => !empty($data['expires_in_hours']) ? now()->addHours((int) $data['expires_in_hours']) : null,
+            'expires_at' => ! empty($data['expires_in_hours']) ? now()->addHours((int) $data['expires_in_hours']) : null,
         ]);
 
         // Creator automatically joins as participant
         RoomParticipant::create([
-            'participant_id' => 'part_' . Str::random(12),
+            'participant_id' => 'part_'.Str::random(12),
             'room_id' => $room->room_id,
             'user_id' => $creator->user_id,
             'display_name' => $creator->display_name,
@@ -97,7 +102,7 @@ class RoomService
     ): array {
         $room = Room::where('room_id', trim($roomId))->first();
 
-        if (!$room) {
+        if (! $room) {
             return [
                 'success' => false,
                 'room' => null,
@@ -139,9 +144,9 @@ class RoomService
         // Creator always has instant access
         $isCreator = $room->isCreator($user->user_id);
 
-        if (!$isCreator) {
+        if (! $isCreator) {
             // Check if room is locked
-            if ($room->isLocked() && !$existingParticipant) {
+            if ($room->isLocked() && ! $existingParticipant) {
                 return [
                     'success' => false,
                     'room' => null,
@@ -152,7 +157,7 @@ class RoomService
             }
 
             // Check if room is full
-            if (!$existingParticipant && $room->isFull()) {
+            if (! $existingParticipant && $room->isFull()) {
                 return [
                     'success' => false,
                     'room' => null,
@@ -173,9 +178,9 @@ class RoomService
             }
 
             // Validate PIN if room requires PIN and user is not yet an active member
-            if ($room->hasPin() && !$existingParticipant) {
+            if ($room->hasPin() && ! $existingParticipant) {
                 $pinValidation = $this->pinService->validatePin($room, $pin, $user->user_id);
-                if (!$pinValidation['valid']) {
+                if (! $pinValidation['valid']) {
                     return [
                         'success' => false,
                         'room' => null,
@@ -197,7 +202,7 @@ class RoomService
             $participant = $existingParticipant;
         } else {
             $participant = RoomParticipant::create([
-                'participant_id' => 'part_' . Str::random(12),
+                'participant_id' => 'part_'.Str::random(12),
                 'room_id' => $room->room_id,
                 'user_id' => $user->user_id,
                 'display_name' => $user->display_name,
@@ -249,7 +254,7 @@ class RoomService
      */
     public function kickParticipant(UserSession $actor, Room $room, string $targetUserId): bool
     {
-        if (!$room->isCreator($actor->user_id)) {
+        if (! $room->isCreator($actor->user_id)) {
             return false;
         }
 
@@ -258,7 +263,7 @@ class RoomService
         }
 
         $target = $room->getParticipant($targetUserId);
-        if (!$target) {
+        if (! $target) {
             return false;
         }
 
@@ -283,11 +288,11 @@ class RoomService
      */
     public function toggleLock(UserSession $actor, Room $room, ?bool $lock = null): bool
     {
-        if (!$room->isCreator($actor->user_id)) {
+        if (! $room->isCreator($actor->user_id)) {
             return false;
         }
 
-        $newStatus = $lock !== null ? $lock : !$room->is_locked;
+        $newStatus = $lock !== null ? $lock : ! $room->is_locked;
         $room->update(['is_locked' => $newStatus]);
 
         SecurityLog::logEvent(
@@ -304,7 +309,7 @@ class RoomService
      */
     public function updateRoomSettings(UserSession $actor, Room $room, array $settings): ?Room
     {
-        if (!$room->isCreator($actor->user_id)) {
+        if (! $room->isCreator($actor->user_id)) {
             return null;
         }
 
@@ -331,11 +336,19 @@ class RoomService
 
         // Change or remove PIN
         if (array_key_exists('pin', $settings)) {
-            if (empty($settings['pin'])) {
+            if ($settings['pin'] === null || trim((string) $settings['pin']) === '') {
                 $updates['room_pin_hash'] = null;
+                SecurityLog::logEvent('pin_removed', $room->room_id, $actor->user_id);
             } else {
-                $updates['room_pin_hash'] = $this->pinService->hashPin($settings['pin']);
+                $updates['room_pin_hash'] = $this->pinService->hashPin((string) $settings['pin']);
+                SecurityLog::logEvent('pin_updated', $room->room_id, $actor->user_id);
             }
+        }
+
+        if (array_key_exists('pin_expires_in_minutes', $settings)) {
+            $updates['pin_expires_at'] = ! empty($settings['pin_expires_in_minutes'])
+                ? now()->addMinutes((int) $settings['pin_expires_in_minutes'])
+                : null;
         }
 
         // Dynamic PIN toggle
@@ -390,6 +403,8 @@ class RoomService
             'creator_id' => $room->creator_id,
             'creator_name' => $room->creator?->display_name ?? 'Creator',
             'has_pin' => $room->hasPin(),
+            'pin_expired' => $room->isPinExpired(),
+            'pin_expires_at' => $room->pin_expires_at?->toIso8601String(),
             'dynamic_pin_enabled' => $room->dynamic_pin_enabled,
             'max_participants' => $room->max_participants,
             'active_participants_count' => $participants->count(),
@@ -408,11 +423,38 @@ class RoomService
         ];
 
         // If current user is the creator and dynamic PIN is enabled, provide the current TOTP for display
-        if ($isCreator && $room->dynamic_pin_enabled && !empty($room->dynamic_pin_secret)) {
-            $metadata['current_dynamic_pin'] = $this->pinService->getTotpCode($room->dynamic_pin_secret);
+        if ($isCreator && $room->dynamic_pin_enabled && ! empty($room->dynamic_pin_secret)) {
+            $dynamicStatus = $this->pinService->getDynamicPinStatus($room);
+            $metadata['current_dynamic_pin'] = $dynamicStatus['current_pin'];
+            $metadata['dynamic_pin_expires_in'] = $dynamicStatus['expires_in_seconds'];
         }
 
         return $metadata;
+    }
+
+    /**
+     * Rotate a room's Dynamic TOTP PIN secret (Creator only).
+     *
+     * @return ?array{enabled: bool, current_pin: ?string, expires_in_seconds: ?int, time_step: int, digits: int}
+     */
+    public function rotateDynamicPinSecret(UserSession $actor, Room $room): ?array
+    {
+        if (! $room->isCreator($actor->user_id)) {
+            return null;
+        }
+
+        $room->update([
+            'dynamic_pin_enabled' => true,
+            'dynamic_pin_secret' => $this->pinService->generateTotpSecret(),
+        ]);
+
+        SecurityLog::logEvent(
+            eventType: 'dynamic_pin_secret_rotated',
+            roomId: $room->room_id,
+            userId: $actor->user_id
+        );
+
+        return $this->pinService->getDynamicPinStatus($room->fresh());
     }
 
     /**
@@ -430,7 +472,7 @@ class RoomService
         $tokenHash = hash('sha256', $rawToken);
 
         $invitation = RoomInvitation::create([
-            'invite_id' => 'inv_' . Str::random(12),
+            'invite_id' => 'inv_'.Str::random(12),
             'room_id' => $room->room_id,
             'token_hash' => $tokenHash,
             'created_by' => $actor->user_id,

@@ -7,6 +7,7 @@ use App\Http\Requests\JoinRoomRequest;
 use App\Http\Requests\KickParticipantRequest;
 use App\Http\Requests\UpdateRoomSettingsRequest;
 use App\Models\Room;
+use App\Services\RoomPinValidationService;
 use App\Services\RoomService;
 use App\Services\UserIdentityService;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,8 @@ class RoomController extends Controller
 {
     public function __construct(
         protected RoomService $roomService,
-        protected UserIdentityService $identityService
+        protected UserIdentityService $identityService,
+        protected RoomPinValidationService $pinService
     ) {}
 
     /**
@@ -26,19 +28,20 @@ class RoomController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'rooms' => []], 401);
         }
 
         $participations = $user->participations()
             ->where('is_kicked', false)
-            ->with(['room' => fn($q) => $q->withCount('activeParticipants')])
+            ->with(['room' => fn ($q) => $q->withCount('activeParticipants')])
             ->latest('last_seen_at')
             ->take(15)
             ->get();
 
         $rooms = $participations->map(function ($part) {
             $room = $part->room;
+
             return [
                 'room_id' => $room->room_id,
                 'room_name' => $room->room_name,
@@ -64,10 +67,11 @@ class RoomController extends Controller
     public function store(CreateRoomRequest $request): JsonResponse|RedirectResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Identitas diperlukan untuk membuat room.'], 401);
             }
+
             return redirect()->route('identity.setup');
         }
 
@@ -91,7 +95,7 @@ class RoomController extends Controller
     public function show(Request $request, string $roomId): JsonResponse
     {
         $room = Room::where('room_id', $roomId)->first();
-        if (!$room) {
+        if (! $room) {
             return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
         }
 
@@ -110,10 +114,11 @@ class RoomController extends Controller
     public function join(JoinRoomRequest $request): JsonResponse|RedirectResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Identitas diperlukan untuk bergabung.'], 401);
             }
+
             return redirect()->route('identity.setup');
         }
 
@@ -124,13 +129,14 @@ class RoomController extends Controller
             inviteToken: $request->validated('invite_token')
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => $result['message'],
                 ], $result['code']);
             }
+
             return back()->withErrors(['room_id' => $result['message']]);
         }
 
@@ -177,12 +183,12 @@ class RoomController extends Controller
     public function kick(KickParticipantRequest $request, string $roomId): JsonResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
         }
 
         $room = Room::where('room_id', $roomId)->first();
-        if (!$room) {
+        if (! $room) {
             return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
         }
 
@@ -192,7 +198,7 @@ class RoomController extends Controller
             targetUserId: $request->validated('target_user_id')
         );
 
-        if (!$kicked) {
+        if (! $kicked) {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengeluarkan peserta. Pastikan Anda memiliki hak Room Creator.',
@@ -211,19 +217,19 @@ class RoomController extends Controller
     public function toggleLock(Request $request, string $roomId): JsonResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
         }
 
         $room = Room::where('room_id', $roomId)->first();
-        if (!$room) {
+        if (! $room) {
             return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
         }
 
         $lockInput = $request->has('is_locked') ? (bool) $request->input('is_locked') : null;
         $toggled = $this->roomService->toggleLock($user, $room, $lockInput);
 
-        if (!$toggled) {
+        if (! $toggled) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya Room Creator yang dapat mengunci atau membuka room.',
@@ -231,6 +237,7 @@ class RoomController extends Controller
         }
 
         $updatedRoom = $room->fresh();
+
         return response()->json([
             'success' => true,
             'is_locked' => $updatedRoom->isLocked(),
@@ -244,18 +251,18 @@ class RoomController extends Controller
     public function updateSettings(UpdateRoomSettingsRequest $request, string $roomId): JsonResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
         }
 
         $room = Room::where('room_id', $roomId)->first();
-        if (!$room) {
+        if (! $room) {
             return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
         }
 
         $updated = $this->roomService->updateRoomSettings($user, $room, $request->validated());
 
-        if (!$updated) {
+        if (! $updated) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya Room Creator yang dapat memperbarui pengaturan room.',
@@ -275,16 +282,16 @@ class RoomController extends Controller
     public function createInvite(Request $request, string $roomId): JsonResponse
     {
         $user = $this->identityService->getCurrentUser($request);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
         }
 
         $room = Room::where('room_id', $roomId)->first();
-        if (!$room) {
+        if (! $room) {
             return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
         }
 
-        if (!$room->isCreator($user->user_id) && !$room->allow_invites) {
+        if (! $room->isCreator($user->user_id) && ! $room->allow_invites) {
             return response()->json(['success' => false, 'message' => 'Undangan dinonaktifkan untuk room ini.'], 403);
         }
 
@@ -303,6 +310,54 @@ class RoomController extends Controller
             'token' => $inviteData['raw_token'],
             'invite_url' => $inviteUrl,
             'expires_at' => $inviteData['invitation']->expires_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Get current Dynamic PIN (TOTP) status for Room Creator only.
+     */
+    public function dynamicPin(Request $request, string $roomId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $room = Room::where('room_id', $roomId)->first();
+        if (! $room || ! $room->isCreator($user->user_id)) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'dynamic_pin' => $this->pinService->getDynamicPinStatus($room),
+        ]);
+    }
+
+    /**
+     * Rotate Dynamic PIN TOTP secret (Creator only).
+     */
+    public function rotateDynamicPin(Request $request, string $roomId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $room = Room::where('room_id', $roomId)->first();
+        if (! $room) {
+            return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
+        }
+
+        $status = $this->roomService->rotateDynamicPinSecret($user, $room);
+        if ($status === null) {
+            return response()->json(['success' => false, 'message' => 'Hanya Room Creator yang dapat merotasi Dynamic PIN.'], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Secret Dynamic PIN (TOTP) berhasil dirotasi.',
+            'dynamic_pin' => $status,
         ]);
     }
 }

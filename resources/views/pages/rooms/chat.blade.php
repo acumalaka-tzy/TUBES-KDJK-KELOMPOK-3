@@ -636,6 +636,20 @@
             userAvatar: currentUserAvatar,
             userAvatarColor: '{{ $user->avatar_color ?? "#008069" }}',
             userAvatarIcon: '{{ $user->preferences["avatar_icon"] ?? "initial" }}',
+            e2eeEnabled: {{ $room->e2ee_enabled ? 'true' : 'false' }},
+            onSecurityEvent: (eventType, details) => {
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!csrf) return;
+                fetch(`/api/rooms/${currentRoomId}/security-logs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ event_type: eventType, details: details || {} }),
+                }).catch(() => {});
+            },
             onMessageReceived: renderIncomingMessage,
             onMessageAck: (messageId) => {
                 const bubble = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);

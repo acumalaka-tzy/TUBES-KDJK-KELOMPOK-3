@@ -1,16 +1,34 @@
 /**
  * SecureLink WebRTC & E2EE Client Engine
- * Implements PRD Section 3.4, 4.1, 6.1-6.3, and 12.1.
+ * Implements PRD Section 3.4, 3.7, 4.1, 6.1-6.3, and 12.1.
  *
  * Features:
  * - Dynamic STUN/TURN ICE server configuration
  * - RTCPeerConnection with polite/impolite glare-free SDP Offer/Answer exchange
  * - ICE Candidate buffering queue until remoteDescription is set
  * - RTCDataChannel with ACK, exponential retry, and ping/pong RTT measurement
- * - Web Crypto API (ECDH P-256 + AES-GCM 256-bit E2EE)
+ * - Web Crypto API (ECDH P-256 + HKDF-SHA256 + AES-GCM 256-bit + 96-bit Nonce/IV)
+ * - Verified DTLS transport monitoring separate from application-layer E2EE
  * - Honest connection detection (Direct P2P vs TURN Relay via RTCIceCandidatePairStats)
  * - Automatic disconnect cleanup and ICE-restart reconnection
  */
+
+import {
+    E2EEKeyManager,
+    NonceManager,
+    bytesToBase64,
+    base64ToBytes,
+    computePublicKeyId,
+    sanitizePublicJwk,
+    derivePeerEncryptionKey,
+    encryptAesGcm,
+    decryptAesGcm,
+} from './e2ee-crypto.js';
+import {
+    inspectSdpDtlsFingerprint,
+    verifyPeerDtlsTransport,
+    evaluateTransportAndE2eeSecurity,
+} from './dtls-verifier.js';
 
 export class SecureLinkPeer {
     constructor(config) {
@@ -25,6 +43,8 @@ export class SecureLinkPeer {
 
         this.onMessageReceived = config.onMessageReceived || (() => {});
         this.onStatusChange = config.onStatusChange || (() => {});
+        this.onSecurityStatusChange = config.onSecurityStatusChange || (() => {});
+        this.onSecurityEvent = config.onSecurityEvent || (() => {});
         this.onPeerListChange = config.onPeerListChange || (() => {});
         this.onMessageAck = config.onMessageAck || (() => {});
         this.onDiagnosticsUpdate = config.onDiagnosticsUpdate || (() => {});
@@ -33,8 +53,10 @@ export class SecureLinkPeer {
         this.peers = new Map();
         this.messageStore = new Map();
         this.seenMessages = new Set();
+        this.keyManager = new E2EEKeyManager();
         this.localKeyPair = null;
         this.destroyed = false;
+        this.e2eeStatus = this.e2eeEnabled ? 'initializing' : 'disabled';
 
         this.iceServers = config.iceServers || [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -48,7 +70,7 @@ export class SecureLinkPeer {
         this.maxReconnectAttempts = 4;
         this.maxMessageRetries = 3;
 
-        this.initCrypto();
+        this.cryptoReady = this.initCrypto();
     }
 
     async loadIceConfig() {
@@ -72,110 +94,188 @@ export class SecureLinkPeer {
     }
 
     async initCrypto() {
-        if (!window.crypto || !window.crypto.subtle) {
+        if (!this.e2eeEnabled) {
+            this.e2eeStatus = 'disabled';
+            return null;
+        }
+
+        if (!globalThis.crypto || !globalThis.crypto.subtle) {
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { reason: 'web_crypto_unavailable' });
             console.warn('[SecureLink] Web Crypto API not available in this environment');
-            return;
+            return null;
         }
 
         try {
-            this.localKeyPair = await window.crypto.subtle.generateKey(
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                ['deriveKey', 'deriveBits']
-            );
+            const state = await this.keyManager.initialize();
+            this.localKeyPair = state.keyPair;
+            this.e2eeStatus = 'key_pair_ready';
+            this.onSecurityStatusChange(this.getE2eeSummary());
+            console.log('[SecureLink] ECDH P-256 non-extractable Key Pair initialized');
+            return state;
         } catch (e) {
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { reason: 'key_pair_generation_failed' });
             console.error('[SecureLink] Failed to generate ECDH keys:', e);
-        }
-    }
-
-    async exportPublicKey() {
-        if (!this.localKeyPair) await this.initCrypto();
-        if (!this.localKeyPair) return null;
-        return await window.crypto.subtle.exportKey('jwk', this.localKeyPair.publicKey);
-    }
-
-    async deriveSharedKey(remoteJwkKey) {
-        if (!remoteJwkKey || !this.localKeyPair) return null;
-        try {
-            const remoteKey = await window.crypto.subtle.importKey(
-                'jwk',
-                remoteJwkKey,
-                { name: 'ECDH', namedCurve: 'P-256' },
-                true,
-                []
-            );
-
-            return await window.crypto.subtle.deriveKey(
-                { name: 'ECDH', public: remoteKey },
-                this.localKeyPair.privateKey,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt', 'decrypt']
-            );
-        } catch (err) {
-            console.error('[SecureLink] Key derivation error:', err);
             return null;
         }
     }
 
-    bytesToBase64(bytes) {
-        let binary = '';
-        const chunkSize = 0x8000;
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-        }
-        return btoa(binary);
+    async exportPublicKey() {
+        await this.cryptoReady;
+        if (!this.e2eeEnabled) return null;
+        const bundle = await this.keyManager.getPublicKeyBundle();
+        this.localKeyPair = this.keyManager.keyPair;
+        return bundle.publicJwk;
     }
 
-    base64ToBytes(b64) {
-        const binary = atob(b64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
+    async deriveSharedKey(remoteJwkKey, targetUserId = 'peer', peerRecord = null) {
+        if (!remoteJwkKey) return null;
+        try {
+            await this.cryptoReady;
+            if (!this.keyManager.keyPair) {
+                await this.keyManager.initialize();
+                this.localKeyPair = this.keyManager.keyPair;
+            }
+
+            const localBundle = await this.keyManager.getPublicKeyBundle();
+            const remoteKeyId = await computePublicKeyId(sanitizePublicJwk(remoteJwkKey));
+            const saltSeed = [localBundle.keyId, remoteKeyId].sort().join(':');
+
+            const derived = await derivePeerEncryptionKey(this.keyManager.keyPair, remoteJwkKey, {
+                roomId: this.roomId || 'default-room',
+                localUserId: this.userId,
+                remoteUserId: targetUserId,
+                extraSalt: saltSeed,
+            });
+
+            if (peerRecord) {
+                peerRecord.sharedKey = derived.aesKey;
+                peerRecord.remoteKeyId = derived.remoteKeyId;
+                peerRecord.e2eeStatus = 'active';
+                if (!peerRecord.nonceManager) {
+                    peerRecord.nonceManager = new NonceManager();
+                } else {
+                    peerRecord.nonceManager.reset();
+                }
+            }
+
+            this.e2eeStatus = 'active';
+            this.onSecurityEvent('e2ee_initialized', {
+                target_user_id: targetUserId,
+                algorithm: derived.algorithm,
+            });
+            this.onSecurityStatusChange(this.getE2eeSummary());
+
+            return derived.aesKey;
+        } catch (err) {
+            if (peerRecord) {
+                peerRecord.sharedKey = null;
+                peerRecord.e2eeStatus = 'failed';
+            }
+            this.e2eeStatus = 'failed';
+            this.onSecurityEvent('e2ee_failed', { target_user_id: targetUserId });
+            this.onSecurityStatusChange(this.getE2eeSummary());
+            console.error('[SecureLink] ECDH+HKDF key derivation error:', err);
+            return null;
         }
-        return bytes;
     }
 
-    async encryptText(text, sharedKey) {
-        const encoded = new TextEncoder().encode(text);
-        if (!sharedKey || !this.e2eeEnabled) {
-            return { ciphertext: this.bytesToBase64(encoded), iv: null, encrypted: false };
+    async encryptText(text, peerOrKey, messageId = '') {
+        const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
+        const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
+        const nonceManager = isPeerRecord ? peerOrKey.nonceManager : new NonceManager();
+
+        if (!this.e2eeEnabled) {
+            return {
+                ciphertext: bytesToBase64(new TextEncoder().encode(text)),
+                iv: null,
+                encrypted: false,
+            };
         }
 
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const encrypted = await window.crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv },
-            sharedKey,
-            encoded
-        );
+        if (!sharedKey) {
+            throw new Error('Kunci E2EE belum tersedia untuk peer; pengiriman plaintext dibatalkan.');
+        }
 
-        return {
-            ciphertext: this.bytesToBase64(new Uint8Array(encrypted)),
-            iv: this.bytesToBase64(iv),
-            encrypted: true,
-        };
+        return await encryptAesGcm(text, sharedKey, nonceManager, {
+            roomId: this.roomId,
+            senderId: this.userId,
+            messageId,
+        });
     }
 
-    async decryptPayload(ciphertextB64, ivB64, sharedKey) {
-        if (!sharedKey || !ivB64) {
-            return new TextDecoder().decode(this.base64ToBytes(ciphertextB64));
+    async decryptPayload(ciphertextB64, ivB64, peerOrKey, metadata = {}) {
+        const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
+        const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
+        const nonceManager = isPeerRecord ? peerOrKey.nonceManager : null;
+
+        if (!this.e2eeEnabled && !ivB64 && metadata.encrypted === false) {
+            return new TextDecoder().decode(base64ToBytes(ciphertextB64));
+        }
+
+        if (this.e2eeEnabled && (!ivB64 || metadata.encrypted === false || !sharedKey)) {
+            this.onSecurityEvent('e2ee_failed', { reason: 'downgrade_or_missing_key' });
+            return '⚠️ [Pesan ditolak: payload tidak terenkripsi atau kunci E2EE belum aktif]';
         }
 
         try {
-            const ciphertext = this.base64ToBytes(ciphertextB64);
-            const iv = this.base64ToBytes(ivB64);
-
-            const decrypted = await window.crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv },
+            return await decryptAesGcm(
+                {
+                    ciphertext: ciphertextB64,
+                    iv: ivB64,
+                    encrypted: metadata.encrypted !== false,
+                },
                 sharedKey,
-                ciphertext
+                nonceManager,
+                metadata.aadContext || null
             );
-
-            return new TextDecoder().decode(decrypted);
         } catch (err) {
+            this.onSecurityEvent('e2ee_failed', { reason: 'decryption_or_auth_tag_failed' });
             console.error('[SecureLink] Decryption failed:', err);
             return '[Pesan gagal didekripsi: integritas rusak]';
         }
+    }
+
+    async rotateSessionKeys() {
+        if (!this.e2eeEnabled) return null;
+
+        const state = await this.keyManager.rotateKeyPair();
+        this.localKeyPair = state.keyPair;
+        this.e2eeStatus = 'key_pair_ready';
+
+        for (const peerRecord of this.peers.values()) {
+            peerRecord.sharedKey = null;
+            peerRecord.remoteKeyId = null;
+            peerRecord.e2eeStatus = 'exchanging';
+            if (peerRecord.nonceManager) {
+                peerRecord.nonceManager.reset();
+            }
+            if (peerRecord.dc && peerRecord.dc.readyState === 'open') {
+                peerRecord.dc.send(JSON.stringify({
+                    type: 'key-exchange',
+                    senderId: this.userId,
+                    keyId: state.keyId,
+                    publicKey: state.publicJwk,
+                }));
+            }
+        }
+
+        this.onSecurityStatusChange(this.getE2eeSummary());
+        return state;
+    }
+
+    getE2eeSummary() {
+        const peerStatuses = Array.from(this.peers.values()).map((p) => p.e2eeStatus);
+        const activeCount = peerStatuses.filter((s) => s === 'active').length;
+        return {
+            enabled: this.e2eeEnabled,
+            status: this.e2eeStatus,
+            algorithm: 'ECDH P-256 + HKDF-SHA256 + AES-GCM-256',
+            activePeerKeys: activeCount,
+            totalPeers: this.peers.size,
+            keyManager: this.keyManager.getStatus(),
+        };
     }
 
     createPeerConnection(targetUserId) {
@@ -194,10 +294,18 @@ export class SecureLinkPeer {
             pc,
             dc: null,
             sharedKey: null,
+            remoteKeyId: null,
+            nonceManager: new NonceManager(),
+            e2eeStatus: this.e2eeEnabled ? 'exchanging' : 'disabled',
             connectionType: 'unknown', // 'direct' | 'relay' | 'unknown'
             localCandidateType: null,
             remoteCandidateType: null,
             dtlsState: 'new',
+            dtlsVerified: false,
+            dtlsCipher: null,
+            srtpCipher: null,
+            tlsVersion: null,
+            sdpDtls: null,
             rttMs: null,
             makingOffer: false,
             ignoreOffer: false,
@@ -208,6 +316,8 @@ export class SecureLinkPeer {
             pingTimer: null,
         };
 
+        this.onSecurityEvent('peer_connection_started', { target_user_id: targetUserId });
+
         pc.onicecandidate = (event) => {
             if (event.candidate && this.signalSender) {
                 this.signalSender(targetUserId, {
@@ -217,28 +327,40 @@ export class SecureLinkPeer {
             }
         };
 
-        pc.oniceconnectionstatechange = () => {
+        pc.oniceconnectionstatechange = async () => {
             const iceState = pc.iceConnectionState;
             console.log(`[SecureLink] ICE State with ${targetUserId}: ${iceState}`);
 
             if (iceState === 'connected' || iceState === 'completed') {
                 peerRecord.reconnectAttempts = 0;
                 this.clearReconnectTimer(peerRecord);
-                this.checkConnectionType(peerRecord);
+                await this.checkConnectionType(peerRecord);
+                await this.verifyDtlsStatus(peerRecord);
             } else if (iceState === 'disconnected' || iceState === 'failed') {
+                await this.verifyDtlsStatus(peerRecord);
+                if (iceState === 'failed') {
+                    this.onSecurityEvent('webrtc_failed', { target_user_id: targetUserId, ice_state: iceState });
+                }
                 this.scheduleReconnect(peerRecord);
             }
 
             this.notifyStatus();
         };
 
-        pc.onconnectionstatechange = () => {
+        pc.onconnectionstatechange = async () => {
             const state = pc.connectionState;
             if (state === 'connected') {
                 peerRecord.reconnectAttempts = 0;
                 this.clearReconnectTimer(peerRecord);
-                this.checkConnectionType(peerRecord);
+                await this.checkConnectionType(peerRecord);
+                await this.verifyDtlsStatus(peerRecord);
+                this.onSecurityEvent('webrtc_connected', {
+                    target_user_id: targetUserId,
+                    connection_type: peerRecord.connectionType,
+                });
             } else if (state === 'failed') {
+                await this.verifyDtlsStatus(peerRecord);
+                this.onSecurityEvent('webrtc_failed', { target_user_id: targetUserId });
                 this.scheduleReconnect(peerRecord);
             } else if (state === 'closed') {
                 this.clearReconnectTimer(peerRecord);
@@ -257,6 +379,83 @@ export class SecureLinkPeer {
         return peerRecord;
     }
 
+    attachDtlsTransportListener(peerRecord) {
+        const dtlsTransport = peerRecord.pc?.sctp?.transport;
+        if (!dtlsTransport || peerRecord._dtlsBound) return;
+        peerRecord._dtlsBound = true;
+        dtlsTransport.onstatechange = () => {
+            this.verifyDtlsStatus(peerRecord);
+        };
+    }
+
+    async verifyDtlsStatus(peerRecord) {
+        if (!peerRecord?.pc) return null;
+        this.attachDtlsTransportListener(peerRecord);
+
+        const prevState = peerRecord.dtlsState;
+        const result = await verifyPeerDtlsTransport(peerRecord.pc);
+
+        peerRecord.dtlsState = result.dtlsState;
+        peerRecord.dtlsVerified = result.dtlsVerified;
+        peerRecord.dtlsCipher = result.dtlsCipher;
+        peerRecord.srtpCipher = result.srtpCipher;
+        peerRecord.tlsVersion = result.tlsVersion;
+        if (result.connectionType !== 'unknown') {
+            peerRecord.connectionType = result.connectionType;
+        }
+
+        if (prevState !== result.dtlsState) {
+            if (result.dtlsState === 'connected') {
+                this.onSecurityEvent('dtls_connected', {
+                    target_user_id: peerRecord.targetUserId,
+                    dtls_cipher: result.dtlsCipher,
+                    tls_version: result.tlsVersion,
+                });
+            } else if (result.dtlsState === 'failed') {
+                this.onSecurityEvent('dtls_failed', { target_user_id: peerRecord.targetUserId });
+            }
+            this.onSecurityStatusChange(this.getDtlsSummary());
+        }
+
+        return result;
+    }
+
+    getDtlsSummary() {
+        const peers = Array.from(this.peers.values());
+        const connectedDtls = peers.filter((p) => p.dtlsVerified).length;
+        const anyFailed = peers.some((p) => p.dtlsState === 'failed');
+        const anyConnecting = peers.some((p) => p.dtlsState === 'connecting');
+
+        let overallDtlsState = 'unverified';
+        if (connectedDtls > 0) {
+            overallDtlsState = 'connected';
+        } else if (anyFailed) {
+            overallDtlsState = 'failed';
+        } else if (anyConnecting) {
+            overallDtlsState = 'connecting';
+        }
+
+        const firstConnected = peers.find((p) => p.dtlsVerified);
+        const evaluation = evaluateTransportAndE2eeSecurity({
+            dtlsState: overallDtlsState,
+            e2eeStatus: this.e2eeStatus,
+            e2eeEnabled: this.e2eeEnabled,
+            dataChannelState: peers.some((p) => p.dc?.readyState === 'open') ? 'open' : 'closed',
+        });
+
+        return {
+            dtlsState: overallDtlsState,
+            dtlsVerified: overallDtlsState === 'connected',
+            dtlsCipher: firstConnected?.dtlsCipher || null,
+            srtpCipher: firstConnected?.srtpCipher || null,
+            tlsVersion: firstConnected?.tlsVersion || null,
+            connectedDtlsPeers: connectedDtls,
+            totalPeers: peers.length,
+            e2eeStatus: this.e2eeStatus,
+            evaluation,
+        };
+    }
+
     setupDataChannel(peerRecord) {
         const dc = peerRecord.dc;
         if (!dc) return;
@@ -268,16 +467,23 @@ export class SecureLinkPeer {
             peerRecord.reconnectAttempts = 0;
             this.clearReconnectTimer(peerRecord);
 
-            const pubKey = await this.exportPublicKey();
-            if (pubKey && dc.readyState === 'open') {
-                dc.send(JSON.stringify({
-                    type: 'key-exchange',
-                    senderId: this.userId,
-                    publicKey: pubKey,
-                }));
+            await this.checkConnectionType(peerRecord);
+            await this.verifyDtlsStatus(peerRecord);
+
+            if (this.e2eeEnabled) {
+                await this.cryptoReady;
+                const bundle = await this.keyManager.getPublicKeyBundle();
+                peerRecord.e2eeStatus = 'exchanging';
+                if (dc.readyState === 'open') {
+                    dc.send(JSON.stringify({
+                        type: 'key-exchange',
+                        senderId: this.userId,
+                        keyId: bundle.keyId,
+                        publicKey: bundle.publicJwk,
+                    }));
+                }
             }
 
-            await this.checkConnectionType(peerRecord);
             this.startPingLoop(peerRecord);
             this.notifyStatus();
         };
@@ -287,7 +493,22 @@ export class SecureLinkPeer {
                 const data = JSON.parse(event.data);
 
                 if (data.type === 'key-exchange') {
-                    peerRecord.sharedKey = await this.deriveSharedKey(data.publicKey);
+                    if (!this.e2eeEnabled) return;
+                    const derived = await this.deriveSharedKey(data.publicKey, peerRecord.targetUserId, peerRecord);
+                    if (derived && dc.readyState === 'open') {
+                        dc.send(JSON.stringify({
+                            type: 'key-exchange-ack',
+                            senderId: this.userId,
+                            keyId: this.keyManager.keyId,
+                        }));
+                    }
+                    this.notifyStatus();
+                    return;
+                }
+
+                if (data.type === 'key-exchange-ack') {
+                    peerRecord.peerAckedKey = true;
+                    this.onSecurityStatusChange(this.getE2eeSummary());
                     this.notifyStatus();
                     return;
                 }
@@ -308,6 +529,7 @@ export class SecureLinkPeer {
                 if (data.type === 'ack') {
                     this.handleAck(data.messageId);
                     this.onMessageAck(data.messageId);
+                    this.onSecurityEvent('message_delivery_acknowledged', { message_id: data.messageId });
                     return;
                 }
 
@@ -320,7 +542,16 @@ export class SecureLinkPeer {
                     this.seenMessages.add(data.id);
                     dc.send(JSON.stringify({ type: 'ack', messageId: data.id }));
 
-                    const text = await this.decryptPayload(data.ciphertext, data.iv, peerRecord.sharedKey);
+                    const aadContext = {
+                        roomId: this.roomId,
+                        senderId: data.senderId || peerRecord.targetUserId,
+                        messageId: data.id,
+                    };
+                    const text = await this.decryptPayload(data.ciphertext, data.iv, peerRecord, {
+                        encrypted: data.encrypted,
+                        aadContext,
+                    });
+                    const verifiedE2ee = Boolean(data.iv && data.encrypted !== false && peerRecord.sharedKey);
                     this.onMessageReceived({
                         id: data.id,
                         senderId: data.senderId,
@@ -331,7 +562,7 @@ export class SecureLinkPeer {
                         timestamp: data.timestamp,
                         ephemeralDuration: data.ephemeralDuration,
                         replyTo: data.replyTo,
-                        isE2EE: !!data.iv,
+                        isE2EE: verifiedE2ee,
                         transport: 'p2p',
                     });
                 }
@@ -394,6 +625,7 @@ export class SecureLinkPeer {
 
         try {
             if (signal.type === 'offer' || signal.type === 'ice-restart') {
+                peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
                 const offerCollision = peer.makingOffer || pc.signalingState !== 'stable';
                 peer.ignoreOffer = !peer.isPolite && offerCollision;
 
@@ -415,6 +647,7 @@ export class SecureLinkPeer {
 
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
+                this.onSecurityEvent('sdp_offer_exchanged', { target_user_id: fromUserId });
 
                 if (this.signalSender) {
                     this.signalSender(fromUserId, {
@@ -423,13 +656,16 @@ export class SecureLinkPeer {
                     });
                 }
             } else if (signal.type === 'answer') {
+                peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
                 if (pc.signalingState === 'have-local-offer') {
                     await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
                     await this.flushPendingCandidates(peer);
+                    this.onSecurityEvent('sdp_answer_exchanged', { target_user_id: fromUserId });
                 }
             } else if (signal.type === 'candidate' && signal.candidate) {
                 if (pc.remoteDescription && pc.remoteDescription.type) {
                     await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    this.onSecurityEvent('ice_candidate_exchanged', { target_user_id: fromUserId });
                 } else {
                     peer.pendingCandidates.push(signal.candidate);
                 }
@@ -460,6 +696,7 @@ export class SecureLinkPeer {
         try {
             if (pc.sctp && pc.sctp.transport) {
                 peerRecord.dtlsState = pc.sctp.transport.state || peerRecord.dtlsState;
+                peerRecord.dtlsVerified = peerRecord.dtlsState === 'connected';
             }
 
             const stats = await pc.getStats();
@@ -508,6 +745,7 @@ export class SecureLinkPeer {
                 try {
                     peerRecord.dc.send(JSON.stringify({ type: 'ping', ts: performance.now() }));
                     this.checkConnectionType(peerRecord);
+                    this.verifyDtlsStatus(peerRecord);
                 } catch (e) {}
             }
         }, 8000);
@@ -555,6 +793,7 @@ export class SecureLinkPeer {
             const iceState = peer.pc?.iceConnectionState;
             if (iceState !== 'connected' && iceState !== 'completed') {
                 peer.reconnectAttempts = 0;
+                this.onSecurityEvent('connection_reconnected', { target_user_id: peer.targetUserId });
                 this.initiateOffer(peer.targetUserId, { iceRestart: true });
             }
         });
@@ -638,7 +877,9 @@ export class SecureLinkPeer {
                 connectionState: peer.pc?.connectionState || 'new',
                 dataChannelState: peer.dc?.readyState || 'closed',
                 dtlsState: peer.dtlsState,
+                dtlsVerified: Boolean(peer.dtlsVerified),
                 e2eeReady: Boolean(peer.sharedKey),
+                e2eeStatus: peer.e2eeStatus,
                 rttMs: peer.rttMs,
             });
         });
@@ -659,23 +900,34 @@ export class SecureLinkPeer {
             const promises = Array.from(this.peers.values()).map(async (peer) => {
                 if (!peer.dc || peer.dc.readyState !== 'open') return false;
 
-                const { ciphertext, iv } = await this.encryptText(text, peer.sharedKey);
-                const payload = JSON.stringify({
-                    type: 'chat',
-                    id: messageId,
-                    senderId: this.userId,
-                    senderName: this.userName,
-                    senderAvatarColor: this.userAvatarColor,
-                    senderAvatarIcon: this.userAvatarIcon,
-                    ciphertext,
-                    iv,
-                    timestamp,
-                    ephemeralDuration,
-                    replyTo,
-                });
+                try {
+                    const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(text, peer, messageId);
+                    const payload = JSON.stringify({
+                        type: 'chat',
+                        id: messageId,
+                        senderId: this.userId,
+                        senderName: this.userName,
+                        senderAvatarColor: this.userAvatarColor,
+                        senderAvatarIcon: this.userAvatarIcon,
+                        ciphertext,
+                        iv,
+                        encrypted,
+                        algorithm: algorithm || null,
+                        timestamp,
+                        ephemeralDuration,
+                        replyTo,
+                    });
 
-                peer.dc.send(payload);
-                return true;
+                    peer.dc.send(payload);
+                    return true;
+                } catch (err) {
+                    console.error(`[SecureLink] Gagal mengirim pesan ke ${peer.targetUserId}:`, err);
+                    this.onSecurityEvent('e2ee_failed', {
+                        target_user_id: peer.targetUserId,
+                        reason: 'encrypt_aborted',
+                    });
+                    return false;
+                }
             });
 
             return Promise.all(promises);
@@ -721,6 +973,60 @@ export class SecureLinkPeer {
         };
     }
 
+    getSecurityInfo() {
+        const dtls = this.getDtlsSummary();
+        const e2ee = this.getE2eeSummary();
+        const overall = this.getOverallStatus();
+        const peers = Array.from(this.peers.values());
+
+        const openPeers = peers.filter((p) => p.dc && p.dc.readyState === 'open').length;
+        const anyRelay = peers.some((p) => p.dc?.readyState === 'open' && p.connectionType === 'relay');
+        const anyDirect = peers.some((p) => p.dc?.readyState === 'open' && p.connectionType === 'direct');
+        const connectionType = anyRelay ? 'relay' : (anyDirect ? 'direct' : 'unknown');
+
+        const webrtcStates = peers.map((p) => p.pc?.connectionState || 'new');
+        const iceStates = peers.map((p) => p.pc?.iceConnectionState || 'new');
+        const webrtcState = webrtcStates.includes('connected')
+            ? 'connected'
+            : (webrtcStates.includes('connecting') ? 'connecting' : (webrtcStates.includes('failed') ? 'failed' : (webrtcStates[0] || 'new')));
+        const iceState = iceStates.includes('connected') || iceStates.includes('completed')
+            ? 'connected'
+            : (iceStates.includes('checking') ? 'checking' : (iceStates.includes('failed') ? 'failed' : (iceStates[0] || 'new')));
+        const dataChannelState = openPeers > 0 ? 'open' : (peers.some((p) => p.dc?.readyState === 'connecting') ? 'connecting' : 'closed');
+
+        let compactIndicator = 'Disconnected';
+        if (dtls.evaluation.secureConnection) {
+            compactIndicator = 'Secure Connection';
+        } else if (webrtcState === 'connecting' || iceState === 'checking' || dataChannelState === 'connecting') {
+            compactIndicator = 'Connecting';
+        } else if (iceState === 'disconnected') {
+            compactIndicator = 'Reconnecting';
+        }
+
+        return {
+            connectionType,
+            webrtcState,
+            iceState,
+            dataChannelState,
+            dtlsState: dtls.dtlsState,
+            dtlsVerified: dtls.dtlsVerified,
+            dtlsCipher: dtls.dtlsCipher,
+            srtpCipher: dtls.srtpCipher,
+            tlsVersion: dtls.tlsVersion,
+            e2eeEnabled: e2ee.enabled,
+            e2eeStatus: e2ee.status,
+            e2eeActive: dtls.evaluation.e2eeActive,
+            e2eeAlgorithm: e2ee.algorithm,
+            signalingStatus: this.signalSender ? 'ready' : 'unavailable',
+            connectedPeers: openPeers,
+            totalPeers: peers.length,
+            secureConnection: dtls.evaluation.secureConnection,
+            compactIndicator,
+            overallLabel: overall.label,
+            vpnNote: 'Status VPN Tailscale tidak dapat diverifikasi langsung oleh browser; gunakan halaman diagnostik.',
+        };
+    }
+
     handleAck(messageId) {
         const item = this.messageStore.get(messageId);
         if (item) {
@@ -734,6 +1040,7 @@ export class SecureLinkPeer {
 
     destroy() {
         this.destroyed = true;
+        this.keyManager.destroy();
         this.messageStore.forEach((item) => {
             if (item.retryTimer) clearTimeout(item.retryTimer);
         });

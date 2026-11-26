@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\BroadcastComparisonController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SecurityInformationController;
+use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\SignalingController;
 use App\Http\Controllers\UserIdentityController;
 use App\Http\Controllers\WebRTCConfigController;
@@ -27,6 +29,11 @@ Route::get('/webrtc/ice-servers', [WebRTCConfigController::class, 'iceServers'])
     ->middleware(['identity'])
     ->name('api.webrtc.ice');
 
+// Protected Security Information route (requires user session identity)
+Route::prefix('security')->middleware(['identity'])->group(function () {
+    Route::get('/info', [SecurityInformationController::class, 'sessionInfo'])->name('api.security.info');
+});
+
 // Protected Room routes (requires user session identity)
 Route::prefix('rooms')->middleware(['identity'])->group(function () {
     Route::get('/', [RoomController::class, 'index'])->name('api.rooms.index');
@@ -44,6 +51,9 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/broadcast-message', [BroadcastComparisonController::class, 'send'])
             ->middleware('throttle:60,1')
             ->name('api.rooms.broadcast');
+        Route::get('/{roomId}/security-info', [SecurityInformationController::class, 'roomInfo'])->name('api.rooms.security_info');
+        Route::get('/{roomId}/security-logs', [SecurityLogController::class, 'index'])->name('api.rooms.security_logs.index');
+        Route::post('/{roomId}/security-logs', [SecurityLogController::class, 'store'])->name('api.rooms.security_logs.store');
     });
 
     // Room creator admin routes
@@ -51,5 +61,7 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/kick', [RoomController::class, 'kick'])->name('api.rooms.kick');
         Route::post('/{roomId}/lock', [RoomController::class, 'toggleLock'])->name('api.rooms.lock');
         Route::put('/{roomId}/settings', [RoomController::class, 'updateSettings'])->name('api.rooms.settings');
+        Route::get('/{roomId}/dynamic-pin', [RoomController::class, 'dynamicPin'])->name('api.rooms.dynamic_pin');
+        Route::post('/{roomId}/dynamic-pin/rotate', [RoomController::class, 'rotateDynamicPin'])->name('api.rooms.dynamic_pin.rotate');
     });
 });

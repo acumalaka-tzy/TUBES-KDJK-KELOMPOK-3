@@ -13,6 +13,11 @@ class Room extends Model
 
     protected $table = 'rooms';
 
+    protected $hidden = [
+        'room_pin_hash',
+        'dynamic_pin_secret',
+    ];
+
     protected $fillable = [
         'room_id',
         'room_name',
@@ -21,6 +26,7 @@ class Room extends Model
         'room_pin_hash',
         'dynamic_pin_enabled',
         'dynamic_pin_secret',
+        'pin_expires_at',
         'max_participants',
         'e2ee_enabled',
         'ephemeral_enabled',
@@ -36,6 +42,8 @@ class Room extends Model
     {
         return [
             'dynamic_pin_enabled' => 'boolean',
+            'dynamic_pin_secret' => 'encrypted',
+            'pin_expires_at' => 'datetime',
             'e2ee_enabled' => 'boolean',
             'ephemeral_enabled' => 'boolean',
             'default_ephemeral_duration' => 'integer',
@@ -102,7 +110,15 @@ class Room extends Model
      */
     public function hasPin(): bool
     {
-        return !empty($this->room_pin_hash) || $this->dynamic_pin_enabled;
+        return ! empty($this->room_pin_hash) || $this->dynamic_pin_enabled;
+    }
+
+    /**
+     * Check if the room's configured PIN has expired.
+     */
+    public function isPinExpired(): bool
+    {
+        return $this->pin_expires_at !== null && $this->pin_expires_at->isPast();
     }
 
     /**
@@ -137,6 +153,7 @@ class Room extends Model
         if (empty($userId)) {
             return false;
         }
+
         return $this->creator_id === $userId;
     }
 
@@ -148,6 +165,7 @@ class Room extends Model
         if (empty($userId)) {
             return false;
         }
+
         return $this->activeParticipants()->where('user_id', $userId)->exists();
     }
 
@@ -159,6 +177,7 @@ class Room extends Model
         if (empty($userId)) {
             return null;
         }
+
         return $this->participants()->where('user_id', $userId)->first();
     }
 }
