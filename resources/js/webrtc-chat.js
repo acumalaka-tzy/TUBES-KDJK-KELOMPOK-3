@@ -623,6 +623,60 @@ export class SecureLinkPeer {
         };
     }
 
+    getSecurityInfo() {
+        const dtls = this.getDtlsSummary();
+        const e2ee = this.getE2eeSummary();
+        const overall = this.getOverallStatus();
+        const peers = Array.from(this.peers.values());
+
+        const openPeers = peers.filter((p) => p.dc && p.dc.readyState === 'open').length;
+        const anyRelay = peers.some((p) => p.dc?.readyState === 'open' && p.connectionType === 'relay');
+        const anyDirect = peers.some((p) => p.dc?.readyState === 'open' && p.connectionType === 'direct');
+        const connectionType = anyRelay ? 'relay' : (anyDirect ? 'direct' : 'unknown');
+
+        const webrtcStates = peers.map((p) => p.pc?.connectionState || 'new');
+        const iceStates = peers.map((p) => p.pc?.iceConnectionState || 'new');
+        const webrtcState = webrtcStates.includes('connected')
+            ? 'connected'
+            : (webrtcStates.includes('connecting') ? 'connecting' : (webrtcStates.includes('failed') ? 'failed' : (webrtcStates[0] || 'new')));
+        const iceState = iceStates.includes('connected') || iceStates.includes('completed')
+            ? 'connected'
+            : (iceStates.includes('checking') ? 'checking' : (iceStates.includes('failed') ? 'failed' : (iceStates[0] || 'new')));
+        const dataChannelState = openPeers > 0 ? 'open' : (peers.some((p) => p.dc?.readyState === 'connecting') ? 'connecting' : 'closed');
+
+        let compactIndicator = 'Disconnected';
+        if (dtls.evaluation.secureConnection) {
+            compactIndicator = 'Secure Connection';
+        } else if (webrtcState === 'connecting' || iceState === 'checking' || dataChannelState === 'connecting') {
+            compactIndicator = 'Connecting';
+        } else if (iceState === 'disconnected') {
+            compactIndicator = 'Reconnecting';
+        }
+
+        return {
+            connectionType,
+            webrtcState,
+            iceState,
+            dataChannelState,
+            dtlsState: dtls.dtlsState,
+            dtlsVerified: dtls.dtlsVerified,
+            dtlsCipher: dtls.dtlsCipher,
+            srtpCipher: dtls.srtpCipher,
+            tlsVersion: dtls.tlsVersion,
+            e2eeEnabled: e2ee.enabled,
+            e2eeStatus: e2ee.status,
+            e2eeActive: dtls.evaluation.e2eeActive,
+            e2eeAlgorithm: e2ee.algorithm,
+            signalingStatus: this.signalSender ? 'ready' : 'unavailable',
+            connectedPeers: openPeers,
+            totalPeers: peers.length,
+            secureConnection: dtls.evaluation.secureConnection,
+            compactIndicator,
+            overallLabel: overall.label,
+            vpnNote: 'Status VPN Tailscale tidak dapat diverifikasi langsung oleh browser; gunakan halaman diagnostik.',
+        };
+    }
+
     handleAck(messageId) {
         const item = this.messageStore.get(messageId);
         if (item) {

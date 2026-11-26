@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\SecurityInformationController;
 use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\UserIdentityController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,11 @@ Route::prefix('identity')->group(function () {
     Route::post('/logout', [UserIdentityController::class, 'logout'])->name('api.identity.logout');
 });
 
+// Protected Security Information route (requires user session identity)
+Route::prefix('security')->middleware(['identity'])->group(function () {
+    Route::get('/info', [SecurityInformationController::class, 'sessionInfo'])->name('api.security.info');
+});
+
 // Protected Room routes (requires user session identity)
 Route::prefix('rooms')->middleware(['identity'])->group(function () {
     Route::get('/', [RoomController::class, 'index'])->name('api.rooms.index');
@@ -31,6 +37,7 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
     // Room member routes
     Route::middleware(['room.member'])->group(function () {
         Route::post('/{roomId}/invite', [RoomController::class, 'createInvite'])->name('api.rooms.invite');
+        Route::get('/{roomId}/security-info', [SecurityInformationController::class, 'roomInfo'])->name('api.rooms.security_info');
         Route::get('/{roomId}/security-logs', [SecurityLogController::class, 'index'])->name('api.rooms.security_logs.index');
         Route::post('/{roomId}/security-logs', [SecurityLogController::class, 'store'])->name('api.rooms.security_logs.store');
     });
