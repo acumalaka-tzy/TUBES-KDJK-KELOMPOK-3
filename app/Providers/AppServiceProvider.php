@@ -24,5 +24,7 @@ class AppServiceProvider extends ServiceProvider
         Broadcast::routes([
             'middleware' => ['web', ResolveBroadcastUser::class],
         ]);
+
+        require base_path('routes/channels.php');
     }
 }
