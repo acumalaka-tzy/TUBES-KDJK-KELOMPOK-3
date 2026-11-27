@@ -1,354 +1,413 @@
 @extends('layouts.app')
 
-@section('title', 'Settings & Keamanan — SecureLink')
+@section('title', 'Pengaturan & Diagnostik — SecureLink')
 
-@section('content')
-<div class="max-w-4xl mx-auto space-y-6 py-4">
-    <div>
-        <h1 class="text-2xl font-extrabold text-[#182033] dark:text-[#F1F4FA]">Pengaturan &amp; Diagnostik Keamanan</h1>
-        <p class="text-xs text-[#667085] dark:text-[#A8B2C3] mt-1">
-            Kelola preferensi akun sesi, tema antarmuka, serta diagnostik jaringan dan enkripsi P2P.
-        </p>
-    </div>
+@section('app_shell')
+@php
+    $activeSection = request()->query('section', 'account');
+    $settingsColor = old('avatar_color', $user->avatar_color ?? '#497173');
+    $settingsIcon = old('avatar_icon', $user->avatar_icon ?? 'initial');
+    $characterMetadata = \App\Models\UserSession::$characterMetadata;
+    $characterSvgs = \App\Models\UserSession::$avatarSvgs;
+    $resolvedKey = \App\Models\UserSession::$legacyAliases[$settingsIcon] ?? $settingsIcon;
+    $hasSvg = ($resolvedKey !== 'initial' && isset($characterSvgs[$resolvedKey]));
+    $initialLetter = strtoupper(substr(old('display_name', $user->display_name ?? 'A'), 0, 1) ?: 'U');
+@endphp
 
-    <!-- Section 1: Profil Akun Sesi -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-5">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">1. Identitas Sesi Pengguna</h2>
-            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200 dark:border-emerald-800/60">
-                Sesi Aktif
-            </span>
+<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
+
+    <!-- A. Slim Icon Navigation Sidebar -->
+    @include('partials.app-nav')
+
+    <!-- B. Settings Category Sidebar (Column 1) -->
+    <aside class="w-full md:w-72 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col shrink-0 h-full overflow-y-auto sl-scroll">
+        <div class="px-4 py-3.5 border-b border-[var(--sl-divider)]">
+            <h1 class="text-sm font-bold text-[var(--sl-text-primary)]">Pengaturan &amp; Diagnostik</h1>
+            <p class="text-[11px] text-[var(--sl-text-secondary)] mt-0.5">Akun, tampilan, keamanan &amp; koneksi</p>
         </div>
 
-        <form action="{{ route('identity.update.web') }}" method="POST" class="space-y-5">
-            @csrf
+        <nav class="p-2 space-y-0.5 text-xs font-medium">
             @php
-                $settingsColor = old('avatar_color', $user->avatar_color ?? '#008069');
-                $settingsIcon = old('avatar_icon', $user->avatar_icon ?? 'initial');
-                $characterMetadata = \App\Models\UserSession::$characterMetadata;
-                $characterSvgs = \App\Models\UserSession::$avatarSvgs;
-                $resolvedKey = \App\Models\UserSession::$legacyAliases[$settingsIcon] ?? $settingsIcon;
-                $hasSvg = ($resolvedKey !== 'initial' && isset($characterSvgs[$resolvedKey]));
-                $initialLetter = strtoupper(substr(old('display_name', $user->display_name ?? 'A'), 0, 1) ?: 'U');
+                $categories = [
+                    'account' => ['label' => 'Account', 'desc' => 'Profil & identitas sesi'],
+                    'appearance' => ['label' => 'Appearance', 'desc' => 'Tema terang, gelap & font'],
+                    'security' => ['label' => 'Privacy & Security', 'desc' => 'E2EE, DTLS & ephemeral'],
+                    'notifications' => ['label' => 'Notifications', 'desc' => 'Suara & notifikasi desktop'],
+                    'connection' => ['label' => 'Connection', 'desc' => 'WebRTC, STUN, TURN & signaling'],
+                    'chat' => ['label' => 'Chat Preferences', 'desc' => 'Perilaku composer & pesan'],
+                    'about' => ['label' => 'About & Help', 'desc' => 'Versi, dokumentasi & keluar'],
+                ];
             @endphp
-            <input type="hidden" id="settings_avatar_icon" name="avatar_icon" value="{{ $settingsIcon }}">
-
-            <!-- Avatar Preview Badge -->
-            <div class="flex items-center gap-4 p-4 rounded-2xl bg-white/50 dark:bg-[#111B21]/50 border border-[#E9EDEF] dark:border-[#222D34]">
-                <div id="settings-avatar-preview" class="w-16 h-16 rounded-2xl text-white flex items-center justify-center text-2xl font-extrabold shadow-md shadow-emerald-500/20 shrink-0 uppercase transition-all duration-300 p-2 overflow-hidden" style="background-color: {{ $settingsColor }};">
-                    @if($hasSvg)
-                        <div class="w-full h-full flex items-center justify-center">
-                            {!! $characterSvgs[$resolvedKey] !!}
-                        </div>
-                    @else
-                        <span class="font-extrabold select-none leading-none">{{ $initialLetter }}</span>
-                    @endif
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">Avatar &amp; Karakter Anda</h3>
-                    <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-0.5">
-                        Pilih karakter vektor grafis dan warna latar belakang yang merepresentasikan Anda di room.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Avatar Preset Grid (Vector Characters, Non-Emoji) -->
-            <div>
-                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-2">
-                    Pilihan Karakter Avatar (Vektor Grafis)
-                </label>
-                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                    @foreach($characterMetadata as $key => $meta)
-                        @php
-                            $isSvg = ($key !== 'initial' && isset($characterSvgs[$key]));
-                            $isActive = ($settingsIcon === $key || (isset(\App\Models\UserSession::$legacyAliases[$settingsIcon]) && \App\Models\UserSession::$legacyAliases[$settingsIcon] === $key));
-                        @endphp
-                        <button type="button"
-                            onclick="selectSettingsAvatarPreset('{{ $key }}')"
-                            id="settings-preset-btn-{{ $key }}"
-                            class="settings-avatar-btn p-2 sm:p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 sm:gap-1.5 min-w-0 {{ $isActive ? 'border-[#008069] dark:border-[#00A884] bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-[#008069] dark:ring-[#00A884]' : 'border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#202C33]/60 hover:border-[#008069]/40' }}"
-                            title="{{ $meta['desc'] }}">
-                            <div class="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-[#008069] dark:text-[#25D366] shrink-0">
-                                @if($isSvg)
-                                    {!! $characterSvgs[$key] !!}
-                                @else
-                                    <span class="text-[11px] sm:text-xs font-black tracking-tight bg-[#E9EDEF] dark:bg-[#202C33] px-1 sm:px-1.5 py-0.5 rounded text-[#111B21] dark:text-[#E9EDEF]">Aa</span>
-                                @endif
-                            </div>
-                            <span class="text-[9px] sm:text-[10px] font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate max-w-full">{{ $meta['label'] }}</span>
-                        </button>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- WhatsApp Color Swatches -->
-            <div>
-                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-2">
-                    Warna Latar Avatar (Palet WhatsApp)
-                </label>
-                <div class="flex items-center gap-2.5 flex-wrap pt-1">
-                    @php
-                        $colors = ['#008069', '#25D366', '#128C7E', '#00A884', '#075E54', '#34B7F1', '#1F2C34'];
-                    @endphp
-                    @foreach($colors as $c)
-                        <label class="cursor-pointer">
-                            <input type="radio" name="avatar_color" value="{{ $c }}" class="sr-only peer" {{ $settingsColor === $c ? 'checked' : '' }} onchange="updateSettingsAvatarColor('{{ $c }}')">
-                            <div class="w-8 h-8 rounded-full peer-checked:ring-3 peer-checked:ring-offset-2 peer-checked:ring-[#008069] dark:peer-checked:ring-[#00A884] dark:peer-checked:ring-offset-[#111B21] transition-all duration-200 hover:scale-110 shadow-sm" style="background-color: {{ $c }};"></div>
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-
-            <div>
-                <label for="display_name" class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-1">
-                    Display Name
-                </label>
-                <input type="text" id="display_name" name="display_name" value="{{ old('display_name', $user->display_name) }}" required minlength="2" maxlength="50"
-                    oninput="updateSettingsAvatarPreview()"
-                    class="w-full sm:w-80 px-3.5 py-2.5 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] text-xs sm:text-sm text-[#111B21] dark:text-[#E9EDEF] focus:outline-none focus:ring-2 focus:ring-[#008069] dark:focus:ring-[#00A884]">
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-1">User ID Sesi Unik</label>
-                <div class="flex items-center gap-2">
-                    <span class="inline-block px-3 py-1.5 rounded-xl bg-[#F0F2F5]/80 dark:bg-[#202C33] font-mono text-xs text-[#667781] dark:text-[#8696A0]">
-                        {{ $user->user_id }}
-                    </span>
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="px-2.5 py-1.5 rounded-lg border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#008069] dark:text-[#25D366] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                        Salin
-                    </button>
-                </div>
-                <p class="text-[11px] text-[#667781] dark:text-[#8696A0] mt-1">
-                    User ID ini digunakan oleh modul signaling untuk perutean SDP Offer/Answer.
-                </p>
-            </div>
-
-            <div class="pt-2">
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">
-                    Simpan Perubahan Identitas
+            @foreach($categories as $key => $cat)
+                <button type="button" onclick="showSettingsSection('{{ $key }}')" data-sec-btn="{{ $key }}"
+                    class="sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col {{ $activeSection === $key ? 'bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]' }}">
+                    <span class="font-semibold">{{ $cat['label'] }}</span>
+                    <span class="text-[10px] text-[var(--sl-text-secondary)]">{{ $cat['desc'] }}</span>
                 </button>
-            </div>
-        </form>
-    </div>
+            @endforeach
+        </nav>
+    </aside>
 
-    <!-- Section 2: Appearance (Light / Dark / System) -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">2. Tema Tampilan (Appearance)</h2>
-        <p class="text-xs text-[#667781] dark:text-[#8696A0]">
-            Pilih mode tampilan WhatsApp untuk kenyamanan mata dan kontras optimal di segala kondisi cahaya.
-        </p>
+    <!-- C. Settings Detail Panel (Column 2) -->
+    <main class="flex-1 bg-[var(--sl-chat-bg)] overflow-y-auto sl-scroll p-5 sm:p-8 h-full">
+        <div class="max-w-2xl space-y-6">
 
-        <div class="flex flex-wrap items-center gap-3">
-            <button type="button" onclick="setThemeMode('light')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
-                <span>☀️</span> Light Mode
-            </button>
-            <button type="button" onclick="setThemeMode('dark')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
-                <span>🌙</span> Dark Mode (WhatsApp Dark)
-            </button>
-            <button type="button" onclick="setThemeMode('system')" class="px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center gap-2">
-                <span>💻</span> Mengikuti Sistem
-            </button>
+            @if(session('success'))
+                <div class="px-4 py-2.5 rounded-lg bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-xs font-semibold">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <!-- 4.1 Account -->
+            <section id="sec-account" class="sec-panel space-y-5 {{ $activeSection === 'account' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Account</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Kelola tampilan profil dan informasi akun sesi Anda.</p>
+                </div>
+
+                <form action="{{ route('identity.update.web') }}" method="POST" class="sl-surface rounded-xl p-5 space-y-5">
+                    @csrf
+                    <input type="hidden" id="settings_avatar_icon" name="avatar_icon" value="{{ $settingsIcon }}">
+
+                    <div class="flex items-center gap-4">
+                        <div id="settings-avatar-preview" class="w-14 h-14 rounded-full text-white flex items-center justify-center text-xl font-bold uppercase p-2 overflow-hidden shrink-0" style="background-color: {{ $settingsColor }};">
+                            @if($hasSvg)
+                                <div class="w-full h-full flex items-center justify-center">{!! $characterSvgs[$resolvedKey] !!}</div>
+                            @else
+                                <span>{{ $initialLetter }}</span>
+                            @endif
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-[var(--sl-text-primary)]">{{ $user->display_name }}</div>
+                            <div class="text-[11px] font-mono text-[var(--sl-text-secondary)]">ID Sesi: {{ $user->user_id }} (Read-only)</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="display_name" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Display Name</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ old('display_name', $user->display_name) }}" required minlength="2" maxlength="50"
+                            oninput="updateSettingsAvatarPreview()" class="w-full px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="about_status" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">About / Status</label>
+                        <input type="text" id="about_status" maxlength="100" placeholder="Tersedia untuk komunikasi terenkripsi"
+                            oninput="localStorage.setItem('securelink_about', this.value)"
+                            class="w-full px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-2">Karakter Avatar</label>
+                        <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                            @foreach($characterMetadata as $key => $meta)
+                                @php
+                                    $isSvg = ($key !== 'initial' && isset($characterSvgs[$key]));
+                                    $isActive = ($settingsIcon === $key || (isset(\App\Models\UserSession::$legacyAliases[$settingsIcon]) && \App\Models\UserSession::$legacyAliases[$settingsIcon] === $key));
+                                @endphp
+                                <button type="button" onclick="selectSettingsAvatarPreset('{{ $key }}')" id="settings-preset-btn-{{ $key }}"
+                                    class="settings-avatar-btn p-2 rounded-lg border text-center transition flex flex-col items-center gap-1 {{ $isActive ? 'border-[var(--sl-primary-teal)] bg-[var(--sl-active-conv)]' : 'border-[var(--sl-divider)] bg-[var(--sl-chat-bg)] hover:bg-[var(--sl-hover)]' }}">
+                                    <div class="w-5 h-5 flex items-center justify-center text-[var(--sl-primary-teal)]">
+                                        @if($isSvg) {!! $characterSvgs[$key] !!} @else <span class="text-[11px] font-bold">Aa</span> @endif
+                                    </div>
+                                    <span class="text-[10px] truncate max-w-full">{{ $meta['label'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-2">Warna Avatar</label>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            @foreach(['#497173', '#71999A', '#EC643E', '#3B8A72', '#20292B', '#2F5D62', '#5E8B7E'] as $c)
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="avatar_color" value="{{ $c }}" class="sr-only peer" {{ $settingsColor === $c ? 'checked' : '' }} onchange="updateSettingsAvatarColor('{{ $c }}')">
+                                    <div class="w-7 h-7 rounded-full peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-[var(--sl-primary-teal)] transition" style="background-color: {{ $c }};"></div>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral text-xs font-semibold">Simpan Profil</button>
+                </form>
+            </section>
+
+            <!-- 4.2 Appearance -->
+            <section id="sec-appearance" class="sec-panel space-y-5 {{ $activeSection === 'appearance' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Appearance</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Sesuaikan tema terang, mode gelap berlapis, dan ukuran teks.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-5">
+                    <div class="space-y-2">
+                        <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Tema Antarmuka</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <button type="button" onclick="setThemeMode('light')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                                <div class="font-bold text-[var(--sl-text-primary)]">Light Mode</div>
+                                <div class="text-[11px] text-[var(--sl-text-secondary)]">Mint &amp; Teal cerah</div>
+                            </button>
+                            <button type="button" onclick="setThemeMode('dark')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                                <div class="font-bold text-[var(--sl-text-primary)]">Dark Mode</div>
+                                <div class="text-[11px] text-[var(--sl-text-secondary)]">Slate Teal berlapis</div>
+                            </button>
+                            <button type="button" onclick="setThemeMode('system')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                                <div class="font-bold text-[var(--sl-text-primary)]">System Default</div>
+                                <div class="text-[11px] text-[var(--sl-text-secondary)]">Mengikuti perangkat</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pt-3 border-t border-[var(--sl-divider)]">
+                        <label for="pref-font-size" class="block text-xs font-semibold text-[var(--sl-text-primary)]">Ukuran Font Chat</label>
+                        <select id="pref-font-size" onchange="localStorage.setItem('securelink_font_size', this.value)" class="w-48 px-3 py-2 rounded-lg sl-input text-xs">
+                            <option value="small">Kecil</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="large">Besar</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4.3 Privacy & Security -->
+            <section id="sec-security" class="sec-panel space-y-5 {{ $activeSection === 'security' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Privacy &amp; Security</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Informasi kriptografi nyata pada sesi WebRTC SecureLink.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-4 text-xs">
+                    <div class="flex items-center justify-between py-2 border-b border-[var(--sl-divider)]">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">WebRTC DataChannel DTLS</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">Enkripsi transport wajib pada seluruh kanal P2P</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] font-semibold">Aktif</span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-2 border-b border-[var(--sl-divider)]">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">End-to-End Encryption (Web Crypto)</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">ECDH P-256 + AES-GCM 256-bit dibuat per sesi browser</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] font-semibold">ECDH + AES-GCM</span>
+                    </div>
+
+                    <div class="flex items-center justify-between py-2 border-b border-[var(--sl-divider)]">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">Peer Verification</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">Pertukaran public key tidak otomatis berarti identitas peer terverifikasi</div>
+                        </div>
+                        <span class="text-[var(--sl-text-secondary)] font-semibold">Not Verified</span>
+                    </div>
+
+                    <div class="pt-1">
+                        <label for="sec-ephemeral-default" class="block font-semibold text-[var(--sl-text-primary)] mb-1">Default Ephemeral Message Duration</label>
+                        <select id="sec-ephemeral-default" onchange="syncEphemeralDefault(this.value)" class="w-48 px-3 py-2 rounded-lg sl-input text-xs">
+                            <option value="0">Nonaktif (Normal)</option>
+                            <option value="10">10 Detik</option>
+                            <option value="30">30 Detik</option>
+                            <option value="60">1 Menit</option>
+                            <option value="300">5 Menit</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4.4 Notifications -->
+            <section id="sec-notifications" class="sec-panel space-y-5 {{ $activeSection === 'notifications' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Notifications</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Atur notifikasi suara dan desktop untuk pesan masuk.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-4 text-xs">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">Sound Notifications</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">Putar nada singkat saat pesan masuk</div>
+                        </div>
+                        <input type="checkbox" id="pref-sound-notif" onchange="localStorage.setItem('securelink_sound_notif', this.checked)" class="h-4 w-4">
+                    </label>
+
+                    <div class="pt-3 border-t border-[var(--sl-divider)] flex items-center justify-between">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">Desktop Notifications</div>
+                            <div id="desktop-notif-status" class="text-[11px] text-[var(--sl-text-secondary)]">Status izin browser</div>
+                        </div>
+                        <button type="button" onclick="requestDesktopPermission()" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Minta Izin</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4.5 Connection -->
+            <section id="sec-connection" class="sec-panel space-y-5 {{ $activeSection === 'connection' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Connection</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Diagnostik Laravel Reverb, STUN, TURN, dan WebRTC.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-3 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-[var(--sl-divider)]">
+                        <span class="text-[var(--sl-text-secondary)]">Signaling Server (Reverb)</span>
+                        <span id="conn-signaling-state" class="font-mono font-semibold text-[var(--sl-primary-teal)]">Checking...</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-[var(--sl-divider)]">
+                        <span class="text-[var(--sl-text-secondary)]">ICE Transport Policy</span>
+                        <span id="conn-ice-policy" class="font-mono text-[var(--sl-text-primary)]">-</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-[var(--sl-divider)]">
+                        <span class="text-[var(--sl-text-secondary)]">STUN Servers</span>
+                        <span id="conn-stun-count" class="font-mono text-[var(--sl-text-primary)]">-</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-[var(--sl-text-secondary)]">TURN Relay Fallback</span>
+                        <span id="conn-turn-status" class="font-mono text-[var(--sl-text-primary)]">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4.6 Chat Preferences -->
+            <section id="sec-chat" class="sec-panel space-y-5 {{ $activeSection === 'chat' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Chat Preferences</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Preferensi pengiriman dan tampilan percakapan.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-4 text-xs">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">Enter to Send</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">Tekan Enter untuk langsung mengirim pesan</div>
+                        </div>
+                        <input type="checkbox" id="pref-enter-send" checked onchange="localStorage.setItem('securelink_enter_send', this.checked)" class="h-4 w-4">
+                    </label>
+
+                    <label class="flex items-center justify-between pt-3 border-t border-[var(--sl-divider)] cursor-pointer">
+                        <div>
+                            <div class="font-semibold text-[var(--sl-text-primary)]">Message Preview</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)]">Tampilkan pratinjau pesan pada daftar percakapan</div>
+                        </div>
+                        <input type="checkbox" id="pref-msg-preview" checked onchange="localStorage.setItem('securelink_msg_preview', this.checked)" class="h-4 w-4">
+                    </label>
+                </div>
+            </section>
+
+            <!-- 4.7 About & Help -->
+            <section id="sec-about" class="sec-panel space-y-5 {{ $activeSection === 'about' ? '' : 'hidden' }}">
+                <div>
+                    <h2 class="text-base font-bold text-[var(--sl-text-primary)]">About &amp; Help</h2>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Informasi versi aplikasi dan dokumentasi jaringan.</p>
+                </div>
+
+                <div class="sl-surface rounded-xl p-5 space-y-4 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-[var(--sl-divider)]">
+                        <span class="text-[var(--sl-text-secondary)]">Versi Aplikasi</span>
+                        <span class="font-mono font-semibold text-[var(--sl-text-primary)]">SecureLink v2.2</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('demo') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Demonstrasi P2P vs Broadcast</a>
+                        <a href="{{ route('tailscale.guide') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Panduan VPN Tailscale</a>
+                    </div>
+                    <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-3 border-t border-[var(--sl-divider)]">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral font-semibold">Keluar Sesi (Logout)</button>
+                    </form>
+                </div>
+            </section>
+
         </div>
-    </div>
-
-    <!-- Section 3: Honest Security Indicators (PRD Section 3.7 & Appendix B) -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">3. Indikator Keamanan Aktual</h2>
-            <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200 dark:border-emerald-800/60">
-                Terverifikasi
-            </span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
-                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">WebRTC DataChannel DTLS</span>
-                <p class="text-emerald-600 dark:text-[#25D366] font-semibold">Aktif (Encrypted in transit)</p>
-                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
-                    Kanal transport terenkripsi kriptografi DTLS secara bilateral antarperangkat.
-                </p>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
-                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">End-to-End Encryption (E2EE)</span>
-                <p class="text-[#008069] dark:text-[#25D366] font-semibold">Web Crypto API (AES-GCM 256-bit)</p>
-                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
-                    Derivasi kunci ECDH P-256 dan IV acak 12-byte per pesan di sisi klien.
-                </p>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
-                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">Zero Chat Retention Server</span>
-                <p class="text-emerald-600 dark:text-[#25D366] font-semibold">100% Client-Side Ephemeral</p>
-                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
-                    Signaling server Laravel Reverb tidak menyimpan plain-text percakapan Anda.
-                </p>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] space-y-1">
-                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">Tailscale Private Network</span>
-                <p class="text-[#7657D6] dark:text-[#A58AE8] font-semibold">Didukung (Skenario Lab VPN)</p>
-                <p class="text-[11px] text-[#667781] dark:text-[#8696A0]">
-                    Dapat dihubungkan ke Tailnet yang sama untuk demonstrasi jaringan privat.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Section 4: Live Network Diagnostics (PRD Section 10.12) -->
-    <div class="glass-card p-6 sm:p-7 rounded-3xl space-y-4">
-        <h2 class="text-xs font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-wider">4. Diagnostik Jaringan Interaktif</h2>
-        <p class="text-xs text-[#667781] dark:text-[#8696A0]">
-            Uji responsivitas koneksi dan verifikasi WebRTC API browser Anda.
-        </p>
-
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-            <button type="button" onclick="runDiagnostics()" class="px-4 py-2 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">
-                Jalankan Diagnostik Sekarang
-            </button>
-            <button type="button" onclick="exportDiagnosticLogs()" class="px-4 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition flex items-center justify-center gap-1.5">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Unduh Log Diagnostik (JSON)
-            </button>
-        </div>
-
-        <div id="diag-results" class="hidden p-4 rounded-xl bg-[#F0F2F5]/60 dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] space-y-2 text-xs font-mono">
-            <div class="flex items-center justify-between">
-                <span>WebRTC RTCPeerConnection:</span>
-                <span id="diag-webrtc" class="text-emerald-500 font-bold">Mengecek...</span>
-            </div>
-            <div class="flex items-center justify-between">
-                <span>Web Crypto API (subtle):</span>
-                <span id="diag-crypto" class="text-emerald-500 font-bold">Mengecek...</span>
-            </div>
-            <div class="flex items-center justify-between">
-                <span>Signaling Server Ping:</span>
-                <span id="diag-ping" class="text-emerald-500 font-bold">Mengecek...</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Section 5: Logout / Terminate Identity Session -->
-    <div class="p-6 rounded-2xl bg-white dark:bg-[#111B21] border border-rose-200 dark:border-rose-900/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h3 class="text-sm font-bold text-rose-700 dark:text-[#F07878]">Akhiri Sesi Identitas</h3>
-            <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-0.5">
-                Menghapus kredensial sesi lokal Anda dan menandai status offline.
-            </p>
-        </div>
-        <form action="{{ route('identity.logout.web') }}" method="POST" class="shrink-0">
-            @csrf
-            <button type="submit" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition text-center">
-                Logout Sesi
-            </button>
-        </form>
-    </div>
+    </main>
 </div>
 
-@push('scripts')
 <script>
-    function runDiagnostics() {
-        const results = document.getElementById('diag-results');
-        results.classList.remove('hidden');
-
-        // Check WebRTC
-        const webrtcSupported = !!(window.RTCPeerConnection && window.RTCDataChannel);
-        document.getElementById('diag-webrtc').textContent = webrtcSupported ? '✓ Didukung (OK)' : '✗ Tidak Didukung';
-        document.getElementById('diag-webrtc').className = webrtcSupported ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold';
-
-        // Check Web Crypto
-        const cryptoSupported = !!(window.crypto && window.crypto.subtle);
-        document.getElementById('diag-crypto').textContent = cryptoSupported ? '✓ Didukung (OK)' : '✗ Tidak Didukung';
-        document.getElementById('diag-crypto').className = cryptoSupported ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold';
-
-        // Test Signaling Ping
-        const start = performance.now();
-        fetch('/api/identity/me')
-            .then(res => res.json())
-            .then(() => {
-                const latency = Math.round(performance.now() - start);
-                document.getElementById('diag-ping').textContent = `✓ Terhubung (${latency} ms)`;
-                document.getElementById('diag-ping').className = 'text-emerald-500 font-bold';
-            })
-            .catch(() => {
-                document.getElementById('diag-ping').textContent = '✗ Gagal terhubung';
-                document.getElementById('diag-ping').className = 'text-rose-500 font-bold';
-            });
-    }
-
-    function exportDiagnosticLogs() {
-        const diagnosticsData = {
-            appName: 'SecureLink',
-            version: '2.1',
-            timestamp: new Date().toISOString(),
-            user: {
-                userId: '{{ $user->user_id }}',
-                displayName: '{{ $user->display_name }}'
-            },
-            clientEnvironment: {
-                userAgent: navigator.userAgent,
-                language: navigator.language,
-                screenResolution: `${window.innerWidth}x${window.innerHeight}`,
-                themePreference: localStorage.getItem('securelink_theme') || 'system',
-                webRtcSupported: !!(window.RTCPeerConnection && window.RTCDataChannel),
-                webCryptoSupported: !!(window.crypto && window.crypto.subtle)
-            },
-            securityCompliance: {
-                dtlsTransport: 'Encrypted in transit',
-                e2eeCipher: 'AES-GCM (256-bit)',
-                keyDerivation: 'ECDH P-256',
-                serverChatRetention: 'None (Zero Knowledge)'
-            }
-        };
-
-        const blob = new Blob([JSON.stringify(diagnosticsData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `securelink-diagnostics-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // Avatar preview controls for Settings (Vector Characters, Non-Emoji)
-    const settingsAvatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
+    const avatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
     let currentSettingsIcon = "{{ $settingsIcon }}";
+
+    function showSettingsSection(key) {
+        document.querySelectorAll('.sec-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById('sec-' + key)?.classList.remove('hidden');
+
+        document.querySelectorAll('.sec-nav-btn').forEach(btn => {
+            const active = btn.getAttribute('data-sec-btn') === key;
+            btn.className = active
+                ? 'sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]'
+                : 'sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]';
+        });
+
+        if (key === 'connection') loadConnectionDiagnostics();
+    }
 
     function selectSettingsAvatarPreset(key) {
         currentSettingsIcon = key;
         document.getElementById('settings_avatar_icon').value = key;
-
         document.querySelectorAll('.settings-avatar-btn').forEach(btn => {
-            btn.classList.remove('border-[#008069]', 'dark:border-[#00A884]', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-[#008069]', 'dark:ring-[#00A884]');
-            btn.classList.add('border-[#E9EDEF]', 'dark:border-[#222D34]', 'bg-white/60', 'dark:bg-[#202C33]/60');
+            btn.classList.remove('border-[var(--sl-primary-teal)]', 'bg-[var(--sl-active-conv)]');
+            btn.classList.add('border-[var(--sl-divider)]', 'bg-[var(--sl-chat-bg)]');
         });
-
-        const selectedBtn = document.getElementById('settings-preset-btn-' + key);
-        if (selectedBtn) {
-            selectedBtn.classList.remove('border-[#E9EDEF]', 'dark:border-[#222D34]', 'bg-white/60', 'dark:bg-[#202C33]/60');
-            selectedBtn.classList.add('border-[#008069]', 'dark:border-[#00A884]', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-[#008069]', 'dark:ring-[#00A884]');
+        const sel = document.getElementById('settings-preset-btn-' + key);
+        if (sel) {
+            sel.classList.remove('border-[var(--sl-divider)]', 'bg-[var(--sl-chat-bg)]');
+            sel.classList.add('border-[var(--sl-primary-teal)]', 'bg-[var(--sl-active-conv)]');
         }
-
         updateSettingsAvatarPreview();
     }
 
     function updateSettingsAvatarPreview() {
         const preview = document.getElementById('settings-avatar-preview');
-        const name = document.getElementById('display_name').value.trim();
-        if (currentSettingsIcon !== 'initial' && settingsAvatarSvgs[currentSettingsIcon]) {
-            preview.innerHTML = '<div class="w-full h-full flex items-center justify-center p-0.5">' + settingsAvatarSvgs[currentSettingsIcon] + '</div>';
+        const name = document.getElementById('display_name')?.value.trim() || '';
+        if (currentSettingsIcon !== 'initial' && avatarSvgs[currentSettingsIcon]) {
+            preview.innerHTML = '<div class="w-full h-full flex items-center justify-center">' + avatarSvgs[currentSettingsIcon] + '</div>';
         } else {
-            const letter = name ? name.charAt(0).toUpperCase() : 'U';
-            preview.innerHTML = '<span class="font-extrabold select-none leading-none">' + letter + '</span>';
+            preview.innerHTML = '<span>' + (name ? name.charAt(0).toUpperCase() : 'U') + '</span>';
         }
     }
 
     function updateSettingsAvatarColor(color) {
-        const preview = document.getElementById('settings-avatar-preview');
-        preview.style.backgroundColor = color;
+        document.getElementById('settings-avatar-preview').style.backgroundColor = color;
     }
+
+    function syncEphemeralDefault(val) {
+        localStorage.setItem('securelink_ephemeral_default', val);
+    }
+
+    function requestDesktopPermission() {
+        if (!('Notification' in window)) return;
+        Notification.requestPermission().then(perm => {
+            const el = document.getElementById('desktop-notif-status');
+            if (el) el.textContent = 'Izin: ' + perm;
+        });
+    }
+
+    async function loadConnectionDiagnostics() {
+        const sigEl = document.getElementById('conn-signaling-state');
+        if (sigEl) sigEl.textContent = window.EchoConnectionState || 'ready';
+
+        try {
+            const res = await fetch('/api/webrtc/ice-servers', { headers: { Accept: 'application/json' } });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('conn-ice-policy').textContent = data.iceTransportPolicy || 'all';
+                document.getElementById('conn-stun-count').textContent = `${data.stunCount || 0} server aktif`;
+                document.getElementById('conn-turn-status').textContent = data.hasTurn ? `${data.turnCount} TURN aktif` : 'Belum dikonfigurasi (STUN-only)';
+            }
+        } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const aboutEl = document.getElementById('about_status');
+        if (aboutEl) aboutEl.value = localStorage.getItem('securelink_about') || '';
+
+        const fontEl = document.getElementById('pref-font-size');
+        if (fontEl) fontEl.value = localStorage.getItem('securelink_font_size') || 'normal';
+
+        const ephEl = document.getElementById('sec-ephemeral-default');
+        if (ephEl) ephEl.value = localStorage.getItem('securelink_ephemeral_default') || '0';
+
+        const soundEl = document.getElementById('pref-sound-notif');
+        if (soundEl) soundEl.checked = localStorage.getItem('securelink_sound_notif') === 'true';
+
+        const desktopEl = document.getElementById('desktop-notif-status');
+        if (desktopEl && 'Notification' in window) desktopEl.textContent = 'Izin: ' + Notification.permission;
+    });
 </script>
-@endpush
 @endsection
