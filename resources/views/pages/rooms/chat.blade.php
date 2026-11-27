@@ -531,9 +531,83 @@
     function copyMessageText(btn) {
         const bubble = btn.closest('.relative');
         const textEl = bubble ? bubble.querySelector('.msg-content') : null;
-        if (textEl) navigator.clipboard.writeText(textEl.textContent);
+        if (textEl) {
+            navigator.clipboard.writeText(textEl.textContent).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Disalin!';
+                setTimeout(() => { btn.textContent = orig; }, 1200);
+            });
+        }
     }
     window.copyMessageText = copyMessageText;
+
+    function buildBubbleToolbar(msgId, isOwn) {
+        const emojis = ['👍', '❤️', '😂', '🔥', '🔒']
+            .map(em => `<button type="button" onclick="reactToMessage('${escapeHtml(msgId)}', '${em}')" class="hover:scale-110 transition px-0.5">${em}</button>`)
+            .join('');
+        const posClass = isOwn ? 'right-2' : 'left-2';
+        return `<div class="msg-toolbar absolute -top-3.5 ${posClass} hidden group-hover:flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px] shadow-xs z-10">
+            ${emojis}
+            <span class="text-[var(--sl-divider)]">|</span>
+            <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(msgId)}')" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Balas">Balas</button>
+            <button type="button" onclick="copyMessageText(this)" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Salin">Salin</button>
+            <button type="button" onclick="deleteMessage('${escapeHtml(msgId)}', ${isOwn ? 'true' : 'false'})" class="text-[var(--sl-accent-coral)] hover:underline font-medium" title="Hapus">Hapus</button>
+        </div>`;
+    }
+
+    function reactToMessage(msgId, emoji) {
+        applyMessageReaction(msgId, emoji);
+        if (window.peerManager) {
+            window.peerManager.sendReaction(msgId, emoji);
+        }
+    }
+    window.reactToMessage = reactToMessage;
+
+    function applyMessageReaction(msgId, emoji) {
+        const wrapper = document.querySelector(`[data-message-id="${msgId}"]`);
+        if (!wrapper) return;
+        const container = wrapper.querySelector('.reaction-pills');
+        if (!container) return;
+
+        container.classList.remove('hidden');
+        const existing = container.querySelector(`[data-emoji="${emoji}"]`);
+        if (existing) {
+            const countEl = existing.querySelector('.rx-count');
+            countEl.textContent = parseInt(countEl.textContent || '1') + 1;
+        } else {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.dataset.emoji = emoji;
+            pill.onclick = () => reactToMessage(msgId, emoji);
+            pill.className = 'px-1.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] flex items-center gap-1 text-[var(--sl-text-primary)]';
+            pill.innerHTML = `<span>${emoji}</span><span class="rx-count font-bold">1</span>`;
+            container.appendChild(pill);
+        }
+    }
+    window.applyMessageReaction = applyMessageReaction;
+
+    function deleteMessage(msgId, isOwn) {
+        const promptText = isOwn ? 'Hapus pesan ini untuk semua peserta?' : 'Hapus pesan ini dari tampilan Anda?';
+        if (!confirm(promptText)) return;
+        applyMessageDeleted(msgId);
+        if (isOwn && window.peerManager) {
+            window.peerManager.sendDelete(msgId);
+        }
+    }
+    window.deleteMessage = deleteMessage;
+
+    function applyMessageDeleted(msgId) {
+        const wrapper = document.querySelector(`[data-message-id="${msgId}"]`);
+        if (!wrapper) return;
+        const contentEl = wrapper.querySelector('.msg-content');
+        if (contentEl) {
+            contentEl.textContent = 'Pesan ini telah dihapus.';
+            contentEl.className = 'msg-content italic text-[var(--sl-text-secondary)]';
+        }
+        wrapper.querySelector('.msg-toolbar')?.remove();
+        wrapper.querySelector('.reaction-pills')?.remove();
+    }
+    window.applyMessageDeleted = applyMessageDeleted;
 
     function handleReplyFromBubble(btn, msgId) {
         const wrapper = btn.closest('.group');
@@ -586,10 +660,11 @@
 
         const list = document.getElementById('messages-list');
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const bubbleId = 'bubble_' + Math.random().toString(36).substring(2, 11);
+        const clientMsgId = 'msg_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 
         const bubbleWrapper = document.createElement('div');
-        bubbleWrapper.id = bubbleId;
+        bubbleWrapper.id = 'bubble_' + clientMsgId;
+        bubbleWrapper.dataset.messageId = clientMsgId;
         bubbleWrapper.className = 'flex justify-end group';
 
         let replyHtml = '';
@@ -602,16 +677,19 @@
 
         bubbleWrapper.innerHTML = `
             <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
+                <span class="sender-name hidden">Anda</span>
                 <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm bg-[var(--sl-bubble-out)] text-[var(--sl-text-primary)] text-xs leading-relaxed">
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
+                    ${buildBubbleToolbar(clientMsgId, true)}
                 </div>
+                <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${timeStr}</span>
                     <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
                         ${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}
                     </span>
-                    ${duration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ${duration}s</span>` : ''}
+                    ${duration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${duration}s</span>` : ''}
                 </div>
             </div>
         `;
@@ -626,10 +704,12 @@
             const badge = bubbleWrapper.querySelector('.countdown-badge');
             const timer = setInterval(() => {
                 remaining--;
-                if (badge) badge.textContent = `· ${remaining}s`;
+                if (badge) badge.textContent = `· ⏱ ${remaining}s`;
                 if (remaining <= 0) {
                     clearInterval(timer);
-                    bubbleWrapper.remove();
+                    bubbleWrapper.style.transition = 'opacity 0.35s ease';
+                    bubbleWrapper.style.opacity = '0';
+                    setTimeout(() => bubbleWrapper.remove(), 350);
                 }
             }, 1000);
         }
@@ -642,7 +722,11 @@
             }).catch((err) => console.error('[SecureLink] Broadcast error:', err));
         } else if (window.peerManager) {
             window.peerManager.broadcastMessage(text, duration, replyPayload).then((sent) => {
-                if (sent && sent.id) bubbleWrapper.dataset.messageId = sent.id;
+                if (sent && sent.id) {
+                    bubbleWrapper.dataset.messageId = sent.id;
+                    const toolbar = bubbleWrapper.querySelector('.msg-toolbar');
+                    if (toolbar) toolbar.outerHTML = buildBubbleToolbar(sent.id, true);
+                }
             });
         }
     }
@@ -651,6 +735,7 @@
         const list = document.getElementById('messages-list');
         const bubbleWrapper = document.createElement('div');
         bubbleWrapper.id = 'bubble_peer_' + data.id;
+        bubbleWrapper.dataset.messageId = data.id;
         bubbleWrapper.className = 'flex items-start gap-2 group';
 
         let replyHtml = '';
@@ -674,17 +759,15 @@
                     ${senderLabel}
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
-                    <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px]">
-                        <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(data.id)}')" title="Balas">Balas</button>
-                        <button type="button" onclick="copyMessageText(this)" title="Salin">Salin</button>
-                    </div>
+                    ${buildBubbleToolbar(data.id, false)}
                 </div>
+                <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${escapeHtml(data.timestamp || '')}</span>
                     ${data.transport === 'broadcast'
                         ? '<span class="text-[var(--sl-accent-coral)] font-semibold">⚠ Server Broadcast</span>'
                         : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓ E2EE (P2P)</span>'}
-                    ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ${data.ephemeralDuration}s</span>` : ''}
+                    ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${data.ephemeralDuration}s</span>` : ''}
                 </div>
             </div>
         `;
@@ -736,6 +819,8 @@
             userAvatarColor: currentUserAvatar,
             userAvatarIcon: currentUserAvatarIcon,
             onMessageReceived: renderIncomingMessage,
+            onReactionReceived: (rx) => applyMessageReaction(rx.messageId, rx.emoji),
+            onMessageDeleted: (del) => applyMessageDeleted(del.messageId),
             onDiagnosticsUpdate: updateDiagnosticsUi,
             onMessageAck: (messageId) => {
                 const badge = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
@@ -792,6 +877,16 @@
 
                 channel.listen('.broadcast.message', (data) => {
                     if (data.senderId !== currentUserId) renderIncomingMessage(data);
+                });
+
+                channel.listen('.room.participant.updated', (data) => {
+                    if (data.action === 'kicked' && data.user_id === currentUserId) {
+                        window.peerManager?.destroy();
+                        alert('Anda telah dikeluarkan dari room oleh Admin.');
+                        window.location.href = '{{ route("dashboard") }}';
+                    } else if (data.action === 'locked' || data.action === 'unlocked') {
+                        location.reload();
+                    }
                 });
 
                 window.addEventListener('securelink:ws-state', (e) => {
