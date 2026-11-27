@@ -308,7 +308,7 @@
                         <a href="{{ route('demo') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Demonstrasi P2P vs Broadcast</a>
                         <a href="{{ route('tailscale.guide') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Panduan VPN Tailscale</a>
                     </div>
-                    <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-3 border-t border-[var(--sl-divider)]">
+                    <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="pt-3 border-t border-[var(--sl-divider)]">
                         @csrf
                         <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral font-semibold">Keluar Sesi (Logout)</button>
                     </form>

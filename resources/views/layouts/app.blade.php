@@ -67,14 +67,14 @@
 
                 <!-- Right Controls -->
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="cycleTheme()" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition" title="Ganti Tema">
-                        <span id="theme-icon-light" class="hidden">
+                    <button type="button" id="top-theme-btn" onclick="cycleTheme(this)" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition-all duration-300" title="Ganti Tema">
+                        <span id="theme-icon-light" class="hidden inline-flex transition-transform duration-300">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         </span>
-                        <span id="theme-icon-dark" class="hidden">
+                        <span id="theme-icon-dark" class="hidden inline-flex transition-transform duration-300">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
                         </span>
-                        <span id="theme-icon-system" class="hidden">
+                        <span id="theme-icon-system" class="hidden inline-flex transition-transform duration-300">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         </span>
                     </button>
@@ -111,7 +111,7 @@
                 <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Settings</a>
                 <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Panduan Tailscale</a>
                 @if(session()->has('securelink_user_id'))
-                    <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-1 border-t border-[var(--sl-divider)]">
+                    <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="pt-1 border-t border-[var(--sl-divider)]">
                         @csrf
                         <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-[#EC643E] hover:bg-[var(--sl-main-surface)]">Keluar Sesi (Logout)</button>
                     </form>
@@ -172,18 +172,25 @@
 
     <script>
         function updateThemeIcons(mode) {
+            const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
             const lightIcon = document.getElementById('theme-icon-light');
             const darkIcon = document.getElementById('theme-icon-dark');
             const sysIcon = document.getElementById('theme-icon-system');
-            if (!lightIcon || !darkIcon || !sysIcon) return;
 
-            lightIcon.classList.add('hidden');
-            darkIcon.classList.add('hidden');
-            sysIcon.classList.add('hidden');
+            if (lightIcon && darkIcon && sysIcon) {
+                lightIcon.classList.add('hidden');
+                darkIcon.classList.add('hidden');
+                sysIcon.classList.add('hidden');
+                if (isDark) darkIcon.classList.remove('hidden');
+                else lightIcon.classList.remove('hidden');
+            }
 
-            if (mode === 'light') lightIcon.classList.remove('hidden');
-            else if (mode === 'dark') darkIcon.classList.remove('hidden');
-            else sysIcon.classList.remove('hidden');
+            const navSun = document.getElementById('nav-theme-sun');
+            const navMoon = document.getElementById('nav-theme-moon');
+            if (navSun && navMoon) {
+                navSun.classList.toggle('hidden', isDark);
+                navMoon.classList.toggle('hidden', !isDark);
+            }
         }
 
         function setThemeMode(mode) {
@@ -193,10 +200,17 @@
             updateThemeIcons(mode);
         }
 
-        function cycleTheme() {
-            const current = localStorage.getItem('securelink_theme') || 'system';
-            const modes = ['system', 'light', 'dark'];
-            setThemeMode(modes[(modes.indexOf(current) + 1) % modes.length]);
+        function cycleTheme(btnEl) {
+            // Single-click toggle between Light and Dark based on active visual state
+            const currentlyDark = document.documentElement.classList.contains('dark');
+            const next = currentlyDark ? 'light' : 'dark';
+            setThemeMode(next);
+
+            const target = btnEl || document.getElementById('nav-theme-btn') || document.getElementById('top-theme-btn');
+            if (target) {
+                target.classList.add('rotate-180', 'scale-110');
+                setTimeout(() => target.classList.remove('rotate-180', 'scale-110'), 320);
+            }
         }
 
         function toggleMobileNav() {

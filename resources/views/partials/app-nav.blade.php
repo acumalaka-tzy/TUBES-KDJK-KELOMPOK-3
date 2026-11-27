@@ -64,11 +64,14 @@
 
     <!-- Bottom: Theme, Profile, Logout -->
     <div class="flex flex-col items-center gap-2 w-full px-2">
-        <button type="button" onclick="cycleTheme()" class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-white/10 hover:text-white transition" title="Ganti Tema">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <button type="button" id="nav-theme-btn" onclick="cycleTheme(this)" class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-white/10 hover:text-white transition-all duration-300" title="Ganti Tema">
+            <svg id="nav-theme-sun" class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
             </svg>
-            <span class="pointer-events-none hidden md:block opacity-0 group-hover:opacity-100 transition absolute left-13 px-2 py-1 rounded bg-[#20292B] text-white text-[11px] font-medium whitespace-nowrap z-50">Tema</span>
+            <svg id="nav-theme-moon" class="w-5 h-5 hidden transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span class="pointer-events-none hidden md:block opacity-0 group-hover:opacity-100 transition absolute left-13 px-2 py-1 rounded bg-[#20292B] text-white text-[11px] font-medium whitespace-nowrap z-50">Ganti Tema</span>
         </button>
 
         @if(isset($user) && $user)
@@ -78,7 +81,7 @@
             </a>
         @endif
 
-        <form action="{{ route('identity.logout.web') }}" method="POST" class="w-full flex justify-center">
+        <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="w-full flex justify-center">
             @csrf
             <button type="submit" class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-[#EC643E]/25 hover:text-white transition" title="Keluar Sesi (Logout)" aria-label="Keluar Sesi (Logout)">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
