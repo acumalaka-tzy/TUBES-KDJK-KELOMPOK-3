@@ -8,37 +8,59 @@
 @source '../js/**/*.js';
 
 :root {
-    /* SecureLink Mint-Teal-Coral Design System (Light) */
+    /* SecureLink Light Mode Tokens */
     --sl-page-bg: #D6E4E5;
+    --sl-nav-bg: #497173;
+    --sl-conv-bg: #FFFFFF;
+    --sl-chat-bg: #EFF5F5;
+    --sl-elevated: #FFFFFF;
+    --sl-hover: #EFF5F5;
+    --sl-active-conv: #DCEBEC;
+
     --sl-main-surface: #EFF5F5;
+    --sl-white-surface: #FFFFFF;
+    --sl-soft-teal: #DCEBEC;
+
     --sl-primary-teal: #497173;
     --sl-secondary-teal: #71999A;
-    --sl-soft-teal: #DCEBEC;
-    --sl-white-surface: #FFFFFF;
     --sl-text-primary: #20292B;
     --sl-text-secondary: #7D8B8D;
-    --sl-accent-coral: #EC643E;
     --sl-divider: #E4EBEB;
+    --sl-accent-coral: #EC643E;
+
+    --sl-bubble-in: #FFFFFF;
+    --sl-bubble-out: #DCEBEC;
     --sl-success: #3B8A72;
     --sl-warning: #D9822B;
     --sl-danger: #D64545;
 }
 
 html.dark {
-    /* SecureLink Mint-Teal-Coral Design System (Dark) */
-    --sl-page-bg: #11181A;
-    --sl-main-surface: #172022;
-    --sl-primary-teal: #5C8C8E;
-    --sl-secondary-teal: #7AA7A8;
-    --sl-soft-teal: #213032;
-    --sl-white-surface: #1B2527;
-    --sl-text-primary: #E7EFEF;
-    --sl-text-secondary: #93A4A6;
-    --sl-accent-coral: #EC643E;
-    --sl-divider: #263437;
-    --sl-success: #4AA68B;
-    --sl-warning: #E39B4B;
-    --sl-danger: #E06363;
+    /* SecureLink Multi-Tier Dark Mode Tokens */
+    --sl-page-bg: #182425;
+    --sl-nav-bg: #203536;
+    --sl-conv-bg: #243637;
+    --sl-chat-bg: #1D2B2C;
+    --sl-elevated: #2A3D3E;
+    --sl-hover: #304748;
+    --sl-active-conv: #344F50;
+
+    --sl-main-surface: #1D2B2C;
+    --sl-white-surface: #2A3D3E;
+    --sl-soft-teal: #344F50;
+
+    --sl-primary-teal: #82B5B5;
+    --sl-secondary-teal: #6D9697;
+    --sl-text-primary: #E7EEEE;
+    --sl-text-secondary: #A5B6B7;
+    --sl-divider: #344748;
+    --sl-accent-coral: #F07858;
+
+    --sl-bubble-in: #2A3D3E;
+    --sl-bubble-out: #203536;
+    --sl-success: #5EB89B;
+    --sl-warning: #E5A456;
+    --sl-danger: #EB6E6E;
 }
 
 @theme {
@@ -52,15 +74,14 @@ body {
     overflow-x: hidden;
 }
 
-/* Clean Reusable Surface & Interactive Primitives (No Glassmorphism / No Excessive Shadows) */
 .sl-surface {
-    background-color: var(--sl-white-surface);
+    background-color: var(--sl-elevated);
     border: 1px solid var(--sl-divider);
     color: var(--sl-text-primary);
 }
 
 .sl-surface-muted {
-    background-color: var(--sl-main-surface);
+    background-color: var(--sl-chat-bg);
     border: 1px solid var(--sl-divider);
     color: var(--sl-text-primary);
 }
@@ -69,6 +90,9 @@ body {
     background-color: var(--sl-primary-teal);
     color: #FFFFFF;
     transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+html.dark .sl-btn-primary {
+    color: #182425;
 }
 .sl-btn-primary:hover {
     background-color: var(--sl-secondary-teal);
@@ -84,17 +108,17 @@ body {
 }
 
 .sl-btn-secondary {
-    background-color: var(--sl-white-surface);
+    background-color: var(--sl-elevated);
     border: 1px solid var(--sl-divider);
     color: var(--sl-text-primary);
     transition: background-color 0.15s ease;
 }
 .sl-btn-secondary:hover {
-    background-color: var(--sl-soft-teal);
+    background-color: var(--sl-hover);
 }
 
 .sl-input {
-    background-color: var(--sl-white-surface);
+    background-color: var(--sl-elevated);
     border: 1px solid var(--sl-divider);
     color: var(--sl-text-primary);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -105,10 +129,9 @@ body {
 .sl-input:focus {
     outline: none;
     border-color: var(--sl-primary-teal);
-    box-shadow: 0 0 0 2px rgba(73, 113, 115, 0.16);
+    box-shadow: 0 0 0 2px rgba(130, 181, 181, 0.2);
 }
 
-/* Custom thin scrollbar for chat panes */
 .sl-scroll::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -117,9 +140,9 @@ body {
     background: transparent;
 }
 .sl-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(125, 139, 141, 0.28);
+    background-color: rgba(165, 182, 183, 0.25);
     border-radius: 9999px;
 }
 .sl-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(125, 139, 141, 0.45);
+    background-color: rgba(165, 182, 183, 0.42);
 }
