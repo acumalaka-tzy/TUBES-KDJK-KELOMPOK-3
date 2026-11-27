@@ -147,7 +147,7 @@
                     <span id="members-count">{{ count($metadata['participants']) }}</span>
                 </button>
 
-                <form action="{{ route('rooms.leave.web', $room->room_id) }}" method="POST" onsubmit="return confirm('Keluar dari room ini?')">
+                <form action="{{ route('rooms.leave.web', $room->room_id) }}" method="POST" onsubmit="event.preventDefault(); window.slConfirm({ title: 'Keluar Room', message: 'Apakah Anda yakin ingin keluar dari room ini?', confirmLabel: 'Keluar Room', cancelLabel: 'Batal', onConfirm: () => this.submit() });">
                     @csrf
                     <button type="submit" class="p-1.5 rounded-lg text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/15 transition" title="Keluar Room">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -167,7 +167,7 @@
 
             <div id="messages-list" class="space-y-3">
                 <div class="flex justify-center">
-                    <span class="text-[11px] text-[var(--sl-text-secondary)] bg-[var(--sl-elevated)] px-3 py-1 rounded-lg border border-[var(--sl-divider)]">
+                    <span class="sl-chat-msg text-[var(--sl-text-secondary)] bg-[var(--sl-elevated)] px-3 py-1 rounded-lg border border-[var(--sl-divider)]">
                         Anda bergabung ke <strong class="text-[var(--sl-text-primary)]">{{ $room->room_name }}</strong> ({{ $isGroup ? 'Group P2P Mesh' : 'Private 1-on-1' }})
                     </span>
                 </div>
@@ -587,12 +587,19 @@
     window.applyMessageReaction = applyMessageReaction;
 
     function deleteMessage(msgId, isOwn) {
-        const promptText = isOwn ? 'Hapus pesan ini untuk semua peserta?' : 'Hapus pesan ini dari tampilan Anda?';
-        if (!confirm(promptText)) return;
-        applyMessageDeleted(msgId);
-        if (isOwn && window.peerManager) {
-            window.peerManager.sendDelete(msgId);
-        }
+        window.slConfirm({
+            title: 'Hapus Pesan',
+            message: isOwn ? 'Hapus pesan ini untuk semua peserta?' : 'Hapus pesan ini dari tampilan Anda?',
+            confirmLabel: 'Hapus',
+            cancelLabel: 'Batal',
+            onConfirm: () => {
+                applyMessageDeleted(msgId);
+                if (isOwn && window.peerManager) {
+                    window.peerManager.sendDelete(msgId);
+                }
+                window.slToast?.('Pesan dihapus.', 'info', 3000);
+            }
+        });
     }
     window.deleteMessage = deleteMessage;
 
@@ -669,7 +676,7 @@
 
         let replyHtml = '';
         if (replyPayload) {
-            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-elevated)]/80 border-l-2 border-[var(--sl-primary-teal)] text-[11px]">
+            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-elevated)]/80 border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply">
                 <div class="font-bold text-[var(--sl-primary-teal)]">${escapeHtml(replyPayload.authorName)}</div>
                 <div class="truncate text-[var(--sl-text-secondary)]">${escapeHtml(replyPayload.text)}</div>
             </div>`;
@@ -678,7 +685,7 @@
         bubbleWrapper.innerHTML = `
             <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
                 <span class="sender-name hidden">Anda</span>
-                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm bg-[var(--sl-bubble-out)] text-[var(--sl-text-primary)] text-xs leading-relaxed">
+                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm sl-chat-msg leading-relaxed" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
                     ${buildBubbleToolbar(clientMsgId, true)}
@@ -740,7 +747,7 @@
 
         let replyHtml = '';
         if (data.replyTo) {
-            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-chat-bg)] border-l-2 border-[var(--sl-primary-teal)] text-[11px]">
+            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-chat-bg)] border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply">
                 <div class="font-bold text-[var(--sl-primary-teal)]">${escapeHtml(data.replyTo.authorName || 'Peserta')}</div>
                 <div class="truncate text-[var(--sl-text-secondary)]">${escapeHtml(data.replyTo.text || '')}</div>
             </div>`;
@@ -755,7 +762,7 @@
                 ${getAvatarMarkup(data.senderAvatarIcon, data.senderAvatarDisplay, data.senderName)}
             </div>
             <div class="flex flex-col items-start max-w-[82%] sm:max-w-[68%]">
-                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tl-sm bg-[var(--sl-bubble-in)] border border-[var(--sl-divider)] text-xs text-[var(--sl-text-primary)] leading-relaxed">
+                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tl-sm bg-[var(--sl-bubble-in)] border border-[var(--sl-divider)] sl-chat-msg text-[var(--sl-text-primary)] leading-relaxed">
                     ${senderLabel}
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
@@ -904,18 +911,25 @@
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
         })
         .then(res => res.json())
-        .then(data => { if (data.success) location.reload(); else alert(data.message || 'Gagal mengubah status lock'); });
+        .then(data => { if (data.success) location.reload(); else window.slToast?.(data.message || 'Gagal mengubah status lock', 'error'); });
     }
 
     function kickUser(targetUserId, targetName) {
-        if (!confirm(`Keluarkan ${targetName} dari room?`)) return;
-        fetch(`/api/rooms/${currentRoomId}/kick`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            body: JSON.stringify({ target_user_id: targetUserId }),
-        })
-        .then(res => res.json())
-        .then(data => { if (data.success) location.reload(); else alert(data.message || 'Gagal mengeluarkan peserta'); });
+        window.slConfirm({
+            title: 'Keluarkan Peserta',
+            message: `Apakah Anda yakin ingin mengeluarkan ${targetName} dari room ini?`,
+            confirmLabel: 'Keluarkan',
+            cancelLabel: 'Batal',
+            onConfirm: () => {
+                fetch(`/api/rooms/${currentRoomId}/kick`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                    body: JSON.stringify({ target_user_id: targetUserId }),
+                })
+                .then(res => res.json())
+                .then(data => { if (data.success) location.reload(); else window.slToast?.(data.message || 'Gagal mengeluarkan peserta', 'error'); });
+            }
+        });
     }
 </script>
 @endsection
