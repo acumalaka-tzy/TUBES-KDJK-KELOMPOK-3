@@ -205,6 +205,12 @@ class RoomController extends Controller
             ], 403);
         }
 
+        broadcast(new \App\Events\RoomParticipantUpdated(
+            roomId: $room->room_id,
+            userId: $request->validated('target_user_id'),
+            action: 'kicked'
+        ))->toOthers();
+
         return response()->json([
             'success' => true,
             'message' => 'Peserta berhasil dikeluarkan dari room.',
@@ -237,6 +243,12 @@ class RoomController extends Controller
         }
 
         $updatedRoom = $room->fresh();
+
+        broadcast(new \App\Events\RoomParticipantUpdated(
+            roomId: $room->room_id,
+            userId: $user->user_id,
+            action: $updatedRoom->isLocked() ? 'locked' : 'unlocked'
+        ))->toOthers();
 
         return response()->json([
             'success' => true,
