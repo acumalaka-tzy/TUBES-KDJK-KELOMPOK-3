@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,26 +44,23 @@
                     <span class="font-bold text-base tracking-tight text-[var(--sl-text-primary)] truncate">SecureLink</span>
                 </a>
 
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center gap-1">
-                    @if(session()->has('securelink_user_id'))
-                        <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {{ request()->routeIs('dashboard') ? 'bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]' }}">
-                            Chats
+                <!-- Desktop Navigation (Landing Anchor Links Only) -->
+                @if(request()->routeIs('landing'))
+                    <nav class="hidden md:flex items-center gap-1">
+                        <a href="#features" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">
+                            Features
                         </a>
-                        <a href="{{ route('rooms.create') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {{ request()->routeIs('rooms.create') ? 'bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]' }}">
-                            Buat Room
+                        <a href="#how-it-works" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">
+                            How It Works
                         </a>
-                        <a href="{{ route('rooms.join') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {{ request()->routeIs('rooms.join') ? 'bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]' }}">
-                            Gabung Room
+                        <a href="#security" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">
+                            Security
                         </a>
-                    @endif
-                    <a href="{{ route('demo') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {{ request()->routeIs('demo') ? 'bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]' }}">
-                        Demonstrasi
-                    </a>
-                    <a href="{{ route('settings') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {{ request()->routeIs('settings') ? 'bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]' }}">
-                        Settings
-                    </a>
-                </nav>
+                        <a href="#faq" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">
+                            FAQ
+                        </a>
+                    </nav>
+                @endif
 
                 <!-- Right Controls -->
                 <div class="flex items-center gap-2">
@@ -79,44 +76,28 @@
                         </span>
                     </button>
 
-                    @if(isset($user) && $user)
-                        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 pl-2 border-l border-[var(--sl-divider)]">
-                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden p-0.5 shrink-0" style="background-color: {{ $user->avatar_color }}">
-                                {!! $user->avatar_html !!}
-                            </div>
-                            <span class="hidden sm:inline text-xs font-semibold text-[var(--sl-text-primary)]">{{ $user->display_name }}</span>
-                        </a>
-                    @else
-                        <a href="{{ route('identity.setup') }}" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg sl-btn-primary">
-                            Open SecureLink
-                        </a>
-                    @endif
+                    <a href="{{ route('dashboard') }}" class="px-4 py-1.5 text-xs font-semibold rounded-lg sl-btn-coral">
+                        Open App
+                    </a>
 
-                    <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-main-surface)]" aria-label="Menu">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
+                    @if(request()->routeIs('landing'))
+                        <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-main-surface)]" aria-label="Menu">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                    @endif
                 </div>
             </div>
 
-            <!-- Mobile Nav Drawer -->
-            <div id="mobile-nav" class="hidden md:hidden border-t border-[var(--sl-divider)] bg-[var(--sl-white-surface)] px-4 py-2.5 space-y-1">
-                @if(session()->has('securelink_user_id'))
-                    <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Chats</a>
-                    <a href="{{ route('rooms.create') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Buat Room</a>
-                    <a href="{{ route('rooms.join') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Gabung Room</a>
-                @else
-                    <a href="{{ route('identity.setup') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-primary-teal)] hover:bg-[var(--sl-main-surface)]">Setup Identitas</a>
-                @endif
-                <a href="{{ route('demo') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Demonstrasi P2P</a>
-                <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Settings</a>
-                <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Panduan Tailscale</a>
-                @if(session()->has('securelink_user_id'))
-                    <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="pt-1 border-t border-[var(--sl-divider)]">
-                        @csrf
-                        <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-[#EC643E] hover:bg-[var(--sl-main-surface)]">Keluar Sesi (Logout)</button>
-                    </form>
-                @endif
-            </div>
+            <!-- Mobile Landing Anchor Drawer -->
+            @if(request()->routeIs('landing'))
+                <div id="mobile-nav" class="hidden md:hidden border-t border-[var(--sl-divider)] bg-[var(--sl-white-surface)] px-4 py-2.5 space-y-1">
+                    <a href="#features" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Features</a>
+                    <a href="#how-it-works" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">How It Works</a>
+                    <a href="#security" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Security</a>
+                    <a href="#faq" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">FAQ</a>
+                    <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-accent-coral)] hover:bg-[var(--sl-main-surface)]">Open App</a>
+                </div>
+            @endif
         </header>
 
         <!-- Flash Messages -->
@@ -162,9 +143,10 @@
                     <span>Peer-to-Peer Encrypted Messaging</span>
                 </div>
                 <div class="flex items-center gap-4">
-                    <a href="{{ route('demo') }}" class="hover:text-[var(--sl-primary-teal)] transition">Demonstrasi</a>
-                    <a href="{{ route('settings') }}" class="hover:text-[var(--sl-primary-teal)] transition">Diagnostik</a>
-                    <a href="{{ route('tailscale.guide') }}" class="hover:text-[var(--sl-primary-teal)] transition">Tailscale VPN</a>
+                    <a href="{{ route('landing') }}#features" class="hover:text-[var(--sl-primary-teal)] transition">Features</a>
+                    <a href="{{ route('landing') }}#how-it-works" class="hover:text-[var(--sl-primary-teal)] transition">How It Works</a>
+                    <a href="{{ route('landing') }}#security" class="hover:text-[var(--sl-primary-teal)] transition">Security</a>
+                    <a href="{{ route('landing') }}#faq" class="hover:text-[var(--sl-primary-teal)] transition">FAQ</a>
                 </div>
             </div>
         </footer>
