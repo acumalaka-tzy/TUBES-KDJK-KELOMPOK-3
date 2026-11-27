@@ -147,12 +147,30 @@
 @push('scripts')
 <script>
     function copyTailscaleCmd(btn, cmd) {
-        navigator.clipboard.writeText(cmd).then(() => {
+        const showCopied = () => {
             const orig = btn.textContent;
             btn.textContent = 'Disalin';
             window.slToast?.('Perintah terminal disalin.', 'success', 2500);
             setTimeout(() => { btn.textContent = orig; }, 1400);
-        });
+        };
+
+        const fallbackCopy = () => {
+            const ta = document.createElement('textarea');
+            ta.value = cmd;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            ta.remove();
+            showCopied();
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(cmd).then(showCopied).catch(fallbackCopy);
+        } else {
+            fallbackCopy();
+        }
     }
 
     function toggleTsFaq(idx) {
