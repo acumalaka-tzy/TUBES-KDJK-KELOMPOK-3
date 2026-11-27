@@ -39,12 +39,17 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
     Route::get('/', [RoomController::class, 'index'])->name('api.rooms.index');
     Route::post('/', [RoomController::class, 'store'])->name('api.rooms.store');
     Route::post('/join', [RoomController::class, 'join'])->name('api.rooms.join');
+    Route::post('/validate-invite', [RoomController::class, 'validateInvite'])->name('api.rooms.validate_invite');
     Route::get('/{roomId}', [RoomController::class, 'show'])->name('api.rooms.show');
     Route::post('/{roomId}/leave', [RoomController::class, 'leave'])->name('api.rooms.leave');
 
     // Room member routes
     Route::middleware(['room.member'])->group(function () {
+        Route::get('/{roomId}/invites', [RoomController::class, 'listInvites'])->name('api.rooms.invites.index');
         Route::post('/{roomId}/invite', [RoomController::class, 'createInvite'])->name('api.rooms.invite');
+        Route::post('/{roomId}/invites/{inviteId}/revoke', [RoomController::class, 'revokeInvite'])
+            ->middleware('room.creator')
+            ->name('api.rooms.invites.revoke');
         Route::post('/{roomId}/signal', [SignalingController::class, 'send'])
             ->middleware('throttle:120,1')
             ->name('api.rooms.signal');

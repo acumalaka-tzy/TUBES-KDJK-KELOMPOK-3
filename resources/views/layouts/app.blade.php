@@ -113,7 +113,7 @@
                 @if(session()->has('securelink_user_id'))
                     <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-1 border-t border-[var(--sl-divider)]">
                         @csrf
-                        <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-[#EC643E] hover:bg-[var(--sl-main-surface)]">Keluar Sesi</button>
+                        <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-[#EC643E] hover:bg-[var(--sl-main-surface)]">Keluar Sesi (Logout)</button>
                     </form>
                 @endif
             </div>

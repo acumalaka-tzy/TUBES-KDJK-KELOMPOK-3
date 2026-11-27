@@ -1,4 +1,5 @@
 import './echo';
+import './qrcode';
 import { SecureLinkPeer } from './webrtc-chat';
 import * as SecureLinkE2EE from './e2ee-crypto';
 import * as SecureLinkDtls from './dtls-verifier';
