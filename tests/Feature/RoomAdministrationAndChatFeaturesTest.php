@@ -148,6 +148,6 @@ class RoomAdministrationAndChatFeaturesTest extends TestCase
             ->assertSee('copyMessageText')
             ->assertSee('deleteMessage')
             ->assertSee('ephemeral_duration')
-            ->assertSee('Apakah Anda yakin ingin keluar dari sesi ini?');
+            ->assertSee('Apakah Anda yakin ingin keluar dari akun SecureLink?');
     }
 }
