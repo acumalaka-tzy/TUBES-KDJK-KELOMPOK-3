@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SecureLink — Private P2P Messaging')</title>
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/securelink-logo.jpg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/securelink-logo.jpg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/securelink-logo.jpg') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -92,11 +95,7 @@
         <header class="fixed top-0 left-0 right-0 z-50 w-full bg-[var(--sl-white-surface)] border-b border-[var(--sl-divider)]">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
                 <a href="{{ route('landing') }}" class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-8 h-8 rounded-lg bg-[var(--sl-primary-teal)] flex items-center justify-center text-white dark:text-[#182425] shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </div>
+                    <img src="{{ asset('images/securelink-logo.jpg') }}" alt="SecureLink Logo" class="w-8 h-8 rounded-lg object-cover bg-white shrink-0">
                     <span class="font-bold text-base tracking-tight text-[var(--sl-text-primary)] truncate">SecureLink</span>
                 </a>
 

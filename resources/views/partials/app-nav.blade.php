@@ -6,10 +6,8 @@
 <aside aria-label="Primary Navigation" class="w-14 sm:w-16 bg-[var(--sl-nav-bg)] text-white flex flex-col items-center justify-between py-3.5 shrink-0 select-none z-30">
     <!-- Top: Brand & Core Navigation -->
     <div class="flex flex-col items-center gap-2 w-full px-2">
-        <a href="{{ route('dashboard') }}" class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-2 hover:bg-white/25 transition" title="SecureLink">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+        <a href="{{ route('dashboard') }}" class="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-2 overflow-hidden p-0.5 hover:opacity-90 transition" title="SecureLink">
+            <img src="{{ asset('images/securelink-logo.jpg') }}" alt="SecureLink Logo" class="w-full h-full object-cover rounded-lg">
         </a>
 
         <!-- Chats -->
