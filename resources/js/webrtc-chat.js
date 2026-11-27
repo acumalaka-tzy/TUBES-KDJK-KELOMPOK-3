@@ -42,6 +42,8 @@ export class SecureLinkPeer {
         this.e2eeEnabled = config.e2eeEnabled !== false;
 
         this.onMessageReceived = config.onMessageReceived || (() => {});
+        this.onReactionReceived = config.onReactionReceived || (() => {});
+        this.onMessageDeleted = config.onMessageDeleted || (() => {});
         this.onStatusChange = config.onStatusChange || (() => {});
         this.onSecurityStatusChange = config.onSecurityStatusChange || (() => {});
         this.onSecurityEvent = config.onSecurityEvent || (() => {});
@@ -530,6 +532,24 @@ export class SecureLinkPeer {
                     this.handleAck(data.messageId);
                     this.onMessageAck(data.messageId);
                     this.onSecurityEvent('message_delivery_acknowledged', { message_id: data.messageId });
+                    return;
+                }
+
+                if (data.type === 'reaction') {
+                    this.onReactionReceived({
+                        messageId: data.messageId,
+                        emoji: data.emoji,
+                        senderId: data.senderId,
+                        senderName: data.senderName,
+                    });
+                    return;
+                }
+
+                if (data.type === 'delete') {
+                    this.onMessageDeleted({
+                        messageId: data.messageId,
+                        senderId: data.senderId,
+                    });
                     return;
                 }
 
@@ -1025,6 +1045,36 @@ export class SecureLinkPeer {
             overallLabel: overall.label,
             vpnNote: 'Status VPN Tailscale tidak dapat diverifikasi langsung oleh browser; gunakan halaman diagnostik.',
         };
+    }
+
+    sendReaction(messageId, emoji) {
+        if (!messageId || !emoji) return;
+        const payload = JSON.stringify({
+            type: 'reaction',
+            messageId,
+            emoji,
+            senderId: this.userId,
+            senderName: this.userName,
+        });
+        this.peers.forEach((peer) => {
+            if (peer.dc && peer.dc.readyState === 'open') {
+                peer.dc.send(payload);
+            }
+        });
+    }
+
+    sendDelete(messageId) {
+        if (!messageId) return;
+        const payload = JSON.stringify({
+            type: 'delete',
+            messageId,
+            senderId: this.userId,
+        });
+        this.peers.forEach((peer) => {
+            if (peer.dc && peer.dc.readyState === 'open') {
+                peer.dc.send(payload);
+            }
+        });
     }
 
     handleAck(messageId) {
