@@ -1,173 +1,158 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard — SecureLink')
+@section('title', 'Chats — SecureLink')
 
-@section('content')
-<div class="space-y-6 max-w-5xl mx-auto py-2">
-    <!-- User Profile Banner (Glassmorphic) -->
-    <div class="glass-card p-5 sm:p-7 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-        <div class="flex items-center gap-3.5 sm:gap-4.5 min-w-0 w-full sm:w-auto">
-            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl font-extrabold uppercase shadow-lg shadow-emerald-500/20 shrink-0 transform transition duration-300 hover:rotate-3 overflow-hidden p-2 sm:p-2.5" style="background-color: {{ $user->avatar_color }}">
-                {!! $user->avatar_html !!}
-            </div>
-            <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-lg sm:text-2xl font-extrabold text-[#111B21] dark:text-[#E9EDEF] truncate max-w-[200px] sm:max-w-none">Halo, {{ $user->display_name }}!</h1>
-                    <span class="inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-[#25D366] font-semibold border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs shrink-0">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Sesi Aktif
-                    </span>
+@section('app_shell')
+<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
+
+    <!-- A. Slim Icon Navigation Sidebar -->
+    @include('partials.app-nav')
+
+    <!-- B. Conversation Sidebar -->
+    <section class="w-full md:w-80 lg:w-96 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col shrink-0 h-full">
+        <!-- Header: Brand, User, Single New Chat Button -->
+        <div class="px-4 py-3 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden p-0.5 shrink-0" style="background-color: {{ $user->avatar_color }}">
+                    {!! $user->avatar_html !!}
                 </div>
-                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span class="text-xs font-mono text-[#667781] dark:text-[#8696A0] bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md truncate max-w-[170px] sm:max-w-none">ID: {{ $user->user_id }}</span>
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $user->user_id }}'); alert('User ID disalin!')" class="text-[11px] text-[#008069] dark:text-[#25D366] font-semibold hover:underline shrink-0">
-                        Salin
-                    </button>
-                    <span class="text-[#667781] dark:text-[#8696A0]">&bull;</span>
-                    <a href="{{ route('settings') }}" class="text-[11px] text-[#667781] dark:text-[#8696A0] hover:text-[#008069] dark:hover:text-[#25D366] shrink-0">
-                        Edit Profil
-                    </a>
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-[var(--sl-text-primary)] truncate">SecureLink</div>
+                    <div class="text-[11px] text-[var(--sl-text-secondary)] truncate">Halo, {{ $user->display_name }}!</div>
                 </div>
             </div>
+
+            <button type="button" onclick="openNewChatModal('menu')" title="Buat Room Baru"
+                class="px-3 py-1.5 rounded-lg sl-btn-coral text-xs font-semibold flex items-center gap-1.5 shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <span>New Chat</span>
+            </button>
         </div>
 
-        <div class="flex items-center gap-3 w-full sm:w-auto">
-            <a href="{{ route('rooms.create') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-gradient-to-r from-[#008069] to-[#00A884] hover:opacity-95 text-white font-semibold text-xs shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Buat Room Baru
-            </a>
-            <a href="{{ route('rooms.join') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl glass-card text-[#111B21] dark:text-[#E9EDEF] font-semibold text-xs transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                Gabung Room
-            </a>
-        </div>
-    </div>
+        <!-- Search & Filter Tabs -->
+        <div class="px-3 py-2.5 border-b border-[var(--sl-divider)] space-y-2 shrink-0">
+            <input type="text" id="room-search" placeholder="Cari percakapan atau Room ID..." oninput="filterRooms()"
+                class="w-full px-3 py-1.5 rounded-lg sl-input text-xs">
 
-    <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="glass-card p-5 rounded-3xl flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-[#008069] dark:text-[#25D366] flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            </div>
-            <div>
-                <div class="text-xs text-[#667781] dark:text-[#8696A0]">Total Room Sesi</div>
-                <div class="text-lg font-extrabold text-[#111B21] dark:text-[#E9EDEF]">{{ $participations->count() }} Room</div>
+            <div class="flex items-center gap-1 text-[11px] font-semibold">
+                <button type="button" onclick="setNavFilter('all')" data-filter="all" class="filter-pill px-2.5 py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition">All</button>
+                <button type="button" onclick="setNavFilter('private')" data-filter="private" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Private</button>
+                <button type="button" onclick="setNavFilter('group')" data-filter="group" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Groups</button>
+                <button type="button" onclick="setNavFilter('unread')" data-filter="unread" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Unread</button>
             </div>
         </div>
 
-        <div class="glass-card p-5 rounded-3xl flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-[#25D366] flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            </div>
-            <div>
-                <div class="text-xs text-[#667781] dark:text-[#8696A0]">Kriptografi P2P</div>
-                <div class="text-lg font-extrabold text-[#111B21] dark:text-[#E9EDEF]">AES-GCM 256</div>
-            </div>
-        </div>
-
-        <div class="glass-card p-5 rounded-3xl flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-[#7657D6] dark:text-[#A58AE8] flex items-center justify-center">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <div>
-                <div class="text-xs text-[#667781] dark:text-[#8696A0]">Kanal Data</div>
-                <div class="text-lg font-extrabold text-[#111B21] dark:text-[#E9EDEF]">WebRTC Direct</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Active Conversations / Recent Rooms Section -->
-    <div class="glass-card rounded-3xl p-6 sm:p-7 space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#E9EDEF] dark:border-[#222D34]">
-            <div>
-                <h2 class="text-base font-bold text-[#111B21] dark:text-[#E9EDEF]">Daftar Room Obrolan</h2>
-                <p class="text-xs text-[#667781] dark:text-[#8696A0]">Room aktif yang Anda ikuti atau buat pada sesi ini</p>
-            </div>
-
-            <!-- Search input filter -->
-            <div class="w-full sm:w-64">
-                <input type="text" id="room-search" placeholder="Cari nama room atau ID..." oninput="filterRooms()"
-                    class="w-full px-3.5 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] bg-white/80 dark:bg-[#111B21]/80 text-xs text-[#111B21] dark:text-[#E9EDEF] placeholder-[#667781]/60 dark:placeholder-[#8696A0]/50 focus:outline-none focus:ring-2 focus:ring-[#008069] dark:focus:ring-[#00A884] transition">
-            </div>
-        </div>
-
-        @if($participations->isEmpty())
-            <div class="text-center py-12 border-2 border-dashed border-[#E9EDEF] dark:border-[#222D34] rounded-3xl">
-                <div class="w-14 h-14 rounded-3xl bg-[#F0F2F5] dark:bg-[#202C33] text-[#667781] dark:text-[#8696A0] flex items-center justify-center mx-auto mb-3 shadow-inner">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <!-- Conversation List (Flat List Layout) -->
+        <div id="conversation-list" class="flex-1 overflow-y-auto sl-scroll divide-y divide-[var(--sl-divider)]/50">
+            @if($participations->isEmpty())
+                <div class="p-6 text-center space-y-1.5">
+                    <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Belum ada percakapan</div>
+                    <div class="text-[11px] text-[var(--sl-text-secondary)]">Tekan New Chat untuk memulai.</div>
                 </div>
-                <h3 class="text-sm font-semibold text-[#111B21] dark:text-[#E9EDEF]">Belum ada obrolan room</h3>
-                <p class="text-xs text-[#667781] dark:text-[#8696A0] mt-1 max-w-sm mx-auto">
-                    Anda belum bergabung atau membuat room obrolan. Buat room baru atau minta Room ID dari teman Anda.
-                </p>
-                <div class="mt-5 flex items-center justify-center gap-2.5">
-                    <a href="{{ route('rooms.create') }}" class="px-4 py-2 rounded-xl bg-[#008069] hover:bg-[#00A884] text-white text-xs font-semibold shadow-sm transition">Buat Room</a>
-                    <a href="{{ route('rooms.join') }}" class="px-4 py-2 rounded-xl glass-card text-[#111B21] dark:text-[#E9EDEF] text-xs font-semibold transition">Gabung Room</a>
-                </div>
-            </div>
-        @else
-            <div id="rooms-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @else
                 @foreach($participations as $part)
-                    @php $room = $part->room; @endphp
-                    <div class="room-card p-4.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] bg-white/60 dark:bg-[#111B21]/60 hover:border-[#008069]/50 dark:hover:border-[#25D366]/50 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between"
-                        data-name="{{ strtolower($room->room_name) }}" data-id="{{ strtolower($room->room_id) }}">
-                        <div>
-                            <div class="flex items-start justify-between gap-2 mb-2">
-                                <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF] truncate" title="{{ $room->room_name }}">
-                                    {{ $room->room_name }}
-                                </h3>
-                                @if($part->isCreator())
-                                    <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-[#008069] dark:text-[#25D366] font-bold shrink-0">
-                                        Creator
-                                    </span>
-                                @else
-                                    <span class="text-[9px] px-2 py-0.5 rounded-full bg-[#F0F2F5] dark:bg-[#202C33] text-[#667781] dark:text-[#8696A0] font-medium shrink-0">
-                                        Anggota
-                                    </span>
-                                @endif
+                    @php
+                        $room = $part->room;
+                        $isGroup = $room->max_participants > 2;
+                        $isArchived = $room->isLocked();
+                    @endphp
+                    <a href="{{ route('rooms.show', $room->room_id) }}"
+                       class="room-item flex items-center justify-between gap-2.5 px-3.5 py-3 hover:bg-[var(--sl-hover)] transition"
+                       data-name="{{ strtolower($room->room_name) }}"
+                       data-id="{{ strtolower($room->room_id) }}"
+                       data-type="{{ $isGroup ? 'group' : 'private' }}"
+                       data-archived="{{ $isArchived ? '1' : '0' }}"
+                       data-unread="0">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="relative shrink-0">
+                                <div class="w-10 h-10 rounded-full {{ $isGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center uppercase">
+                                    {{ strtoupper(substr($room->room_name, 0, $isGroup ? 2 : 1)) }}
+                                </div>
+                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]"></span>
                             </div>
-
-                            <div class="flex items-center gap-2 text-xs font-mono text-[#667781] dark:text-[#8696A0] mb-3">
-                                <span class="bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded">{{ $room->room_id }}</span>
-                                @if($room->hasPin())
-                                    <span class="text-amber-500 font-sans text-[11px]" title="Dilindungi PIN">🔒 PIN</span>
-                                @endif
-                                @if($room->isLocked())
-                                    <span class="text-rose-500 font-sans text-[11px]" title="Room Dikunci">⛔ Terkunci</span>
-                                @endif
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</div>
+                                <div class="text-[11px] text-[var(--sl-text-secondary)] truncate">
+                                    @if($isGroup)
+                                        {{ $room->active_participants_count }} anggota &middot; {{ $room->room_id }}
+                                    @else
+                                        Private P2P &middot; {{ $room->room_id }}
+                                    @endif
+                                </div>
                             </div>
                         </div>
-
-                        <div class="pt-3 border-t border-[#E9EDEF] dark:border-[#222D34] flex items-center justify-between text-xs">
-                            <span class="text-[#667781] dark:text-[#8696A0]">
-                                {{ $room->active_participants_count }} / {{ $room->max_participants }} Peserta
-                            </span>
-                            <a href="{{ route('rooms.show', $room->room_id) }}" class="font-semibold text-[#008069] dark:text-[#25D366] hover:underline flex items-center gap-1 group">
-                                Masuk Room <span class="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-                            </a>
+                        <div class="text-right shrink-0">
+                            <div class="text-[10px] text-[var(--sl-text-secondary)]">{{ $part->last_seen_at?->format('H:i') }}</div>
+                            @if($isArchived)
+                                <span class="text-[10px] text-[var(--sl-accent-coral)] font-semibold">Locked</span>
+                            @endif
                         </div>
-                    </div>
+                    </a>
                 @endforeach
+            @endif
+        </div>
+    </section>
+
+    <!-- C. Minimalist Empty State Area -->
+    <main class="hidden md:flex flex-1 bg-[var(--sl-chat-bg)] flex-col items-center justify-center p-8 text-center h-full">
+        <div class="max-w-sm space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)] flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
             </div>
-        @endif
-    </div>
+            <h1 class="text-lg font-bold text-[var(--sl-text-primary)]">Mulai Percakapan Terenkripsi</h1>
+            <p class="text-xs text-[var(--sl-text-secondary)] leading-relaxed">
+                Pilih percakapan dari daftar atau mulai komunikasi peer-to-peer baru yang diamankan dengan WebRTC DataChannel dan enkripsi ujung-ke-ujung.
+            </p>
+            <div class="pt-1">
+                <button type="button" onclick="openNewChatModal('menu')" class="px-5 py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">
+                    New Chat
+                </button>
+            </div>
+        </div>
+    </main>
 </div>
 
-@push('scripts')
+@include('partials.new-chat-modal')
+
 <script>
+    let currentFilter = new URLSearchParams(window.location.search).get('filter') || 'all';
+
+    function setNavFilter(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            const active = btn.getAttribute('data-filter') === filter;
+            btn.className = active
+                ? 'filter-pill px-2.5 py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
+                : 'filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
+        });
+        filterRooms();
+    }
+    window.setNavFilter = setNavFilter;
+
     function filterRooms() {
-        const query = document.getElementById('room-search').value.toLowerCase().trim();
-        const cards = document.querySelectorAll('.room-card');
-        cards.forEach(card => {
-            const name = card.getAttribute('data-name');
-            const id = card.getAttribute('data-id');
-            if (name.includes(query) || id.includes(query)) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
+        const query = (document.getElementById('room-search')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('.room-item').forEach(item => {
+            const name = item.getAttribute('data-name') || '';
+            const id = item.getAttribute('data-id') || '';
+            const type = item.getAttribute('data-type') || 'private';
+            const archived = item.getAttribute('data-archived') === '1';
+            const unread = item.getAttribute('data-unread') === '1';
+
+            const matchesQuery = name.includes(query) || id.includes(query);
+            let matchesFilter = true;
+            if (currentFilter === 'private') matchesFilter = (type === 'private');
+            else if (currentFilter === 'group') matchesFilter = (type === 'group');
+            else if (currentFilter === 'archived') matchesFilter = archived;
+            else if (currentFilter === 'unread') matchesFilter = unread;
+
+            item.style.display = (matchesQuery && matchesFilter) ? 'flex' : 'none';
         });
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (currentFilter !== 'all') setNavFilter(currentFilter);
+    });
 </script>
-@endpush
 @endsection

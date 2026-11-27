@@ -1,160 +1,76 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'SecureLink — Secure Peer-to-Peer Messaging')</title>
+    <title>@yield('title', 'SecureLink — Private P2P Messaging')</title>
 
-    @if(file_exists(public_path('build/manifest.json')))
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @endif
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Tailwind CSS with PRD v2.1 Color Tokens -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        // WhatsApp Color Tokens
-                        app: {
-                            light: '#EFEAE2',
-                            dark: '#0B141A'
-                        },
-                        sidebar: {
-                            light: '#FFFFFF',
-                            dark: '#111B21'
-                        },
-                        surface: {
-                            light: '#FFFFFF',
-                            dark: '#111B21',
-                            muted: {
-                                light: '#F0F2F5',
-                                dark: '#202C33'
-                            }
-                        },
-                        brand: {
-                            primary: '#008069',
-                            hover: '#00A884',
-                            darkPrimary: '#00A884',
-                            darkHover: '#25D366',
-                            accent: '#25D366',
-                            darkAccent: '#25D366'
-                        },
-                        content: {
-                            primary: {
-                                light: '#111B21',
-                                dark: '#E9EDEF'
-                            },
-                            secondary: {
-                                light: '#667781',
-                                dark: '#8696A0'
-                            }
-                        },
-                        divider: {
-                            light: '#E9EDEF',
-                            dark: '#222D34'
-                        },
-                        status: {
-                            success: {
-                                light: '#25D366',
-                                dark: '#00A884'
-                            },
-                            warning: {
-                                light: '#FFB703',
-                                dark: '#E7B45B'
-                            },
-                            danger: {
-                                light: '#EA0038',
-                                dark: '#F15C6D'
-                            }
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Instrument Sans', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root {
-            --bg-app: #EFEAE2;
-            --bg-sidebar: #FFFFFF;
-            --bg-surface: #FFFFFF;
-            --bg-surface-muted: #F0F2F5;
-            --color-primary: #008069;
-            --color-primary-hover: #00A884;
-            --color-accent: #25D366;
-            --color-text-primary: #111B21;
-            --color-text-secondary: #667781;
-            --color-border: #E9EDEF;
-            --color-success: #25D366;
-            --color-warning: #FFB703;
-            --color-danger: #EA0038;
-        }
-
-        html.dark {
-            color-scheme: dark;
-            --bg-app: #0B141A;
-            --bg-sidebar: #111B21;
-            --bg-surface: #111B21;
-            --bg-surface-muted: #202C33;
-            --color-primary: #00A884;
-            --color-primary-hover: #25D366;
-            --color-accent: #25D366;
-            --color-text-primary: #E9EDEF;
-            --color-text-secondary: #8696A0;
-            --color-border: #222D34;
-            --color-success: #00A884;
-            --color-warning: #E7B45B;
-            --color-danger: #F15C6D;
-        }
-
-        body {
-            background-color: var(--bg-app);
-            color: var(--color-text-primary);
-            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-        }
-
-        /* Glass / border utilities matching blue-charcoal aesthetic */
-        .theme-surface {
-            background-color: var(--bg-surface);
-            border-color: var(--color-border);
-        }
-        .theme-surface-muted {
-            background-color: var(--bg-surface-muted);
-        }
-        .theme-border {
-            border-color: var(--color-border);
-        }
-    </style>
-
-    @stack('styles')
-</head>
-<body class="h-full flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white relative min-h-screen">
-
-    <!-- Ambient Gradient Background Layer -->
-    <div class="ambient-bg">
-        <div class="ambient-glow-1"></div>
-        <div class="ambient-glow-2"></div>
-    </div>
-
-    <!-- Immediate Theme Initialization Script (Prevents flash of unstyled content) -->
+    <!-- Immediate Theme, Custom Palette & Font Size Initialization (Prevents FOUC) -->
     <script>
         (function() {
+            const THEME_PRESETS = {
+                'mint-teal': { primary: '#497173', secondary: '#71999A', accent: '#EC643E', bubble: '#DCEBEC' },
+                'dark-teal': { primary: '#2F5D62', secondary: '#5E8B7E', accent: '#E07A5F', bubble: '#D3E4E5' },
+                'warm-sand': { primary: '#6B705C', secondary: '#A5A58D', accent: '#CB997E', bubble: '#EDE8DF' },
+            };
+            window.SL_THEME_PRESETS = THEME_PRESETS;
+
+            window.slGetReadableText = function(hex) {
+                if (!hex || !/^#[0-9A-Fa-f]{6}$/.test(hex)) return '#20292B';
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                return luminance > 0.56 ? '#20292B' : '#F4F8F8';
+            };
+
+            window.applyChatFontSize = function(size) {
+                const normalized = (size === 'normal' || !size) ? 'medium' : size;
+                const map = {
+                    small: { msg: '12px', reply: '11px' },
+                    medium: { msg: '13.5px', reply: '12px' },
+                    large: { msg: '15.5px', reply: '13.5px' },
+                };
+                const cfg = map[normalized] || map.medium;
+                document.documentElement.style.setProperty('--sl-chat-font-size', cfg.msg);
+                document.documentElement.style.setProperty('--sl-chat-reply-font-size', cfg.reply);
+                localStorage.setItem('securelink_font_size', normalized);
+            };
+
+            window.applyCustomTheme = function(prefs) {
+                if (!prefs) return;
+                const root = document.documentElement.style;
+                if (prefs.accentColor) root.setProperty('--sl-accent-coral', prefs.accentColor);
+                if (prefs.bubbleColor) {
+                    root.setProperty('--sl-bubble-out', prefs.bubbleColor);
+                    root.setProperty('--sl-bubble-out-text', window.slGetReadableText(prefs.bubbleColor));
+                }
+                if (prefs.primaryColor) root.setProperty('--sl-primary-teal', prefs.primaryColor);
+                if (prefs.secondaryColor) root.setProperty('--sl-secondary-teal', prefs.secondaryColor);
+            };
+
+            window.resetCustomTheme = function() {
+                const root = document.documentElement.style;
+                ['--sl-accent-coral', '--sl-bubble-out', '--sl-bubble-out-text', '--sl-primary-teal', '--sl-secondary-teal'].forEach(v => root.removeProperty(v));
+                localStorage.removeItem('securelink_theme_prefs');
+            };
+
             const savedTheme = localStorage.getItem('securelink_theme') || 'system';
             function applyTheme(theme) {
                 const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
+                document.documentElement.classList.toggle('dark', isDark);
             }
             applyTheme(savedTheme);
+
+            try {
+                const savedPrefs = JSON.parse(localStorage.getItem('securelink_theme_prefs') || 'null');
+                if (savedPrefs) window.applyCustomTheme(savedPrefs);
+            } catch (e) {}
+
+            window.applyChatFontSize(localStorage.getItem('securelink_font_size') || 'medium');
 
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
                 if ((localStorage.getItem('securelink_theme') || 'system') === 'system') {
@@ -164,235 +80,138 @@
         })();
     </script>
 
-    <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-40 w-full glass-nav shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <!-- Brand -->
-            <div class="flex items-center gap-3 min-w-0">
-                <a href="{{ route('landing') }}" class="flex items-center gap-2.5 font-bold text-lg tracking-tight hover:opacity-90 transition min-w-0">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008069] to-[#25D366] flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    @stack('styles')
+</head>
+<body class="h-full flex flex-col font-sans antialiased bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)] selection:bg-[#497173] selection:text-white min-h-screen">
+
+    @hasSection('app_shell')
+        @yield('app_shell')
+        @include('partials.ui-feedback')
+    @else
+        <!-- Fixed Minimal Header -->
+        <header class="fixed top-0 left-0 right-0 z-50 w-full bg-[var(--sl-white-surface)] border-b border-[var(--sl-divider)]">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+                <a href="{{ route('landing') }}" class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-[var(--sl-primary-teal)] flex items-center justify-center text-white dark:text-[#182425] shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                     </div>
-                    <div class="flex flex-col min-w-0">
-                        <span class="text-[#111B21] dark:text-[#E9EDEF] font-extrabold text-sm sm:text-base leading-tight truncate">SecureLink</span>
-                        <span class="text-[9px] sm:text-[10px] text-[#008069] dark:text-[#25D366] font-semibold tracking-wider uppercase truncate">P2P Network Lab</span>
-                    </div>
+                    <span class="font-bold text-base tracking-tight text-[var(--sl-text-primary)] truncate">SecureLink</span>
                 </a>
-            </div>
 
-            <!-- Desktop Navigation Links -->
-            <nav class="hidden md:flex items-center gap-1">
-                @if(session()->has('securelink_user_id'))
-                    <a href="{{ route('dashboard') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('dashboard') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
-                        Dashboard
-                    </a>
-                    <a href="{{ route('rooms.create') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('rooms.create') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
-                        Buat Room
-                    </a>
-                    <a href="{{ route('rooms.join') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('rooms.join') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
-                        Gabung Room
-                    </a>
-                @endif
-                <a href="{{ route('demo') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('demo') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
-                    Demonstrasi P2P
-                </a>
-                <a href="{{ route('settings') }}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] {{ request()->routeIs('settings') ? 'text-[#008069] dark:text-[#25D366] bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-[#667781] dark:text-[#8696A0]' }}">
-                    Settings
-                </a>
-            </nav>
-
-            <!-- User Status, Theme Switcher & Mobile Menu Button -->
-            <div class="flex items-center gap-2.5">
-                <!-- Theme Switcher Button -->
-                <button type="button" onclick="cycleTheme()" class="p-2 rounded-xl text-[#667781] hover:text-[#111B21] dark:text-[#8696A0] dark:hover:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Ganti Tema (Light/Dark/System)">
-                    <span id="theme-icon-light" class="hidden">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    </span>
-                    <span id="theme-icon-dark" class="hidden">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                    </span>
-                    <span id="theme-icon-system" class="hidden">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    </span>
-                </button>
-
-                @if(isset($user) && $user)
-                    <div class="flex items-center gap-2 pl-2 border-l border-[#E9EDEF] dark:border-[#222D34]">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm overflow-hidden p-1 shrink-0" style="background-color: {{ $user->avatar_color }}">
-                            {!! $user->avatar_html !!}
-                        </div>
-                        <div class="hidden sm:flex flex-col text-left">
-                            <span class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] leading-none">{{ $user->display_name }}</span>
-                            <span class="text-[10px] text-emerald-600 dark:text-[#25D366] font-mono mt-0.5">● Online</span>
-                        </div>
-                    </div>
-                @else
-                    <a href="{{ route('identity.setup') }}" class="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-[#008069] hover:bg-[#00A884] text-white shadow-sm transition">
-                        Setup Identitas
-                    </a>
+                @if(request()->routeIs('landing'))
+                    <nav class="hidden md:flex items-center gap-1">
+                        <a href="#features" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">Features</a>
+                        <a href="#how-it-works" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">How It Works</a>
+                        <a href="#security" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">Security</a>
+                        <a href="#faq" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition">FAQ</a>
+                    </nav>
                 @endif
 
-                <!-- Mobile Menu Button -->
-                <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-xl text-[#667781] hover:text-[#111B21] dark:text-[#8696A0] dark:hover:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" aria-label="Menu">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- Mobile Drawer Navigation -->
-        <div id="mobile-nav" class="hidden md:hidden border-t border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] px-4 py-3 space-y-1">
-            @if(session()->has('securelink_user_id'))
-                <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                    Dashboard
-                </a>
-                <a href="{{ route('rooms.create') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                    Buat Room Baru
-                </a>
-                <a href="{{ route('rooms.join') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                    Gabung Room
-                </a>
-            @else
-                <a href="{{ route('identity.setup') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#008069] dark:text-[#25D366] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                    Setup Identitas
-                </a>
-            @endif
-            <a href="{{ route('demo') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                Demonstrasi P2P &amp; Broadcast
-            </a>
-            <a href="{{ route('settings') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                Settings &amp; Diagnostik
-            </a>
-            <a href="{{ route('tailscale.guide') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                Panduan VPN Tailscale
-            </a>
-            @if(session()->has('securelink_user_id'))
-                <form action="{{ route('identity.logout.web') }}" method="POST" class="pt-2 border-t border-[#E9EDEF] dark:border-[#222D34]">
-                    @csrf
-                    <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition">
-                        Keluar Sesi (Logout)
+                <div class="flex items-center gap-2">
+                    <button type="button" id="top-theme-btn" onclick="cycleTheme(this)" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition-colors" title="Ganti Tema">
+                        <span class="sl-theme-icon-wrap inline-flex items-center justify-center transition-transform duration-300 ease-out">
+                            <svg id="top-theme-sun" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+                            </svg>
+                            <svg id="top-theme-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </span>
                     </button>
-                </form>
+
+                    <a href="{{ route('dashboard') }}" class="px-4 py-1.5 text-xs font-semibold rounded-lg sl-btn-coral">
+                        Open App
+                    </a>
+
+                    @if(request()->routeIs('landing'))
+                        <button type="button" onclick="toggleMobileNav()" class="md:hidden p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-main-surface)]" aria-label="Menu">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        </button>
+                    @endif
+                </div>
+            </div>
+
+            @if(request()->routeIs('landing'))
+                <div id="mobile-nav" class="hidden md:hidden border-t border-[var(--sl-divider)] bg-[var(--sl-white-surface)] px-4 py-2.5 space-y-1">
+                    <a href="#features" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Features</a>
+                    <a href="#how-it-works" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">How It Works</a>
+                    <a href="#security" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">Security</a>
+                    <a href="#faq" onclick="toggleMobileNav()" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)]">FAQ</a>
+                    <a href="{{ route('dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-[var(--sl-accent-coral)] hover:bg-[var(--sl-main-surface)]">Open App</a>
+                </div>
             @endif
-        </div>
-    </header>
+        </header>
 
-    <!-- Global Flash Alerts -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
-        @if(session('success'))
-            <div class="mb-4 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center justify-between shadow-2xs">
+        <!-- Main Content (Offset for fixed 56px header) -->
+        <main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 w-full pt-20 pb-8">
+            @yield('content')
+        </main>
+
+        <!-- Simple Footer -->
+        <footer class="mt-auto border-t border-[var(--sl-divider)] bg-[var(--sl-white-surface)] py-5 text-xs text-[var(--sl-text-secondary)]">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    <span>{{ session('success') }}</span>
+                    <span class="font-bold text-[var(--sl-text-primary)]">SecureLink</span>
+                    <span>&middot;</span>
+                    <span>Peer-to-Peer Encrypted Messaging</span>
                 </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
-            </div>
-        @endif
-
-        @if(session('info'))
-            <div class="mb-4 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-medium flex items-center justify-between shadow-2xs">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>{{ session('info') }}</span>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('landing') }}#features" class="hover:text-[var(--sl-primary-teal)] transition">Features</a>
+                    <a href="{{ route('landing') }}#how-it-works" class="hover:text-[var(--sl-primary-teal)] transition">How It Works</a>
+                    <a href="{{ route('landing') }}#security" class="hover:text-[var(--sl-primary-teal)] transition">Security</a>
+                    <a href="{{ route('landing') }}#faq" class="hover:text-[var(--sl-primary-teal)] transition">FAQ</a>
                 </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-blue-500 hover:text-blue-700">&times;</button>
             </div>
-        @endif
+        </footer>
 
-        @if(session('warning'))
-            <div class="mb-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-medium flex items-center justify-between shadow-2xs">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    <span>{{ session('warning') }}</span>
-                </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-amber-500 hover:text-amber-700">&times;</button>
-            </div>
-        @endif
+        @include('partials.ui-feedback')
+    @endif
 
-        @if($errors->any())
-            <div class="mb-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-300 text-xs font-medium space-y-1 shadow-2xs">
-                @foreach($errors->all() as $err)
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>{{ $err }}</span>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-    </div>
-
-    <!-- Main View Content -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-5 relative z-10">
-        @yield('content')
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-auto border-t border-[#E9EDEF] dark:border-[#222D34] bg-white/80 dark:bg-[#111B21]/80 backdrop-blur-md py-6 text-center text-xs text-[#667781] dark:text-[#8696A0] relative z-10 transition-colors duration-200">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="font-bold text-[#111B21] dark:text-[#E9EDEF]">SecureLink</span>
-                <span>&bull;</span>
-                <span>Tugas Besar Komunikasi Data &amp; Jaringan Komputer (KDJK) Kelompok 3</span>
-            </div>
-            <div class="flex items-center gap-4 text-[11px]">
-                <a href="{{ route('demo') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Demonstrasi P2P</a>
-                <a href="{{ route('settings') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Keamanan &amp; Diagnostik</a>
-                <a href="{{ route('tailscale.guide') }}" class="hover:text-[#008069] dark:hover:text-[#25D366] transition">Panduan Tailscale</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Global Theme Script -->
     <script>
         function updateThemeIcons(mode) {
-            const lightIcon = document.getElementById('theme-icon-light');
-            const darkIcon = document.getElementById('theme-icon-dark');
-            const sysIcon = document.getElementById('theme-icon-system');
+            const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-            if (!lightIcon || !darkIcon || !sysIcon) return;
+            const topSun = document.getElementById('top-theme-sun');
+            const topMoon = document.getElementById('top-theme-moon');
+            if (topSun && topMoon) {
+                topSun.classList.toggle('hidden', isDark);
+                topMoon.classList.toggle('hidden', !isDark);
+            }
 
-            lightIcon.classList.add('hidden');
-            darkIcon.classList.add('hidden');
-            sysIcon.classList.add('hidden');
-
-            if (mode === 'light') {
-                lightIcon.classList.remove('hidden');
-            } else if (mode === 'dark') {
-                darkIcon.classList.remove('hidden');
-            } else {
-                sysIcon.classList.remove('hidden');
+            const navSun = document.getElementById('nav-theme-sun');
+            const navMoon = document.getElementById('nav-theme-moon');
+            if (navSun && navMoon) {
+                navSun.classList.toggle('hidden', isDark);
+                navMoon.classList.toggle('hidden', !isDark);
             }
         }
 
         function setThemeMode(mode) {
             localStorage.setItem('securelink_theme', mode);
-            if (mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+            const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', isDark);
             updateThemeIcons(mode);
         }
 
-        function cycleTheme() {
-            const current = localStorage.getItem('securelink_theme') || 'system';
-            const modes = ['system', 'light', 'dark'];
-            const next = modes[(modes.indexOf(current) + 1) % modes.length];
-            setThemeMode(next);
+        function cycleTheme(btnEl) {
+            const currentlyDark = document.documentElement.classList.contains('dark');
+            setThemeMode(currentlyDark ? 'light' : 'dark');
+            const targetBtn = btnEl || document.getElementById('nav-theme-btn') || document.getElementById('top-theme-btn');
+            const iconWrap = targetBtn ? targetBtn.querySelector('.sl-theme-icon-wrap') : null;
+            if (iconWrap) {
+                iconWrap.classList.add('rotate-180', 'scale-110');
+                setTimeout(() => iconWrap.classList.remove('rotate-180', 'scale-110'), 300);
+            }
         }
 
         function toggleMobileNav() {
-            const el = document.getElementById('mobile-nav');
-            if (el) el.classList.toggle('hidden');
+            document.getElementById('mobile-nav')?.classList.toggle('hidden');
         }
 
-        // Initialize icons on DOM ready
         document.addEventListener('DOMContentLoaded', () => {
-            const current = localStorage.getItem('securelink_theme') || 'system';
-            updateThemeIcons(current);
+            updateThemeIcons(localStorage.getItem('securelink_theme') || 'system');
         });
     </script>
 

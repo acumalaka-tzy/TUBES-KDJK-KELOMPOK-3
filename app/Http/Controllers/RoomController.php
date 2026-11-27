@@ -205,6 +205,12 @@ class RoomController extends Controller
             ], 403);
         }
 
+        broadcast(new \App\Events\RoomParticipantUpdated(
+            roomId: $room->room_id,
+            userId: $request->validated('target_user_id'),
+            action: 'kicked'
+        ))->toOthers();
+
         return response()->json([
             'success' => true,
             'message' => 'Peserta berhasil dikeluarkan dari room.',
@@ -237,6 +243,12 @@ class RoomController extends Controller
         }
 
         $updatedRoom = $room->fresh();
+
+        broadcast(new \App\Events\RoomParticipantUpdated(
+            roomId: $room->room_id,
+            userId: $user->user_id,
+            action: $updatedRoom->isLocked() ? 'locked' : 'unlocked'
+        ))->toOthers();
 
         return response()->json([
             'success' => true,
@@ -310,6 +322,191 @@ class RoomController extends Controller
             'token' => $inviteData['raw_token'],
             'invite_url' => $inviteUrl,
             'expires_at' => $inviteData['invitation']->expires_at?->toIso8601String(),
+            'usage_limit' => $inviteData['invitation']->usage_limit,
+        ]);
+    }
+
+    /**
+     * List invitations for a room (Member/Creator).
+     */
+    public function listInvites(Request $request, string $roomId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $room = Room::where('room_id', $roomId)->first();
+        if (! $room) {
+            return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
+        }
+
+        $invites = $room->invitations()
+            ->latest('created_at')
+            ->take(10)
+            ->get()
+            ->map(function ($inv) {
+                $status = 'active';
+                if ($inv->revoked_at !== null) {
+                    $status = 'revoked';
+                } elseif ($inv->expires_at !== null && $inv->expires_at->isPast()) {
+                    $status = 'expired';
+                } elseif ($inv->usage_limit !== null && $inv->usage_count >= $inv->usage_limit) {
+                    $status = 'exhausted';
+                }
+
+                return [
+                    'invite_id' => $inv->invite_id,
+                    'status' => $status,
+                    'usage_count' => $inv->usage_count,
+                    'usage_limit' => $inv->usage_limit,
+                    'expires_at' => $inv->expires_at?->toIso8601String(),
+                    'revoked_at' => $inv->revoked_at?->toIso8601String(),
+                    'created_at' => $inv->created_at?->toIso8601String(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'invites' => $invites,
+        ]);
+    }
+
+    /**
+     * Revoke an active invitation (Creator only).
+     */
+    public function revokeInvite(Request $request, string $roomId, string $inviteId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $room = Room::where('room_id', $roomId)->first();
+        if (! $room) {
+            return response()->json(['success' => false, 'message' => 'Room tidak ditemukan.'], 404);
+        }
+
+        if (! $room->isCreator($user->user_id)) {
+            return response()->json(['success' => false, 'message' => 'Hanya pembuat room yang dapat mencabut undangan.'], 403);
+        }
+
+        $invitation = $room->invitations()->where('invite_id', $inviteId)->first();
+        if (! $invitation) {
+            return response()->json(['success' => false, 'message' => 'Undangan tidak ditemukan.'], 404);
+        }
+
+        $invitation->revoke();
+
+        \App\Models\SecurityLog::logEvent('invite_revoked', $room->room_id, $user->user_id, [
+            'invite_id' => $invitation->invite_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Undangan berhasil dicabut.',
+            'invite_id' => $invitation->invite_id,
+        ]);
+    }
+
+    /**
+     * Validate a scanned QR Code or pasted invitation URL/token before joining.
+     */
+    public function validateInvite(Request $request): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Identitas diperlukan.'], 401);
+        }
+
+        $roomId = strtoupper(trim((string) $request->input('room_id', '')));
+        $inviteToken = trim((string) $request->input('invite_token', ''));
+
+        if (! $roomId) {
+            return response()->json([
+                'success' => false,
+                'code' => 'invalid_qr',
+                'message' => 'Room ID atau QR Code tidak valid.',
+            ], 422);
+        }
+
+        $room = Room::where('room_id', $roomId)->first();
+        if (! $room) {
+            return response()->json([
+                'success' => false,
+                'code' => 'room_not_found',
+                'message' => 'Room tidak ditemukan atau sudah berakhir.',
+            ], 404);
+        }
+
+        $existing = $room->getParticipant($user->user_id);
+        if ($existing && $existing->is_kicked) {
+            return response()->json([
+                'success' => false,
+                'code' => 'kicked',
+                'message' => 'Anda tidak memiliki izin bergabung ke room ini.',
+            ], 403);
+        }
+
+        $alreadyMember = $existing !== null && ! $existing->is_kicked;
+
+        if (! $alreadyMember && $room->isLocked()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'room_locked',
+                'message' => 'Room sedang dikunci oleh pembuat room.',
+            ], 403);
+        }
+
+        if ($inviteToken !== '') {
+            $tokenHash = hash('sha256', $inviteToken);
+            $invitation = $room->invitations()->where('token_hash', $tokenHash)->first();
+
+            if (! $invitation) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'invalid_token',
+                    'message' => 'Token undangan tidak valid.',
+                ], 403);
+            }
+
+            if ($invitation->revoked_at !== null) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'revoked',
+                    'message' => 'Undangan ini telah dicabut oleh pemilik room.',
+                ], 403);
+            }
+
+            if ($invitation->expires_at !== null && $invitation->expires_at->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'expired',
+                    'message' => 'Undangan ini telah kedaluwarsa.',
+                ], 403);
+            }
+
+            if ($invitation->usage_limit !== null && $invitation->usage_count >= $invitation->usage_limit) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'limit_reached',
+                    'message' => 'Batas penggunaan undangan ini sudah habis.',
+                ], 403);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'room' => [
+                'room_id' => $room->room_id,
+                'room_name' => $room->room_name,
+                'is_group' => $room->max_participants > 2,
+                'has_pin' => $room->hasPin() && $inviteToken === '',
+                'requires_pin' => $room->hasPin() && $inviteToken === '',
+                'active_participants_count' => $room->activeParticipants()->count(),
+                'max_participants' => $room->max_participants,
+                'already_member' => $alreadyMember,
+            ],
         ]);
     }
 

@@ -1,330 +1,365 @@
 @extends('layouts.app')
 
-@section('title', $room->room_name . ' — SecureLink Chat')
+@section('title', $room->room_name . ' — SecureLink')
 
-@section('content')
-<div class="h-[calc(100vh-8rem)] sm:h-[calc(100vh-8.5rem)] min-h-[480px] sm:min-h-[560px] flex rounded-3xl glass-card overflow-hidden relative shadow-xl">
+@section('app_shell')
+@php
+    $isGroup = $room->max_participants > 2;
+    $allRooms = isset($userRooms) ? $userRooms : collect();
+@endphp
 
-    <!-- 1. LEFT CONVERSATION SIDEBAR (Desktop always visible, Mobile toggleable overlay) -->
-    <aside id="chat-sidebar" class="w-full md:w-80 border-r border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] md:bg-[#F0F2F5]/70 md:dark:bg-[#111B21]/70 flex flex-col shrink-0 md:flex hidden absolute md:static inset-0 z-40">
-        <!-- Sidebar Header: Search & Action -->
-        <div class="p-3.5 border-b border-[#E9EDEF] dark:border-[#222D34] space-y-2.5">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-[#111B21] dark:text-[#E9EDEF] uppercase tracking-wider">Percakapan</span>
-                <div class="flex items-center gap-1">
-                    <a href="{{ route('rooms.create') }}" class="p-1 rounded-lg text-[#008069] dark:text-[#25D366] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition" title="Buat Room Baru">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    </a>
-                    <a href="{{ route('rooms.join') }}" class="p-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Gabung Room">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                    </a>
-                    <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1 rounded-lg text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] font-bold text-sm" title="Tutup">
-                        &times;
-                    </button>
-                </div>
-            </div>
-            <input type="text" id="sidebar-search" placeholder="Cari obrolan..." oninput="filterSidebarRooms()"
-                class="w-full px-3 py-1.5 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] text-xs text-[#111B21] dark:text-[#E9EDEF] placeholder-[#667781] dark:placeholder-[#8696A0]/60 focus:outline-none focus:ring-1 focus:ring-[#008069] dark:focus:ring-[#00A884]">
-        </div>
+<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)] relative">
 
-        <!-- Room Items List -->
-        <div id="sidebar-rooms-list" class="flex-1 overflow-y-auto p-2 space-y-1">
-            @if(isset($userRooms) && $userRooms->isNotEmpty())
-                @foreach($userRooms as $uPart)
-                    @php $uRoom = $uPart->room; $isActive = ($uRoom->room_id === $room->room_id); @endphp
-                    <a href="{{ route('rooms.show', $uRoom->room_id) }}"
-                        class="sidebar-item block p-2.5 rounded-xl transition text-left {{ $isActive ? 'bg-[#008069]/10 dark:bg-[#25D366]/15 border border-[#008069]/30 dark:border-[#25D366]/30' : 'hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] border border-transparent' }}"
-                        data-name="{{ strtolower($uRoom->room_name) }}">
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="text-xs font-bold truncate {{ $isActive ? 'text-[#008069] dark:text-[#25D366]' : 'text-[#111B21] dark:text-[#E9EDEF]' }}">
-                                {{ $uRoom->room_name }}
-                            </span>
-                            @if($isActive)
-                                <span class="w-2 h-2 rounded-full bg-[#008069] dark:bg-[#25D366] shrink-0"></span>
-                            @endif
-                        </div>
-                        <div class="flex items-center justify-between text-[11px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
-                            <span>{{ $uRoom->room_id }}</span>
-                            <span>{{ $uRoom->active_participants_count ?? 1 }} peer</span>
-                        </div>
-                    </a>
-                @endforeach
-            @else
-                <div class="p-3 text-center text-xs text-[#667781] dark:text-[#8696A0]">
-                    Room aktif: <strong>{{ $room->room_name }}</strong>
-                </div>
-            @endif
-        </div>
+    <!-- A. Slim Icon Navigation Sidebar -->
+    @include('partials.app-nav')
 
-        <!-- Sidebar User Footer -->
-        <div class="p-3 border-t border-[#E9EDEF] dark:border-[#222D34] bg-white/40 dark:bg-[#111B21]/40 flex items-center justify-between">
+    <!-- B. Conversation Sidebar -->
+    <aside id="chat-sidebar" class="w-full md:w-72 lg:w-80 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex-col shrink-0 md:flex hidden absolute md:static inset-0 z-40 h-full">
+        <!-- Header: Brand, User, Single New Chat Button -->
+        <div class="px-3.5 py-3 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
             <div class="flex items-center gap-2 min-w-0">
-                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase overflow-hidden p-0.5" style="background-color: {{ $user->avatar_color }}">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden p-0.5 shrink-0" style="background-color: {{ $user->avatar_color }}">
                     {!! $user->avatar_html !!}
                 </div>
-                <div class="truncate">
-                    <div class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate">{{ $user->display_name }}</div>
-                    <div class="text-[10px] text-emerald-600 dark:text-[#25D366] font-mono leading-none">● Online</div>
-                </div>
+                <span class="text-xs font-bold text-[var(--sl-text-primary)] truncate">{{ $user->display_name }}</span>
             </div>
-            <a href="{{ route('settings') }}" class="p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition" title="Pengaturan">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </a>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="openNewChatModal('menu')" class="px-2.5 py-1 rounded-lg sl-btn-coral text-[11px] font-semibold flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>New Chat</span>
+                </button>
+                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] font-bold text-sm" title="Tutup">&times;</button>
+            </div>
+        </div>
+
+        <!-- Search & Filter Tabs -->
+        <div class="px-3 py-2 border-b border-[var(--sl-divider)] space-y-2 shrink-0">
+            <input type="text" id="sidebar-search" placeholder="Cari percakapan atau Room ID..." oninput="filterSidebarRooms()"
+                class="w-full px-3 py-1.5 rounded-lg sl-input text-xs">
+
+            <div class="flex items-center gap-1 text-[11px] font-semibold">
+                <button type="button" onclick="setSidebarFilter('all')" data-sfilter="all" class="sfilter-pill px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition">All</button>
+                <button type="button" onclick="setSidebarFilter('private')" data-sfilter="private" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Private</button>
+                <button type="button" onclick="setSidebarFilter('group')" data-sfilter="group" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Groups</button>
+                <button type="button" onclick="setSidebarFilter('unread')" data-sfilter="unread" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Unread</button>
+            </div>
+        </div>
+
+        <!-- Conversation List -->
+        <div id="sidebar-rooms-list" class="flex-1 overflow-y-auto sl-scroll divide-y divide-[var(--sl-divider)]/50">
+            @forelse($allRooms as $uPart)
+                @php
+                    $uRoom = $uPart->room;
+                    $isActive = ($uRoom->room_id === $room->room_id);
+                    $uIsGroup = $uRoom->max_participants > 2;
+                @endphp
+                <a href="{{ route('rooms.show', $uRoom->room_id) }}"
+                   class="sidebar-item flex items-center justify-between gap-2.5 px-3.5 py-2.5 transition {{ $isActive ? 'bg-[var(--sl-active-conv)]' : 'hover:bg-[var(--sl-hover)]' }}"
+                   data-name="{{ strtolower($uRoom->room_name) }}"
+                   data-id="{{ strtolower($uRoom->room_id) }}"
+                   data-type="{{ $uIsGroup ? 'group' : 'private' }}"
+                   data-unread="0">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="relative shrink-0">
+                            <div class="w-9 h-9 rounded-full {{ $uIsGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center uppercase">
+                                {{ strtoupper(substr($uRoom->room_name, 0, $uIsGroup ? 2 : 1)) }}
+                            </div>
+                            <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]"></span>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold truncate {{ $isActive ? 'text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)]' }}">{{ $uRoom->room_name }}</div>
+                            <div class="text-[11px] text-[var(--sl-text-secondary)] truncate">
+                                {{ $uIsGroup ? ($uRoom->active_participants_count ?? 1) . ' anggota' : 'Private P2P' }} &middot; {{ $uRoom->room_id }}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] text-[var(--sl-text-secondary)] shrink-0">{{ $uPart->last_seen_at?->format('H:i') }}</span>
+                </a>
+            @empty
+                <div class="p-4 text-center text-xs text-[var(--sl-text-secondary)]">
+                    Room aktif: <strong class="text-[var(--sl-text-primary)]">{{ $room->room_name }}</strong>
+                </div>
+            @endforelse
         </div>
     </aside>
 
-    <!-- 2. RIGHT ACTIVE CHAT AREA -->
-    <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#111B21] relative">
+    <!-- C. Main Conversation Area -->
+    <main class="flex-1 flex flex-col min-w-0 bg-[var(--sl-chat-bg)] relative h-full">
 
-        <!-- Active Chat Header -->
-        <header class="px-3 sm:px-6 py-3 border-b border-[#E9EDEF] dark:border-[#222D34] bg-white/90 dark:bg-[#111B21]/90 backdrop-blur-md flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                <!-- Mobile Sidebar Toggle -->
-                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition shrink-0" title="Daftar Obrolan">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+        <!-- Conversation Header -->
+        <header class="px-3 sm:px-5 py-2.5 border-b border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Daftar Percakapan">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
                 </button>
-
-                <!-- Mobile Back Button -->
-                <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition shrink-0" title="Kembali ke Dashboard">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Kembali">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </a>
 
-                <div class="flex flex-col min-w-0">
+                <div class="w-9 h-9 rounded-full {{ $isGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center shrink-0 uppercase">
+                    {{ strtoupper(substr($room->room_name, 0, $isGroup ? 2 : 1)) }}
+                </div>
+
+                <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                        <h2 class="text-xs sm:text-base font-extrabold text-[#111B21] dark:text-[#E9EDEF] truncate leading-tight">
-                            {{ $room->room_name }}
-                        </h2>
+                        <h1 class="text-sm font-bold text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</h1>
+                        <span class="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] font-semibold">
+                            {{ $isGroup ? 'Group' : 'Private' }}
+                        </span>
                         @if($room->isLocked())
-                            <span class="text-[9px] px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-[#F07878] font-bold shrink-0">
-                                Terkunci
-                            </span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-accent-coral)]/15 text-[var(--sl-accent-coral)] font-semibold">Terkunci</span>
                         @endif
                     </div>
-
-                    <div class="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-mono text-[#667781] dark:text-[#8696A0] mt-0.5">
-                        <span class="truncate max-w-[90px] sm:max-w-none">ID: {{ $room->room_id }}</span>
-                        <button type="button" onclick="copyRoomId('{{ $room->room_id }}')" class="text-[#008069] dark:text-[#25D366] hover:underline text-[10px] sm:text-[11px] font-sans shrink-0" title="Salin ID">Salin</button>
-                        <span>&bull;</span>
-                        <span id="header-conn-status" class="text-emerald-600 dark:text-[#25D366] font-semibold font-sans truncate text-[10px] sm:text-xs">
-                            ● P2P Direct
-                        </span>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--sl-text-secondary)] mt-0.5">
+                        <span class="font-mono truncate">{{ $room->room_id }}</span>
+                        <span>&middot;</span>
+                        <span id="header-conn-status" class="font-semibold text-[var(--sl-primary-teal)] truncate">Menunggu Peer...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Header Action Controls -->
-            <div class="flex items-center gap-2 shrink-0">
-                <!-- P2P vs Broadcast Comparison Mode Toggle -->
-                <div class="hidden sm:flex items-center p-0.5 rounded-xl bg-[#F0F2F5] dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[11px] font-semibold" title="Pilih mode transmisi untuk perbandingan">
-                    <button type="button" id="mode-btn-p2p" onclick="setCommunicationMode('p2p')" class="px-2.5 py-1 rounded-lg bg-[#008069] text-white transition">
+            <!-- Header Controls -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <!-- P2P vs Broadcast Mode Toggle -->
+                <div class="hidden sm:flex items-center p-0.5 rounded-lg bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] text-[11px] font-semibold">
+                    <button type="button" id="mode-btn-p2p" onclick="setCommunicationMode('p2p')" class="px-2.5 py-1 rounded-md bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] transition">
                         P2P WebRTC
                     </button>
-                    <button type="button" id="mode-btn-broadcast" onclick="setCommunicationMode('broadcast')" class="px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition">
+                    <button type="button" id="mode-btn-broadcast" onclick="setCommunicationMode('broadcast')" class="px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] transition">
                         Broadcast
                     </button>
                 </div>
 
-                <!-- Dynamic PIN Display for Creator -->
                 @if($metadata['is_creator'] && !empty($metadata['current_dynamic_pin']))
-                    <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs">
-                        <span class="text-amber-800 dark:text-amber-300 font-medium">TOTP:</span>
-                        <span class="font-mono font-bold text-amber-900 dark:text-amber-200 tracking-wider">{{ $metadata['current_dynamic_pin'] }}</span>
+                    <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px]">
+                        <span class="text-[var(--sl-text-secondary)]">TOTP:</span>
+                        <span class="font-mono font-bold text-[var(--sl-primary-teal)]">{{ $metadata['current_dynamic_pin'] }}</span>
                     </div>
                 @endif
 
-                <!-- QR Invitation Button -->
-                <button type="button" onclick="openInviteModal()" class="px-3 py-1.5 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] transition flex items-center gap-1.5" title="Undang Peserta">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                <button type="button" onclick="openInviteModal()" class="px-2.5 py-1.5 rounded-lg sl-btn-secondary text-xs font-semibold flex items-center gap-1.5" title="QR Code &amp; Undangan">
+                    <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4v4h-4z"/></svg>
                     <span class="hidden sm:inline">Undang</span>
                 </button>
 
-                <!-- Toggle Members Drawer -->
-                <button type="button" onclick="toggleMembersDrawer()" class="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-[#008069] dark:text-[#25D366] border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold transition flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    <span id="members-count">{{ count($metadata['participants']) }}</span> <span class="hidden sm:inline">Peserta</span>
+                <button type="button" onclick="toggleMembersDrawer()" class="px-2.5 py-1.5 rounded-lg bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-xs font-semibold flex items-center gap-1.5" title="Informasi &amp; Anggota">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span id="members-count">{{ count($metadata['participants']) }}</span>
                 </button>
 
-                <!-- Leave Room -->
-                <form action="{{ route('rooms.leave.web', $room->room_id) }}" method="POST" onsubmit="return confirm('Keluar dari room ini?')">
+                <form action="{{ route('rooms.leave.web', $room->room_id) }}" method="POST" onsubmit="event.preventDefault(); window.slConfirm({ title: 'Keluar Room', message: 'Apakah Anda yakin ingin keluar dari room ini?', confirmLabel: 'Keluar Room', cancelLabel: 'Batal', onConfirm: () => this.submit() });">
                     @csrf
-                    <button type="submit" class="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition" title="Keluar Room">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <button type="submit" class="p-1.5 rounded-lg text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/15 transition" title="Keluar Room">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                     </button>
                 </form>
             </div>
         </header>
 
-        <!-- Message History Container -->
-        <div id="messages-container" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-[#EFEAE2]/60 dark:bg-[#0B141A]">
-            <!-- System Security Badge -->
-            <div class="text-center my-1">
-                <div id="mode-security-banner" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F0F2F5]/80 dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[11px] text-[#667781] dark:text-[#8696A0]">
-                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    <span id="mode-security-text">P2P WebRTC DataChannel aktif &bull; Enkripsi AES-GCM &bull; Server tidak menyimpan obrolan</span>
+        <!-- Messages Area -->
+        <div id="messages-container" class="flex-1 overflow-y-auto sl-scroll p-4 sm:p-5 space-y-3">
+            <div class="flex flex-col items-center gap-1.5 my-1">
+                <span class="px-2.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] font-semibold text-[var(--sl-text-secondary)]">Hari Ini</span>
+                <div id="mode-security-banner" class="px-3 py-1 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px] text-[var(--sl-text-secondary)] text-center">
+                    <span id="mode-security-text">P2P WebRTC DataChannel aktif &middot; E2EE AES-GCM &middot; Server tidak menyimpan pesan</span>
                 </div>
             </div>
 
-            <!-- Dynamic Messages List -->
-            <div id="messages-list" class="space-y-4">
-                <!-- System Initial Welcome Bubble -->
-                <div class="flex items-start gap-2.5">
-                    <div class="w-8 h-8 rounded-full bg-[#008069] dark:bg-[#00A884] text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-2xs">
-                        S
-                    </div>
-                    <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
-                        <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
-                            <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF]">SecureLink System</span>
-                            <span>{{ now()->format('H:i') }}</span>
-                        </div>
-                        <div class="p-3.5 rounded-2xl rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#111B21] dark:text-[#E9EDEF] leading-relaxed shadow-2xs">
-                            Selamat datang di room <strong>{{ $room->room_name }}</strong>. Koneksi pesan langsung diamankan secara bilateral antarperangkat.
-                        </div>
-                    </div>
+            <div id="messages-list" class="space-y-3">
+                <div class="flex justify-center">
+                    <span class="sl-chat-msg text-[var(--sl-text-secondary)] bg-[var(--sl-elevated)] px-3 py-1 rounded-lg border border-[var(--sl-divider)]">
+                        Anda bergabung ke <strong class="text-[var(--sl-text-primary)]">{{ $room->room_name }}</strong> ({{ $isGroup ? 'Group P2P Mesh' : 'Private 1-on-1' }})
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- Reply Preview Bar (Populated on Reply click) -->
-        <div id="reply-bar" class="hidden px-4 py-2 bg-[#D9FDD3]/40 dark:bg-[#005C4B]/40 border-t border-[#E9EDEF] dark:border-[#222D34] flex items-center justify-between text-xs">
+        <!-- Reply Preview Bar -->
+        <div id="reply-bar" class="hidden px-4 py-2 bg-[var(--sl-active-conv)] border-t border-[var(--sl-divider)] flex items-center justify-between text-xs shrink-0">
             <div class="flex items-center gap-2 min-w-0">
-                <span class="text-[#008069] dark:text-[#25D366] font-bold">Membalas:</span>
-                <span id="reply-author" class="font-semibold text-[#111B21] dark:text-[#E9EDEF]"></span>
-                <span id="reply-text" class="text-[#667781] dark:text-[#8696A0] truncate max-w-xs"></span>
+                <span class="text-[var(--sl-primary-teal)] font-bold">Membalas:</span>
+                <span id="reply-author" class="font-semibold text-[var(--sl-text-primary)]"></span>
+                <span id="reply-text" class="text-[var(--sl-text-secondary)] truncate max-w-xs"></span>
             </div>
-            <button type="button" onclick="cancelReply()" class="text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] font-bold text-sm">
-                &times;
-            </button>
+            <button type="button" onclick="cancelReply()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] font-bold text-sm">&times;</button>
         </div>
 
-        <!-- 3. MESSAGE COMPOSER -->
-        <div class="p-3 sm:p-4 border-t border-[#E9EDEF] dark:border-[#222D34] bg-white/90 dark:bg-[#111B21]/90 backdrop-blur-md shrink-0">
+        <!-- Quick Emoji Picker Popover -->
+        <div id="emoji-popover" class="hidden absolute bottom-16 left-4 z-30 p-2 rounded-lg sl-surface shadow-md flex items-center gap-1.5 text-base">
+            @foreach(['👍', '❤️', '🔒', '✅', '😂', '🎉', '🔥', '👋'] as $em)
+                <button type="button" onclick="insertEmoji('{{ $em }}')" class="p-1 rounded hover:bg-[var(--sl-hover)]">{{ $em }}</button>
+            @endforeach
+        </div>
+
+        <!-- Message Composer -->
+        <div class="p-3 border-t border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] shrink-0">
             <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
-                <!-- Ephemeral Duration Selector -->
-                <div class="relative shrink-0">
-                    <select id="ephemeral_duration" title="Pesan Sementara (Ephemeral)"
-                        class="px-2.5 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] bg-[#F0F2F5] dark:bg-[#202C33] text-xs text-[#111B21] dark:text-[#E9EDEF] focus:outline-none focus:ring-2 focus:ring-[#008069] transition">
-                        <option value="0">⏱️ Normal</option>
-                        <option value="10">⏱️ 10 dtk</option>
-                        <option value="30">⏱️ 30 dtk</option>
-                        <option value="60">⏱️ 1 mnt</option>
-                        <option value="300">⏱️ 5 mnt</option>
-                    </select>
-                </div>
+                <button type="button" onclick="toggleEmojiPicker()" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Emoji">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </button>
 
-                <!-- Text Input -->
-                <input type="text" id="message-input" placeholder="Tulis pesan privat di sini... (Enter untuk kirim)" autocomplete="off"
-                    class="flex-1 px-4 py-2.5 rounded-2xl border border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#202C33] text-xs sm:text-sm text-[#111B21] dark:text-[#E9EDEF] placeholder-[#667781] dark:placeholder-[#8696A0] focus:outline-none focus:ring-2 focus:ring-[#008069] dark:focus:ring-[#25D366] transition">
+                <select id="ephemeral_duration" aria-label="Durasi Pesan Ephemeral" title="Pesan Sementara (Ephemeral)"
+                    class="px-2 py-2 rounded-lg sl-input text-xs shrink-0">
+                    <option value="0">Normal</option>
+                    <option value="10">10 dtk</option>
+                    <option value="30">30 dtk</option>
+                    <option value="60">1 mnt</option>
+                    <option value="300">5 mnt</option>
+                </select>
 
-                <!-- Send Button -->
-                <button type="submit" class="px-5 py-2.5 rounded-2xl bg-[#008069] hover:bg-[#00A884] dark:bg-[#00A884] dark:hover:bg-[#25D366] text-white font-semibold text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-1.5 shrink-0">
+                <input type="text" id="message-input" aria-label="Tulis pesan" placeholder="Tulis pesan..." autocomplete="off"
+                    class="flex-1 px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+
+                <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral font-semibold text-xs sm:text-sm flex items-center gap-1.5 shrink-0">
                     <span class="hidden sm:inline">Kirim</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
             </form>
         </div>
+    </main>
 
-        <!-- 4. SLIDING MEMBERS DRAWER -->
-        <aside id="members-drawer" class="hidden absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] border-l border-[#E9EDEF] dark:border-[#222D34] bg-white dark:bg-[#111B21] p-4 flex flex-col justify-between z-30 shadow-xl overflow-y-auto">
-            <div class="space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-[#E9EDEF] dark:border-[#222D34]">
-                    <div class="flex items-center gap-2">
-                        <h3 class="text-xs font-bold text-[#111B21] dark:text-[#E9EDEF] uppercase tracking-wider">Daftar Anggota</h3>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#F0F2F5] dark:bg-[#202C33] text-[#667781] dark:text-[#8696A0] font-mono">
-                            {{ count($metadata['participants']) }} / {{ $room->max_participants }}
-                        </span>
-                    </div>
-                    <button type="button" onclick="toggleMembersDrawer()" class="text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] text-base font-bold">&times;</button>
+    <!-- D. Collapsible Right Information Panel -->
+    <aside id="members-drawer" class="hidden absolute md:static top-0 right-0 bottom-0 w-80 max-w-[90vw] border-l border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col z-30 overflow-y-auto sl-scroll shrink-0 h-full">
+        <div class="p-4 border-b border-[var(--sl-divider)] flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--sl-text-primary)]">
+                {{ $isGroup ? 'Info Grup & Keamanan' : 'Info Percakapan' }}
+            </h2>
+            <button type="button" onclick="toggleMembersDrawer()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-base font-bold">&times;</button>
+        </div>
+
+        <div class="p-4 space-y-5 text-xs">
+            <div class="space-y-1">
+                <div class="font-bold text-sm text-[var(--sl-text-primary)]">{{ $room->room_name }}</div>
+                <div class="font-mono text-[11px] text-[var(--sl-text-secondary)]">Room ID: {{ $room->room_id }}</div>
+            </div>
+
+            <!-- Security & Connection Diagnostics -->
+            <div class="p-3 rounded-lg bg-[var(--sl-elevated)] border border-[var(--sl-divider)] space-y-2">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-[var(--sl-primary-teal)]">Keamanan &amp; Koneksi</div>
+                <div class="flex justify-between">
+                    <span class="text-[var(--sl-text-secondary)]">Koneksi</span>
+                    <span id="diag-conn-type" class="font-semibold text-[var(--sl-text-primary)]">Menunggu Peer</span>
                 </div>
+                <div class="flex justify-between">
+                    <span class="text-[var(--sl-text-secondary)]">WebRTC / ICE</span>
+                    <span id="diag-ice-state" class="font-mono text-[var(--sl-text-primary)]">new</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-[var(--sl-text-secondary)]">E2EE (AES-GCM)</span>
+                    <span id="diag-e2ee-state" class="font-semibold text-[var(--sl-text-secondary)]">Menunggu Handshake</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-[var(--sl-text-secondary)]">Verifikasi Peer</span>
+                    <span class="font-semibold text-[var(--sl-text-secondary)]">Not Verified</span>
+                </div>
+            </div>
 
-                <div class="space-y-2">
+            <!-- Members List -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--sl-text-secondary)]">Anggota</span>
+                    <span class="text-[11px] font-mono text-[var(--sl-text-secondary)]">{{ count($metadata['participants']) }} / {{ $room->max_participants }}</span>
+                </div>
+                <div class="divide-y divide-[var(--sl-divider)]/60 border border-[var(--sl-divider)] rounded-lg overflow-hidden">
                     @foreach($metadata['participants'] as $p)
-                        <div class="p-2.5 rounded-xl bg-[#F0F2F5]/60 dark:bg-[#202C33]/60 border border-[#E9EDEF] dark:border-[#222D34] flex items-center justify-between gap-2 shadow-2xs">
+                        <div class="p-2.5 flex items-center justify-between gap-2 bg-[var(--sl-elevated)]">
                             <div class="flex items-center gap-2 min-w-0">
                                 <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 uppercase overflow-hidden p-0.5" style="background-color: {{ $p['avatar_color'] }}">
                                     {!! $p['avatar_html'] ?? ($p['avatar_display'] ?? strtoupper(substr($p['display_name'], 0, 1))) !!}
                                 </div>
-                                <div class="truncate">
-                                    <div class="text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] truncate">{{ $p['display_name'] }}</div>
-                                    <div class="flex items-center gap-1">
-                                        @if($p['role'] === 'creator')
-                                            <span class="text-[9px] font-bold text-[#008069] dark:text-[#25D366]">Creator</span>
-                                        @else
-                                            <span class="text-[9px] text-[#667781] dark:text-[#8696A0]">Anggota</span>
-                                        @endif
-                                        <span class="text-[8px] text-emerald-500 font-mono">● online</span>
-                                    </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-semibold text-[var(--sl-text-primary)] truncate">{{ $p['display_name'] }}</div>
+                                    <div class="text-[10px] text-[var(--sl-text-secondary)]">{{ $p['role'] === 'creator' ? 'Admin' : 'Anggota' }}</div>
                                 </div>
                             </div>
-
                             @if($metadata['is_creator'] && $p['user_id'] !== $user->user_id)
-                                <button type="button" onclick="kickUser('{{ $p['user_id'] }}', '{{ $p['display_name'] }}')" class="p-1 rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-[10px] font-semibold" title="Keluarkan Peserta">
-                                    Kick
-                                </button>
+                                <button type="button" onclick="kickUser('{{ $p['user_id'] }}', '{{ $p['display_name'] }}')" class="text-[11px] font-semibold text-[var(--sl-accent-coral)] hover:underline">Kick</button>
                             @endif
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            <!-- Creator Control Panel -->
+            <!-- Invitation Management -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--sl-text-secondary)]">Undangan Aktif</span>
+                    <button type="button" onclick="openInviteModal()" class="text-[11px] font-semibold text-[var(--sl-primary-teal)] hover:underline">+ Buat QR</button>
+                </div>
+                <div id="info-invites-list" class="space-y-1.5 text-[11px] text-[var(--sl-text-secondary)]">
+                    <div>Memuat daftar undangan...</div>
+                </div>
+            </div>
+
             @if($metadata['is_creator'])
-                <div class="pt-4 border-t border-[#E9EDEF] dark:border-[#222D34] space-y-2">
-                    <h4 class="text-[10px] font-bold text-[#667781] dark:text-[#8696A0] uppercase tracking-wider">Kontrol Creator</h4>
-                    <button type="button" onclick="toggleRoomLock()" class="w-full py-2 px-3 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33] transition flex items-center justify-center gap-1.5">
+                <div class="pt-3 border-t border-[var(--sl-divider)] space-y-2">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-[var(--sl-text-secondary)]">Pengaturan Admin</div>
+                    <button type="button" onclick="toggleRoomLock()" class="w-full py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
                         <span id="lock-btn-label">{{ $room->isLocked() ? 'Buka Kunci Room' : 'Kunci Room' }}</span>
                     </button>
                 </div>
             @endif
-        </aside>
-    </main>
+        </div>
+    </aside>
 </div>
 
-<!-- Invitation & QR Code Modal -->
-<div id="invite-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] rounded-2xl max-w-sm w-full p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div class="flex items-center justify-between pb-2 border-b border-[#E9EDEF] dark:border-[#222D34]">
-            <h3 class="text-sm font-bold text-[#111B21] dark:text-[#E9EDEF]">Undang Peserta ke Room</h3>
-            <button type="button" onclick="closeInviteModal()" class="text-[#667781] hover:text-[#111B21] dark:hover:text-[#E9EDEF] text-lg font-bold">&times;</button>
+<!-- E. QR Code & Invitation Modal -->
+<div id="invite-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+    <div class="sl-surface rounded-xl max-w-sm w-full p-5 space-y-4 shadow-lg max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-2.5 border-b border-[var(--sl-divider)]">
+            <div>
+                <h3 class="text-sm font-bold text-[var(--sl-text-primary)]">{{ $room->room_name }}</h3>
+                <p class="text-[11px] text-[var(--sl-text-secondary)]">Bagikan QR Code atau tautan undangan bertoken</p>
+            </div>
+            <button type="button" onclick="closeInviteModal()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-lg font-bold">&times;</button>
         </div>
 
-        <div class="text-center py-4 bg-[#F0F2F5]/50 dark:bg-[#202C33]/50 rounded-xl border border-dashed border-[#E9EDEF] dark:border-[#222D34]">
-            <div class="text-xs font-mono font-bold text-[#008069] dark:text-[#25D366] uppercase tracking-widest text-lg">{{ $room->room_id }}</div>
-            <p class="text-[11px] text-[#667781] dark:text-[#8696A0] mt-1">Bagikan Room ID ini untuk akses langsung</p>
+        <div class="flex flex-col items-center justify-center p-4 bg-white rounded-lg border border-[var(--sl-divider)]">
+            <canvas id="invite-qr-canvas" class="w-44 h-44"></canvas>
+            <div id="invite-status-text" class="text-[11px] text-[#7D8B8D] mt-2 text-center">Membuat token undangan...</div>
         </div>
 
-        <!-- Dynamic QR Code Canvas -->
-        <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-[#E9EDEF] dark:border-[#222D34] mx-auto w-44 h-44 shadow-2xs">
-            <canvas id="invite-qr-canvas" class="w-36 h-36 rounded-lg"></canvas>
-            <span class="text-[9px] font-mono text-[#667781] dark:text-[#8696A0] mt-1">QR Undangan WebRTC</span>
-        </div>
-
-        <div>
-            <label class="block text-xs font-semibold text-[#111B21] dark:text-[#E9EDEF] mb-1">Tautan Undangan</label>
+        <div class="space-y-2">
+            <label class="block text-xs font-semibold text-[var(--sl-text-primary)]">Tautan Undangan</label>
             <div class="flex items-center gap-2">
                 <input type="text" id="invite-link-input" readonly value="{{ route('rooms.join', ['room_id' => $room->room_id]) }}"
-                    class="w-full px-3 py-2 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] bg-[#F0F2F5]/60 dark:bg-[#202C33] text-xs font-mono text-[#667781] dark:text-[#8696A0]">
-                <button type="button" onclick="copyInviteLink()" class="px-3 py-2 rounded-xl bg-[#008069] hover:bg-[#00A884] dark:bg-[#00A884] dark:hover:bg-[#25D366] text-white text-xs font-semibold transition shrink-0">
-                    Salin
-                </button>
+                    class="w-full px-3 py-2 rounded-lg sl-input text-xs font-mono">
+                <button type="button" onclick="copyInviteLink()" class="px-3 py-2 rounded-lg sl-btn-primary text-xs font-semibold shrink-0">Salin</button>
             </div>
         </div>
 
-        <div class="pt-2">
-            <button type="button" onclick="closeInviteModal()" class="w-full py-2.5 rounded-xl border border-[#E9EDEF] dark:border-[#222D34] text-xs font-semibold text-[#667781] dark:text-[#8696A0] hover:bg-[#F0F2F5] dark:hover:bg-[#202C33]">
-                Tutup
+        <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="downloadCurrentQr()" class="py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
+                Download QR
             </button>
+            @if($metadata['is_creator'])
+                <button type="button" id="modal-revoke-btn" onclick="revokeCurrentInvite()" class="py-2 px-3 rounded-lg border border-[var(--sl-accent-coral)]/40 text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/10 text-xs font-semibold disabled:opacity-40" disabled>
+                    Cabut Token
+                </button>
+            @else
+                <button type="button" onclick="closeInviteModal()" class="py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">Tutup</button>
+            @endif
         </div>
     </div>
 </div>
 
-@push('scripts')
+@include('partials.new-chat-modal')
+
 <script>
     const currentRoomId = "{{ $room->room_id }}";
     const currentUserId = "{{ $user->user_id }}";
     const currentUserName = "{{ $user->display_name }}";
     const currentUserAvatar = "{{ $user->avatar_color }}";
     const currentUserAvatarIcon = "{{ $user->avatar_icon }}";
+    const isCreator = {{ $metadata['is_creator'] ? 'true' : 'false' }};
+    const isGroupRoom = {{ $isGroup ? 'true' : 'false' }};
     const avatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    let activeInviteId = null;
+    let activeReply = null;
+    let communicationMode = 'p2p';
+    let currentSidebarFilter = 'all';
 
     function getAvatarMarkup(icon, display, name) {
         if (icon && avatarSvgs[icon]) {
@@ -333,11 +368,8 @@
         if (display && display.includes('<svg')) {
             return `<div class="w-full h-full flex items-center justify-center p-0.5 pointer-events-none">${display}</div>`;
         }
-        const letter = (name || 'P').charAt(0).toUpperCase();
-        return `<span class="font-bold select-none leading-none">${letter}</span>`;
+        return `<span class="font-bold select-none leading-none">${(name || 'P').charAt(0).toUpperCase()}</span>`;
     }
-
-    let activeReply = null; // { messageId, authorName, text }
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -346,47 +378,89 @@
         return div.innerHTML;
     }
 
-    function copyMessageText(btn) {
-        const bubble = btn.closest('.relative');
-        const textEl = bubble ? bubble.querySelector('.msg-content') : null;
-        if (textEl) {
-            navigator.clipboard.writeText(textEl.textContent).then(() => alert('Teks pesan disalin!'));
-        }
-    }
-    window.copyMessageText = copyMessageText;
-
-    function handleReplyFromBubble(btn, msgId) {
-        const wrapper = btn.closest('.group');
-        const authorEl = wrapper ? wrapper.querySelector('.sender-name') : null;
-        const textEl = wrapper ? wrapper.querySelector('.msg-content') : null;
-        const author = authorEl ? authorEl.textContent.trim() : 'Peserta';
-        const text = textEl ? textEl.textContent.trim() : '';
-        setReply(msgId, author, text);
-    }
-    window.handleReplyFromBubble = handleReplyFromBubble;
-
-    function copyRoomId(id) {
-        navigator.clipboard.writeText(id).then(() => alert('Room ID ' + id + ' disalin!'));
-    }
-
     function toggleChatSidebar() {
-        const sidebar = document.getElementById('chat-sidebar');
-        if (sidebar) sidebar.classList.toggle('hidden');
+        document.getElementById('chat-sidebar')?.classList.toggle('hidden');
     }
     window.toggleChatSidebar = toggleChatSidebar;
 
     function toggleMembersDrawer() {
         const drawer = document.getElementById('members-drawer');
+        if (!drawer) return;
         drawer.classList.toggle('hidden');
+        if (!drawer.classList.contains('hidden')) loadRoomInvites();
+    }
+    window.toggleMembersDrawer = toggleMembersDrawer;
+
+    function toggleEmojiPicker() {
+        document.getElementById('emoji-popover')?.classList.toggle('hidden');
     }
 
-    function openInviteModal() {
+    function insertEmoji(emoji) {
+        const input = document.getElementById('message-input');
+        if (input) {
+            input.value += emoji;
+            input.focus();
+        }
+        document.getElementById('emoji-popover')?.classList.add('hidden');
+    }
+
+    function setSidebarFilter(filter) {
+        currentSidebarFilter = filter;
+        document.querySelectorAll('.sfilter-pill').forEach(btn => {
+            const active = btn.getAttribute('data-sfilter') === filter;
+            btn.className = active
+                ? 'sfilter-pill px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
+                : 'sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
+        });
+        filterSidebarRooms();
+    }
+
+    function filterSidebarRooms() {
+        const query = (document.getElementById('sidebar-search')?.value || '').toLowerCase().trim();
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            const name = item.getAttribute('data-name') || '';
+            const id = item.getAttribute('data-id') || '';
+            const type = item.getAttribute('data-type') || 'private';
+            const unread = item.getAttribute('data-unread') === '1';
+
+            const matchesQuery = name.includes(query) || id.includes(query);
+            let matchesFilter = true;
+            if (currentSidebarFilter === 'private') matchesFilter = (type === 'private');
+            else if (currentSidebarFilter === 'group') matchesFilter = (type === 'group');
+            else if (currentSidebarFilter === 'unread') matchesFilter = unread;
+
+            item.style.display = (matchesQuery && matchesFilter) ? 'flex' : 'none';
+        });
+    }
+
+    async function openInviteModal() {
         document.getElementById('invite-modal').classList.remove('hidden');
         const canvas = document.getElementById('invite-qr-canvas');
-        const inviteUrl = document.getElementById('invite-link-input').value;
-        if (canvas && window.renderQrToCanvas) {
-            window.renderQrToCanvas(canvas, inviteUrl, { size: 144 });
-        }
+        const statusEl = document.getElementById('invite-status-text');
+        const linkInput = document.getElementById('invite-link-input');
+        const revokeBtn = document.getElementById('modal-revoke-btn');
+        statusEl.textContent = 'Membuat token undangan...';
+
+        try {
+            const res = await fetch(`/api/rooms/${currentRoomId}/invite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: JSON.stringify({ expires_in_minutes: 1440 }),
+            });
+            const data = await res.json();
+            if (data.success && data.invite_url) {
+                activeInviteId = data.invite_id;
+                linkInput.value = data.invite_url;
+                if (revokeBtn) revokeBtn.disabled = false;
+                statusEl.textContent = 'Berlaku 24 jam • Token terenkripsi';
+                await window.renderQrToCanvas?.(canvas, data.invite_url, { size: 176 });
+                loadRoomInvites();
+                return;
+            }
+        } catch (err) {}
+
+        statusEl.textContent = 'Tautan langsung Room ID';
+        await window.renderQrToCanvas?.(canvas, linkInput.value, { size: 176 });
     }
 
     function closeInviteModal() {
@@ -395,9 +469,160 @@
 
     function copyInviteLink() {
         const input = document.getElementById('invite-link-input');
-        input.select();
-        navigator.clipboard.writeText(input.value).then(() => alert('Tautan undangan disalin!'));
+        navigator.clipboard.writeText(input.value).then(() => {
+            document.getElementById('invite-status-text').textContent = 'Tautan undangan disalin ke clipboard.';
+        });
     }
+
+    function downloadCurrentQr() {
+        window.downloadQrPng?.(document.getElementById('invite-qr-canvas'), `securelink-${currentRoomId}.png`);
+    }
+
+    async function revokeCurrentInvite() {
+        if (!activeInviteId) return;
+        await revokeInviteById(activeInviteId);
+        activeInviteId = null;
+        const revokeBtn = document.getElementById('modal-revoke-btn');
+        if (revokeBtn) revokeBtn.disabled = true;
+        document.getElementById('invite-status-text').textContent = 'Token telah dicabut dan tidak berlaku.';
+    }
+
+    async function revokeInviteById(inviteId) {
+        try {
+            const res = await fetch(`/api/rooms/${currentRoomId}/invites/${inviteId}/revoke`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            if (data.success) loadRoomInvites();
+        } catch (err) {}
+    }
+
+    async function loadRoomInvites() {
+        const container = document.getElementById('info-invites-list');
+        if (!container) return;
+        try {
+            const res = await fetch(`/api/rooms/${currentRoomId}/invites`, { headers: { Accept: 'application/json' } });
+            const data = await res.json();
+            if (!data.success || !data.invites.length) {
+                container.innerHTML = '<div>Belum ada undangan dibuat.</div>';
+                return;
+            }
+            container.innerHTML = data.invites.slice(0, 4).map(inv => {
+                const badge = inv.status === 'active'
+                    ? '<span class="text-[var(--sl-success)] font-semibold">Aktif</span>'
+                    : `<span class="text-[var(--sl-accent-coral)] font-semibold">${inv.status}</span>`;
+                const revokeAction = (isCreator && inv.status === 'active')
+                    ? `<button type="button" onclick="revokeInviteById('${inv.invite_id}')" class="text-[var(--sl-accent-coral)] hover:underline font-semibold">Cabut</button>`
+                    : '';
+                return `<div class="p-2 rounded bg-[var(--sl-elevated)] border border-[var(--sl-divider)] flex items-center justify-between gap-2">
+                    <div>
+                        <div class="font-mono text-[10px] text-[var(--sl-text-primary)]">${inv.invite_id}</div>
+                        <div>${badge} &middot; Dipakai ${inv.usage_count}${inv.usage_limit ? '/' + inv.usage_limit : ''}</div>
+                    </div>
+                    ${revokeAction}
+                </div>`;
+            }).join('');
+        } catch (e) {
+            container.innerHTML = '<div>Gagal memuat undangan.</div>';
+        }
+    }
+
+    function copyMessageText(btn) {
+        const bubble = btn.closest('.relative');
+        const textEl = bubble ? bubble.querySelector('.msg-content') : null;
+        if (textEl) {
+            navigator.clipboard.writeText(textEl.textContent).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Disalin!';
+                setTimeout(() => { btn.textContent = orig; }, 1200);
+            });
+        }
+    }
+    window.copyMessageText = copyMessageText;
+
+    function buildBubbleToolbar(msgId, isOwn) {
+        const emojis = ['👍', '❤️', '😂', '🔥', '🔒']
+            .map(em => `<button type="button" onclick="reactToMessage('${escapeHtml(msgId)}', '${em}')" class="hover:scale-110 transition px-0.5">${em}</button>`)
+            .join('');
+        const posClass = isOwn ? 'right-2' : 'left-2';
+        return `<div class="msg-toolbar absolute -top-3.5 ${posClass} hidden group-hover:flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px] shadow-xs z-10">
+            ${emojis}
+            <span class="text-[var(--sl-divider)]">|</span>
+            <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(msgId)}')" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Balas">Balas</button>
+            <button type="button" onclick="copyMessageText(this)" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Salin">Salin</button>
+            <button type="button" onclick="deleteMessage('${escapeHtml(msgId)}', ${isOwn ? 'true' : 'false'})" class="text-[var(--sl-accent-coral)] hover:underline font-medium" title="Hapus">Hapus</button>
+        </div>`;
+    }
+
+    function reactToMessage(msgId, emoji) {
+        applyMessageReaction(msgId, emoji);
+        if (window.peerManager) {
+            window.peerManager.sendReaction(msgId, emoji);
+        }
+    }
+    window.reactToMessage = reactToMessage;
+
+    function applyMessageReaction(msgId, emoji) {
+        const wrapper = document.querySelector(`[data-message-id="${msgId}"]`);
+        if (!wrapper) return;
+        const container = wrapper.querySelector('.reaction-pills');
+        if (!container) return;
+
+        container.classList.remove('hidden');
+        const existing = container.querySelector(`[data-emoji="${emoji}"]`);
+        if (existing) {
+            const countEl = existing.querySelector('.rx-count');
+            countEl.textContent = parseInt(countEl.textContent || '1') + 1;
+        } else {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.dataset.emoji = emoji;
+            pill.onclick = () => reactToMessage(msgId, emoji);
+            pill.className = 'px-1.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] flex items-center gap-1 text-[var(--sl-text-primary)]';
+            pill.innerHTML = `<span>${emoji}</span><span class="rx-count font-bold">1</span>`;
+            container.appendChild(pill);
+        }
+    }
+    window.applyMessageReaction = applyMessageReaction;
+
+    function deleteMessage(msgId, isOwn) {
+        window.slConfirm({
+            title: 'Hapus Pesan',
+            message: isOwn ? 'Hapus pesan ini untuk semua peserta?' : 'Hapus pesan ini dari tampilan Anda?',
+            confirmLabel: 'Hapus',
+            cancelLabel: 'Batal',
+            onConfirm: () => {
+                applyMessageDeleted(msgId);
+                if (isOwn && window.peerManager) {
+                    window.peerManager.sendDelete(msgId);
+                }
+                window.slToast?.('Pesan dihapus.', 'info', 3000);
+            }
+        });
+    }
+    window.deleteMessage = deleteMessage;
+
+    function applyMessageDeleted(msgId) {
+        const wrapper = document.querySelector(`[data-message-id="${msgId}"]`);
+        if (!wrapper) return;
+        const contentEl = wrapper.querySelector('.msg-content');
+        if (contentEl) {
+            contentEl.textContent = 'Pesan ini telah dihapus.';
+            contentEl.className = 'msg-content italic text-[var(--sl-text-secondary)]';
+        }
+        wrapper.querySelector('.msg-toolbar')?.remove();
+        wrapper.querySelector('.reaction-pills')?.remove();
+    }
+    window.applyMessageDeleted = applyMessageDeleted;
+
+    function handleReplyFromBubble(btn, msgId) {
+        const wrapper = btn.closest('.group');
+        const authorEl = wrapper ? wrapper.querySelector('.sender-name') : null;
+        const textEl = wrapper ? wrapper.querySelector('.msg-content') : null;
+        setReply(msgId, authorEl ? authorEl.textContent.trim() : 'Peserta', textEl ? textEl.textContent.trim() : '');
+    }
+    window.handleReplyFromBubble = handleReplyFromBubble;
 
     function setReply(messageId, authorName, text) {
         activeReply = { messageId, authorName, text };
@@ -409,29 +634,24 @@
 
     function cancelReply() {
         activeReply = null;
-        const bar = document.getElementById('reply-bar');
-        if (bar) bar.classList.add('hidden');
+        document.getElementById('reply-bar')?.classList.add('hidden');
     }
     window.cancelReply = cancelReply;
 
-    function addReaction(bubbleElement, emoji) {
-        let reactionContainer = bubbleElement.querySelector('.reaction-pills');
-        if (!reactionContainer) {
-            reactionContainer = document.createElement('div');
-            reactionContainer.className = 'reaction-pills flex items-center gap-1 mt-1';
-            bubbleElement.appendChild(reactionContainer);
-        }
+    function setCommunicationMode(mode) {
+        communicationMode = mode === 'broadcast' ? 'broadcast' : 'p2p';
+        const p2pBtn = document.getElementById('mode-btn-p2p');
+        const bcastBtn = document.getElementById('mode-btn-broadcast');
+        const bannerText = document.getElementById('mode-security-text');
 
-        let existingPill = Array.from(reactionContainer.children).find(p => p.dataset.emoji === emoji);
-        if (existingPill) {
-            let countSpan = existingPill.querySelector('.count');
-            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+        if (communicationMode === 'broadcast') {
+            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] transition';
+            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-md bg-[var(--sl-accent-coral)] text-white transition';
+            if (bannerText) bannerText.textContent = 'Broadcast Comparison Mode aktif • Pesan diteruskan melalui Server Reverb (Non-P2P)';
         } else {
-            const pill = document.createElement('span');
-            pill.className = 'px-1.5 py-0.5 rounded-full bg-[#F0F2F5] dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[#111B21] dark:text-[#E9EDEF] text-[10px] flex items-center gap-0.5 cursor-pointer';
-            pill.dataset.emoji = emoji;
-            pill.innerHTML = `${emoji} <span class="count text-[9px] font-bold">1</span>`;
-            reactionContainer.appendChild(pill);
+            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-md bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] transition';
+            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] transition';
+            if (bannerText) bannerText.textContent = 'P2P WebRTC DataChannel aktif • E2EE AES-GCM • Server tidak menyimpan pesan';
         }
     }
 
@@ -445,93 +665,74 @@
         const replyPayload = activeReply;
         cancelReply();
 
-        // Create UI Bubble for Sender
         const list = document.getElementById('messages-list');
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const bubbleId = 'bubble_' + Math.random().toString(36).substr(2, 9);
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const clientMsgId = 'msg_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 
         const bubbleWrapper = document.createElement('div');
-        bubbleWrapper.id = bubbleId;
-        bubbleWrapper.className = 'flex items-start justify-end gap-2.5 group';
+        bubbleWrapper.id = 'bubble_' + clientMsgId;
+        bubbleWrapper.dataset.messageId = clientMsgId;
+        bubbleWrapper.className = 'flex justify-end group';
 
         let replyHtml = '';
         if (replyPayload) {
-            replyHtml = `
-                <div class="mb-1 p-2 rounded-lg bg-[#C2E8BC]/80 dark:bg-[#004A3C]/80 text-[#111B21] dark:text-[#E9EDEF] border-l-2 border-[#00A884] text-[11px]">
-                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${escapeHtml(replyPayload.authorName)}</div>
-                    <div class="truncate opacity-85">${escapeHtml(replyPayload.text)}</div>
-                </div>
-            `;
+            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-elevated)]/80 border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply">
+                <div class="font-bold text-[var(--sl-primary-teal)]">${escapeHtml(replyPayload.authorName)}</div>
+                <div class="truncate text-[var(--sl-text-secondary)]">${escapeHtml(replyPayload.text)}</div>
+            </div>`;
         }
 
         bubbleWrapper.innerHTML = `
-            <div class="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
-                    <span>${timeStr}</span>
-                    <span class="font-semibold text-[#111B21] dark:text-[#E9EDEF] sender-name">Anda</span>
-                </div>
-                <div class="relative p-3.5 rounded-2xl rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F] text-xs leading-relaxed shadow-xs">
+            <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
+                <span class="sender-name hidden">Anda</span>
+                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm sl-chat-msg leading-relaxed" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
-
-                    <!-- Quick Reactions & Actions on Hover -->
-                    <div class="absolute -top-3 right-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
-                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
-                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
-                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '🔒')" title="Secured">🔒</button>
-                        <button type="button" onclick="copyMessageText(this)" title="Salin">📋</button>
-                    </div>
+                    ${buildBubbleToolbar(clientMsgId, true)}
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
-                    <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-amber-500' : 'text-[#53BDEB]'} font-bold">${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}</span>
-                    ${duration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${duration}s)</span>` : ''}
+                <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
+                <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
+                    <span>${timeStr}</span>
+                    <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
+                        ${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}
+                    </span>
+                    ${duration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${duration}s</span>` : ''}
                 </div>
             </div>
         `;
 
         list.appendChild(bubbleWrapper);
         input.value = '';
-
         const container = document.getElementById('messages-container');
         container.scrollTop = container.scrollHeight;
 
-        // Ephemeral countdown timer
         if (duration > 0) {
             let remaining = duration;
             const badge = bubbleWrapper.querySelector('.countdown-badge');
             const timer = setInterval(() => {
                 remaining--;
-                if (badge) badge.textContent = `• Ephemeral (${remaining}s)`;
+                if (badge) badge.textContent = `· ⏱ ${remaining}s`;
                 if (remaining <= 0) {
                     clearInterval(timer);
-                    bubbleWrapper.style.transition = 'opacity 0.5s, transform 0.5s';
+                    bubbleWrapper.style.transition = 'opacity 0.35s ease';
                     bubbleWrapper.style.opacity = '0';
-                    bubbleWrapper.style.transform = 'translateY(-10px)';
-                    setTimeout(() => bubbleWrapper.remove(), 500);
+                    setTimeout(() => bubbleWrapper.remove(), 350);
                 }
             }, 1000);
         }
 
-        // Route message according to active communication mode (P2P WebRTC vs Server Broadcast)
         if (communicationMode === 'broadcast') {
             fetch(`/api/rooms/${currentRoomId}/broadcast-message`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: text,
-                    ephemeral_duration: duration,
-                    reply_to: replyPayload
-                })
-            }).catch((err) => console.error('[SecureLink] Broadcast mode send error:', err));
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: JSON.stringify({ message: text, ephemeral_duration: duration, reply_to: replyPayload }),
+            }).catch((err) => console.error('[SecureLink] Broadcast error:', err));
         } else if (window.peerManager) {
             window.peerManager.broadcastMessage(text, duration, replyPayload).then((sent) => {
                 if (sent && sent.id) {
                     bubbleWrapper.dataset.messageId = sent.id;
+                    const toolbar = bubbleWrapper.querySelector('.msg-toolbar');
+                    if (toolbar) toolbar.outerHTML = buildBubbleToolbar(sent.id, true);
                 }
             });
         }
@@ -539,48 +740,41 @@
 
     function renderIncomingMessage(data) {
         const list = document.getElementById('messages-list');
-        const bubbleId = 'bubble_peer_' + data.id;
-
         const bubbleWrapper = document.createElement('div');
-        bubbleWrapper.id = bubbleId;
-        bubbleWrapper.className = 'flex items-start gap-2.5 group';
+        bubbleWrapper.id = 'bubble_peer_' + data.id;
+        bubbleWrapper.dataset.messageId = data.id;
+        bubbleWrapper.className = 'flex items-start gap-2 group';
 
         let replyHtml = '';
         if (data.replyTo) {
-            replyHtml = `
-                <div class="mb-1 p-2 rounded-lg bg-[#F0F2F5] dark:bg-[#111B21] border-l-2 border-[#00A884] text-[11px]">
-                    <div class="font-bold text-[#008069] dark:text-[#25D366]">${escapeHtml(data.replyTo.authorName || 'Anonim')}</div>
-                    <div class="truncate opacity-80 text-[#111B21] dark:text-[#E9EDEF]">${escapeHtml(data.replyTo.text || '')}</div>
-                </div>
-            `;
+            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-chat-bg)] border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply">
+                <div class="font-bold text-[var(--sl-primary-teal)]">${escapeHtml(data.replyTo.authorName || 'Peserta')}</div>
+                <div class="truncate text-[var(--sl-text-secondary)]">${escapeHtml(data.replyTo.text || '')}</div>
+            </div>`;
         }
 
+        const senderLabel = isGroupRoom
+            ? `<div class="sender-name text-[11px] font-bold text-[var(--sl-primary-teal)] mb-0.5">${escapeHtml(data.senderName)}</div>`
+            : `<span class="sender-name hidden">${escapeHtml(data.senderName)}</span>`;
+
         bubbleWrapper.innerHTML = `
-            <div class="w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase shadow-2xs overflow-hidden" style="background-color: ${data.senderAvatarColor || '#008069'}">
+            <div class="w-7 h-7 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase overflow-hidden" style="background-color: ${data.senderAvatarColor || '#497173'}">
                 ${getAvatarMarkup(data.senderAvatarIcon, data.senderAvatarDisplay, data.senderName)}
             </div>
-            <div class="flex flex-col items-start max-w-[85%] sm:max-w-[70%]">
-                <div class="flex items-center gap-1.5 text-[11px] text-[#667781] dark:text-[#8696A0] mb-1">
-                    <span class="sender-name font-semibold text-[#111B21] dark:text-[#E9EDEF]">${escapeHtml(data.senderName)}</span>
-                    <span>${escapeHtml(data.timestamp || '')}</span>
-                </div>
-                <div class="relative p-3.5 rounded-2xl rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-xs text-[#111B21] dark:text-[#E9EDEF] leading-relaxed shadow-xs">
+            <div class="flex flex-col items-start max-w-[82%] sm:max-w-[68%]">
+                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tl-sm bg-[var(--sl-bubble-in)] border border-[var(--sl-divider)] sl-chat-msg text-[var(--sl-text-primary)] leading-relaxed">
+                    ${senderLabel}
                     ${replyHtml}
                     <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
-
-                    <!-- Quick Reactions & Reply on Hover -->
-                    <div class="absolute -top-3 left-2 hidden group-hover:flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white dark:bg-[#111B21] border border-[#E9EDEF] dark:border-[#222D34] shadow-sm text-xs">
-                        <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(data.id)}')" title="Balas">↩️</button>
-                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '👍')" title="Thumbs up">👍</button>
-                        <button type="button" onclick="addReaction(this.closest('.flex-col'), '❤️')" title="Love">❤️</button>
-                        <button type="button" onclick="copyMessageText(this)" title="Salin">📋</button>
-                    </div>
+                    ${buildBubbleToolbar(data.id, false)}
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-[#667781] dark:text-[#8696A0] mt-1 font-mono">
+                <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
+                <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
+                    <span>${escapeHtml(data.timestamp || '')}</span>
                     ${data.transport === 'broadcast'
-                        ? '<span class="text-amber-500 font-bold">⚠ Server Broadcast (Non-P2P)</span>'
-                        : '<span class="text-[#25D366] font-bold">✓ E2EE Enkripsi (P2P)</span>'}
-                    ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-amber-500 font-bold">&bull; Ephemeral (${data.ephemeralDuration}s)</span>` : ''}
+                        ? '<span class="text-[var(--sl-accent-coral)] font-semibold">⚠ Server Broadcast</span>'
+                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓ E2EE (P2P)</span>'}
+                    ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${data.ephemeralDuration}s</span>` : ''}
                 </div>
             </div>
         `;
@@ -594,39 +788,34 @@
             const badge = bubbleWrapper.querySelector('.countdown-badge');
             const timer = setInterval(() => {
                 remaining--;
-                if (badge) badge.textContent = `• Ephemeral (${remaining}s)`;
+                if (badge) badge.textContent = `· ${remaining}s`;
                 if (remaining <= 0) {
                     clearInterval(timer);
-                    bubbleWrapper.style.transition = 'opacity 0.5s, transform 0.5s';
-                    bubbleWrapper.style.opacity = '0';
-                    bubbleWrapper.style.transform = 'translateY(-10px)';
-                    setTimeout(() => bubbleWrapper.remove(), 500);
+                    bubbleWrapper.remove();
                 }
             }, 1000);
         }
     }
 
-    let communicationMode = 'p2p';
-
-    function setCommunicationMode(mode) {
-        communicationMode = mode === 'broadcast' ? 'broadcast' : 'p2p';
-        const p2pBtn = document.getElementById('mode-btn-p2p');
-        const bcastBtn = document.getElementById('mode-btn-broadcast');
-        const bannerText = document.getElementById('mode-security-text');
-
-        if (communicationMode === 'broadcast') {
-            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition';
-            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-lg bg-amber-500 text-white transition';
-            if (bannerText) bannerText.textContent = 'Broadcast Comparison Mode aktif • Pesan diteruskan melalui Server Reverb (Non-P2P)';
-        } else {
-            if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-lg bg-[#008069] text-white transition';
-            if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-lg text-[#667781] dark:text-[#8696A0] hover:text-[#111B21] dark:hover:text-[#E9EDEF] transition';
-            if (bannerText) bannerText.textContent = 'P2P WebRTC DataChannel aktif • Enkripsi AES-GCM • Server tidak menyimpan obrolan';
+    function updateDiagnosticsUi(diag) {
+        const connEl = document.getElementById('diag-conn-type');
+        const iceEl = document.getElementById('diag-ice-state');
+        const e2eeEl = document.getElementById('diag-e2ee-state');
+        if (!connEl || !diag) return;
+        connEl.textContent = diag.overall?.label || 'Menunggu Peer';
+        if (diag.peers && diag.peers.length > 0) {
+            const first = diag.peers[0];
+            iceEl.textContent = first.iceState || 'new';
+            e2eeEl.textContent = first.e2eeReady ? 'Active (AES-GCM)' : 'Menunggu Handshake';
         }
     }
 
-    // Initialize WebRTC Peer Engine
     document.addEventListener('DOMContentLoaded', async () => {
+        // Apply saved default ephemeral duration from Settings
+        const savedEph = localStorage.getItem('securelink_ephemeral_default');
+        const ephEl = document.getElementById('ephemeral_duration');
+        if (savedEph && ephEl) ephEl.value = savedEph;
+
         if (!window.SecureLinkPeer) return;
 
         window.peerManager = new window.SecureLinkPeer({
@@ -634,65 +823,34 @@
             userId: currentUserId,
             userName: currentUserName,
             userAvatar: currentUserAvatar,
-            userAvatarColor: '{{ $user->avatar_color ?? "#008069" }}',
-            userAvatarIcon: '{{ $user->preferences["avatar_icon"] ?? "initial" }}',
-            e2eeEnabled: {{ $room->e2ee_enabled ? 'true' : 'false' }},
-            onSecurityEvent: (eventType, details) => {
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                if (!csrf) return;
-                fetch(`/api/rooms/${currentRoomId}/security-logs`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({ event_type: eventType, details: details || {} }),
-                }).catch(() => {});
-            },
+            userAvatarColor: currentUserAvatar,
+            userAvatarIcon: currentUserAvatarIcon,
             onMessageReceived: renderIncomingMessage,
+            onReactionReceived: (rx) => applyMessageReaction(rx.messageId, rx.emoji),
+            onMessageDeleted: (del) => applyMessageDeleted(del.messageId),
+            onDiagnosticsUpdate: updateDiagnosticsUi,
             onMessageAck: (messageId) => {
-                const bubble = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
-                if (bubble) bubble.textContent = '✓✓ Delivered (P2P ACK)';
+                const badge = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
+                if (badge) badge.textContent = '✓✓ Delivered (P2P ACK)';
             },
             onStatusChange: (status) => {
                 const statusEl = document.getElementById('header-conn-status');
-                if (statusEl) {
-                    statusEl.textContent = `● ${status.label}`;
-                    statusEl.className = `font-semibold font-sans truncate text-[10px] sm:text-xs ${status.color}`;
-                }
-            }
+                if (statusEl) statusEl.textContent = status.label;
+            },
         });
 
         await window.peerManager.loadIceConfig();
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-        // Echo + Reverb Signaling Integration
         if (window.Echo) {
             try {
                 const channel = window.Echo.join(`room.${currentRoomId}`);
-
                 window.peerManager.signalSender = (targetUserId, signal) => {
                     fetch(`/api/rooms/${currentRoomId}/signal`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            target_user_id: targetUserId,
-                            type: signal.type,
-                            signal: signal,
-                        }),
-                    }).catch((err) => {
-                        console.warn('[SecureLink] HTTP signaling fallback to whisper:', err);
-                        channel.whisper('signal', {
-                            from: currentUserId,
-                            to: targetUserId,
-                            signal: signal,
-                        });
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                        body: JSON.stringify({ target_user_id: targetUserId, type: signal.type, signal }),
+                    }).catch(() => {
+                        channel.whisper('signal', { from: currentUserId, to: targetUserId, signal });
                     });
                 };
 
@@ -700,117 +858,78 @@
                     const countEl = document.getElementById('members-count');
                     if (countEl) countEl.textContent = users.length;
                     users.forEach((u) => {
-                        if (u.id !== currentUserId && currentUserId < u.id) {
-                            window.peerManager.initiateOffer(u.id);
-                        }
+                        if (u.id !== currentUserId && currentUserId < u.id) window.peerManager.initiateOffer(u.id);
                     });
                 });
 
                 channel.joining((u) => {
                     const countEl = document.getElementById('members-count');
                     if (countEl) countEl.textContent = parseInt(countEl.textContent || '1') + 1;
-                    if (u.id !== currentUserId && currentUserId < u.id) {
-                        window.peerManager.initiateOffer(u.id);
-                    }
+                    if (u.id !== currentUserId && currentUserId < u.id) window.peerManager.initiateOffer(u.id);
                 });
 
                 channel.leaving((u) => {
                     const countEl = document.getElementById('members-count');
                     if (countEl) countEl.textContent = Math.max(1, parseInt(countEl.textContent || '1') - 1);
-                    if (u && u.id) {
-                        window.peerManager.removePeer(u.id);
-                    }
+                    if (u && u.id) window.peerManager.removePeer(u.id);
                 });
 
                 channel.listen('.webrtc.signal', (data) => {
-                    if (data.to === currentUserId && window.peerManager) {
-                        window.peerManager.handleSignal(data.from, data.signal);
-                    }
+                    if (data.to === currentUserId && window.peerManager) window.peerManager.handleSignal(data.from, data.signal);
                 });
 
                 channel.listenForWhisper('signal', (data) => {
-                    if (data.to === currentUserId && window.peerManager) {
-                        window.peerManager.handleSignal(data.from, data.signal);
-                    }
+                    if (data.to === currentUserId && window.peerManager) window.peerManager.handleSignal(data.from, data.signal);
                 });
 
                 channel.listen('.broadcast.message', (data) => {
-                    if (data.senderId !== currentUserId) {
-                        renderIncomingMessage(data);
+                    if (data.senderId !== currentUserId) renderIncomingMessage(data);
+                });
+
+                channel.listen('.room.participant.updated', (data) => {
+                    if (data.action === 'kicked' && data.user_id === currentUserId) {
+                        window.peerManager?.destroy();
+                        alert('Anda telah dikeluarkan dari room oleh Admin.');
+                        window.location.href = '{{ route("dashboard") }}';
+                    } else if (data.action === 'locked' || data.action === 'unlocked') {
+                        location.reload();
                     }
                 });
 
                 window.addEventListener('securelink:ws-state', (e) => {
-                    const wsState = e.detail?.state;
-                    if (wsState === 'connected') {
-                        window.peerManager.handleTransportReconnect();
-                    }
+                    if (e.detail?.state === 'connected') window.peerManager.handleTransportReconnect();
                 });
-            } catch (e) {
-                console.log('[SecureLink] Echo signaling running in local direct mode:', e);
-            }
+            } catch (e) {}
         }
 
-        window.addEventListener('beforeunload', () => {
-            window.peerManager?.destroy();
-        });
+        window.addEventListener('beforeunload', () => window.peerManager?.destroy());
     });
 
     function toggleRoomLock() {
         fetch(`/api/rooms/${currentRoomId}/lock`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
         })
         .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert(data.message || 'Gagal mengubah status lock');
-            }
-        });
+        .then(data => { if (data.success) location.reload(); else window.slToast?.(data.message || 'Gagal mengubah status lock', 'error'); });
     }
 
     function kickUser(targetUserId, targetName) {
-        if (!confirm(`Keluarkan ${targetName} dari room?`)) return;
-
-        fetch(`/api/rooms/${currentRoomId}/kick`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ target_user_id: targetUserId })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert(data.message || 'Gagal mengeluarkan peserta');
-            }
-        });
-    }
-
-    function filterSidebarRooms() {
-        const query = document.getElementById('sidebar-search').value.toLowerCase().trim();
-        const items = document.querySelectorAll('.sidebar-item');
-        items.forEach(item => {
-            const name = item.getAttribute('data-name');
-            if (name.includes(query)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
+        window.slConfirm({
+            title: 'Keluarkan Peserta',
+            message: `Apakah Anda yakin ingin mengeluarkan ${targetName} dari room ini?`,
+            confirmLabel: 'Keluarkan',
+            cancelLabel: 'Batal',
+            onConfirm: () => {
+                fetch(`/api/rooms/${currentRoomId}/kick`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                    body: JSON.stringify({ target_user_id: targetUserId }),
+                })
+                .then(res => res.json())
+                .then(data => { if (data.success) location.reload(); else window.slToast?.(data.message || 'Gagal mengeluarkan peserta', 'error'); });
             }
         });
     }
 </script>
-@endpush
 @endsection
