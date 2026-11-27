@@ -110,15 +110,14 @@
                 @endif
 
                 <div class="flex items-center gap-2">
-                    <button type="button" id="top-theme-btn" onclick="cycleTheme(this)" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition-all duration-300" title="Ganti Tema">
-                        <span id="theme-icon-light" class="hidden inline-flex transition-transform duration-300">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                        </span>
-                        <span id="theme-icon-dark" class="hidden inline-flex transition-transform duration-300">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                        </span>
-                        <span id="theme-icon-system" class="hidden inline-flex transition-transform duration-300">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    <button type="button" id="top-theme-btn" onclick="cycleTheme(this)" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-main-surface)] transition-colors" title="Ganti Tema">
+                        <span class="sl-theme-icon-wrap inline-flex items-center justify-center transition-transform duration-300 ease-out">
+                            <svg id="top-theme-sun" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+                            </svg>
+                            <svg id="top-theme-moon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
                         </span>
                     </button>
 
@@ -173,16 +172,12 @@
     <script>
         function updateThemeIcons(mode) {
             const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            const lightIcon = document.getElementById('theme-icon-light');
-            const darkIcon = document.getElementById('theme-icon-dark');
-            const sysIcon = document.getElementById('theme-icon-system');
 
-            if (lightIcon && darkIcon && sysIcon) {
-                lightIcon.classList.add('hidden');
-                darkIcon.classList.add('hidden');
-                sysIcon.classList.add('hidden');
-                if (isDark) darkIcon.classList.remove('hidden');
-                else lightIcon.classList.remove('hidden');
+            const topSun = document.getElementById('top-theme-sun');
+            const topMoon = document.getElementById('top-theme-moon');
+            if (topSun && topMoon) {
+                topSun.classList.toggle('hidden', isDark);
+                topMoon.classList.toggle('hidden', !isDark);
             }
 
             const navSun = document.getElementById('nav-theme-sun');
@@ -203,10 +198,11 @@
         function cycleTheme(btnEl) {
             const currentlyDark = document.documentElement.classList.contains('dark');
             setThemeMode(currentlyDark ? 'light' : 'dark');
-            const target = btnEl || document.getElementById('nav-theme-btn') || document.getElementById('top-theme-btn');
-            if (target) {
-                target.classList.add('rotate-180', 'scale-110');
-                setTimeout(() => target.classList.remove('rotate-180', 'scale-110'), 320);
+            const targetBtn = btnEl || document.getElementById('nav-theme-btn') || document.getElementById('top-theme-btn');
+            const iconWrap = targetBtn ? targetBtn.querySelector('.sl-theme-icon-wrap') : null;
+            if (iconWrap) {
+                iconWrap.classList.add('rotate-180', 'scale-110');
+                setTimeout(() => iconWrap.classList.remove('rotate-180', 'scale-110'), 300);
             }
         }
 
