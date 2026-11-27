@@ -135,35 +135,114 @@
             <section id="sec-appearance" class="sec-panel space-y-5 {{ $activeSection === 'appearance' ? '' : 'hidden' }}">
                 <div>
                     <h2 class="text-base font-bold text-[var(--sl-text-primary)]">Appearance</h2>
-                    <p class="text-xs text-[var(--sl-text-secondary)]">Sesuaikan tema terang, mode gelap berlapis, dan ukuran teks.</p>
+                    <p class="text-xs text-[var(--sl-text-secondary)]">Kustomisasi mode tema, preset warna, warna bubble chat, dan ukuran font percakapan.</p>
                 </div>
 
                 <div class="sl-surface rounded-xl p-5 space-y-5">
+                    <!-- Mode Selection -->
                     <div class="space-y-2">
-                        <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Tema Antarmuka</div>
+                        <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Mode Tampilan</div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                            <button type="button" onclick="setThemeMode('light')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                            <button type="button" onclick="selectAppearanceMode('light')" data-mode-btn="light" class="app-mode-btn p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
                                 <div class="font-bold text-[var(--sl-text-primary)]">Light Mode</div>
                                 <div class="text-[11px] text-[var(--sl-text-secondary)]">Mint &amp; Teal cerah</div>
                             </button>
-                            <button type="button" onclick="setThemeMode('dark')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                            <button type="button" onclick="selectAppearanceMode('dark')" data-mode-btn="dark" class="app-mode-btn p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
                                 <div class="font-bold text-[var(--sl-text-primary)]">Dark Mode</div>
-                                <div class="text-[11px] text-[var(--sl-text-secondary)]">Slate Teal berlapis</div>
+                                <div class="text-[11px] text-[var(--sl-text-secondary)]">Charcoal-Teal berlapis</div>
                             </button>
-                            <button type="button" onclick="setThemeMode('system')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
+                            <button type="button" onclick="selectAppearanceMode('system')" data-mode-btn="system" class="app-mode-btn p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition">
                                 <div class="font-bold text-[var(--sl-text-primary)]">System Default</div>
                                 <div class="text-[11px] text-[var(--sl-text-secondary)]">Mengikuti perangkat</div>
                             </button>
                         </div>
                     </div>
 
+                    <!-- Theme Presets -->
+                    <div class="space-y-2 pt-3 border-t border-[var(--sl-divider)]">
+                        <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Theme Presets</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <button type="button" onclick="applyAppearancePreset('mint-teal')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-[var(--sl-text-primary)]">Mint Teal</div>
+                                    <div class="text-[10px] font-mono text-[var(--sl-text-secondary)]">#497173</div>
+                                </div>
+                                <span class="w-5 h-5 rounded-full border border-[var(--sl-divider)]" style="background:#497173"></span>
+                            </button>
+                            <button type="button" onclick="applyAppearancePreset('dark-teal')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-[var(--sl-text-primary)]">Dark Teal</div>
+                                    <div class="text-[10px] font-mono text-[var(--sl-text-secondary)]">#2F5D62</div>
+                                </div>
+                                <span class="w-5 h-5 rounded-full border border-[var(--sl-divider)]" style="background:#2F5D62"></span>
+                            </button>
+                            <button type="button" onclick="applyAppearancePreset('warm-sand')" class="p-3 rounded-lg border border-[var(--sl-divider)] hover:bg-[var(--sl-hover)] text-left text-xs transition flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-[var(--sl-text-primary)]">Warm Sand</div>
+                                    <div class="text-[10px] font-mono text-[var(--sl-text-secondary)]">#6B705C</div>
+                                </div>
+                                <span class="w-5 h-5 rounded-full border border-[var(--sl-divider)]" style="background:#6B705C"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Colors (Accent & Chat Bubble) + HEX -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[var(--sl-divider)]">
+                        <div class="space-y-1.5">
+                            <label for="custom-accent-color" class="block text-xs font-semibold text-[var(--sl-text-primary)]">Custom Accent Color</label>
+                            <div class="flex items-center gap-2.5">
+                                <input type="color" id="custom-accent-color" value="#EC643E" oninput="updateLiveCustomColors()" class="w-10 h-9 rounded border border-[var(--sl-divider)] bg-transparent cursor-pointer">
+                                <span id="custom-accent-hex" class="px-2.5 py-1 rounded bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] font-mono text-xs text-[var(--sl-text-primary)]">#EC643E</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label for="custom-bubble-color" class="block text-xs font-semibold text-[var(--sl-text-primary)]">Custom Chat Bubble Color</label>
+                            <div class="flex items-center gap-2.5">
+                                <input type="color" id="custom-bubble-color" value="#DCEBEC" oninput="updateLiveCustomColors()" class="w-10 h-9 rounded border border-[var(--sl-divider)] bg-transparent cursor-pointer">
+                                <span id="custom-bubble-hex" class="px-2.5 py-1 rounded bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] font-mono text-xs text-[var(--sl-text-primary)]">#DCEBEC</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Font Size -->
                     <div class="space-y-2 pt-3 border-t border-[var(--sl-divider)]">
                         <label for="pref-font-size" class="block text-xs font-semibold text-[var(--sl-text-primary)]">Ukuran Font Chat</label>
-                        <select id="pref-font-size" onchange="localStorage.setItem('securelink_font_size', this.value)" class="w-48 px-3 py-2 rounded-lg sl-input text-xs">
-                            <option value="small">Kecil</option>
-                            <option value="normal" selected>Normal</option>
-                            <option value="large">Besar</option>
+                        <select id="pref-font-size" onchange="handleFontSizeChange(this.value)" class="w-56 px-3 py-2 rounded-lg sl-input text-xs">
+                            <option value="small">Small (12px)</option>
+                            <option value="medium" selected>Medium (Default)</option>
+                            <option value="large">Large (15.5px)</option>
                         </select>
+                        <p class="text-[11px] text-[var(--sl-text-secondary)]">Perubahan langsung diterapkan ke pesan masuk, pesan keluar, reply preview, dan pesan sistem.</p>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="p-4 rounded-xl bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] space-y-2.5">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-[var(--sl-text-secondary)]">Live Preview</div>
+                        <div class="flex justify-start">
+                            <div class="max-w-[78%] px-3 py-2 rounded-xl rounded-tl-sm bg-[var(--sl-bubble-in)] border border-[var(--sl-divider)] text-[var(--sl-text-primary)] sl-chat-msg">
+                                Halo! Ini pratinjau ukuran font pesan masuk.
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <div class="max-w-[78%] px-3 py-2 rounded-xl rounded-tr-sm sl-chat-msg" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
+                                <div class="mb-1 px-2 py-1 rounded bg-black/5 border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply opacity-85">Membalas pesan sebelumnya</div>
+                                <div>Dan ini pratinjau warna bubble &amp; ukuran teks Anda.</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <span class="px-3 py-1 rounded-lg sl-btn-coral text-[11px] font-semibold">Tombol Aksen</span>
+                        </div>
+                    </div>
+
+                    <!-- Save & Reset Actions -->
+                    <div class="pt-2 flex flex-wrap items-center justify-end gap-2.5">
+                        <button type="button" onclick="resetAppearanceToDefault()" class="px-4 py-2 rounded-lg sl-btn-secondary text-xs font-semibold">
+                            Reset to Default
+                        </button>
+                        <button type="button" onclick="saveAppearancePreferences()" class="px-4 py-2 rounded-lg sl-btn-coral text-xs font-semibold">
+                            Save Changes
+                        </button>
                     </div>
                 </div>
             </section>
@@ -308,7 +387,7 @@
                         <a href="{{ route('demo') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Demonstrasi P2P vs Broadcast</a>
                         <a href="{{ route('tailscale.guide') }}" class="px-3 py-1.5 rounded-lg sl-btn-secondary font-semibold">Panduan VPN Tailscale</a>
                     </div>
-                    <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="pt-3 border-t border-[var(--sl-divider)]">
+                    <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="event.preventDefault(); window.slConfirmSignOut(this);" class="pt-3 border-t border-[var(--sl-divider)]">
                         @csrf
                         <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral font-semibold">Keluar Sesi (Logout)</button>
                     </form>
@@ -393,12 +472,104 @@
         } catch (e) {}
     }
 
+    function selectAppearanceMode(mode) {
+        setThemeMode(mode);
+        document.querySelectorAll('.app-mode-btn').forEach(btn => {
+            const active = btn.getAttribute('data-mode-btn') === mode;
+            btn.classList.toggle('border-[var(--sl-primary-teal)]', active);
+            btn.classList.toggle('bg-[var(--sl-active-conv)]', active);
+        });
+    }
+
+    function applyAppearancePreset(presetKey) {
+        const preset = window.SL_THEME_PRESETS?.[presetKey];
+        if (!preset) return;
+
+        document.getElementById('custom-accent-color').value = preset.accent;
+        document.getElementById('custom-accent-hex').textContent = preset.accent.toUpperCase();
+        document.getElementById('custom-bubble-color').value = preset.bubble;
+        document.getElementById('custom-bubble-hex').textContent = preset.bubble.toUpperCase();
+
+        const prefs = {
+            preset: presetKey,
+            primaryColor: preset.primary,
+            secondaryColor: preset.secondary,
+            accentColor: preset.accent,
+            bubbleColor: preset.bubble,
+        };
+        window.applyCustomTheme?.(prefs);
+        localStorage.setItem('securelink_theme_prefs', JSON.stringify(prefs));
+    }
+
+    function updateLiveCustomColors() {
+        const accent = document.getElementById('custom-accent-color').value.toUpperCase();
+        const bubble = document.getElementById('custom-bubble-color').value.toUpperCase();
+        document.getElementById('custom-accent-hex').textContent = accent;
+        document.getElementById('custom-bubble-hex').textContent = bubble;
+
+        const existing = JSON.parse(localStorage.getItem('securelink_theme_prefs') || '{}');
+        const prefs = { ...existing, accentColor: accent, bubbleColor: bubble };
+        window.applyCustomTheme?.(prefs);
+        localStorage.setItem('securelink_theme_prefs', JSON.stringify(prefs));
+    }
+
+    function handleFontSizeChange(size) {
+        window.applyChatFontSize?.(size);
+    }
+
+    async function saveAppearancePreferences() {
+        const prefs = JSON.parse(localStorage.getItem('securelink_theme_prefs') || '{}');
+        const fontSize = localStorage.getItem('securelink_font_size') || 'medium';
+        const theme = localStorage.getItem('securelink_theme') || 'system';
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        try {
+            await fetch('/api/identity', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                body: JSON.stringify({
+                    preferences: { theme, font_size: fontSize, custom_theme: prefs }
+                }),
+            });
+        } catch (e) {}
+
+        window.slToast?.('Preferensi tampilan berhasil disimpan.', 'success', 4000);
+    }
+
+    function resetAppearanceToDefault() {
+        window.resetCustomTheme?.();
+        setThemeMode('system');
+        window.applyChatFontSize?.('medium');
+        document.getElementById('pref-font-size').value = 'medium';
+        document.getElementById('custom-accent-color').value = '#EC643E';
+        document.getElementById('custom-accent-hex').textContent = '#EC643E';
+        document.getElementById('custom-bubble-color').value = '#DCEBEC';
+        document.getElementById('custom-bubble-hex').textContent = '#DCEBEC';
+        selectAppearanceMode('system');
+        window.slToast?.('Tampilan dikembalikan ke pengaturan default.', 'info', 4000);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const aboutEl = document.getElementById('about_status');
         if (aboutEl) aboutEl.value = localStorage.getItem('securelink_about') || '';
 
         const fontEl = document.getElementById('pref-font-size');
-        if (fontEl) fontEl.value = localStorage.getItem('securelink_font_size') || 'normal';
+        const savedFont = localStorage.getItem('securelink_font_size') || 'medium';
+        if (fontEl) fontEl.value = (savedFont === 'normal') ? 'medium' : savedFont;
+
+        selectAppearanceMode(localStorage.getItem('securelink_theme') || 'system');
+
+        try {
+            const prefs = JSON.parse(localStorage.getItem('securelink_theme_prefs') || 'null');
+            if (prefs?.accentColor) {
+                document.getElementById('custom-accent-color').value = prefs.accentColor;
+                document.getElementById('custom-accent-hex').textContent = prefs.accentColor.toUpperCase();
+            }
+            if (prefs?.bubbleColor) {
+                document.getElementById('custom-bubble-color').value = prefs.bubbleColor;
+                document.getElementById('custom-bubble-hex').textContent = prefs.bubbleColor.toUpperCase();
+            }
+        } catch (e) {}
 
         const ephEl = document.getElementById('sec-ephemeral-default');
         if (ephEl) ephEl.value = localStorage.getItem('securelink_ephemeral_default') || '0';
