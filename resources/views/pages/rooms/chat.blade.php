@@ -251,9 +251,10 @@
                 </button>
             </form>
         </div>
+    </main>
 
-        <!-- D. Collapsible Right Information Panel -->
-        <aside id="members-drawer" class="hidden absolute md:static top-0 right-0 bottom-0 w-80 max-w-[90vw] border-l border-[var(--sl-divider)] bg-[var(--sl-white-surface)] flex flex-col z-30 overflow-y-auto sl-scroll shrink-0">
+    <!-- D. Collapsible Right Information Panel -->
+    <aside id="members-drawer" class="hidden absolute md:static top-0 right-0 bottom-0 w-80 max-w-[90vw] border-l border-[var(--sl-divider)] bg-[var(--sl-white-surface)] flex flex-col z-30 overflow-y-auto sl-scroll shrink-0">
             <div class="p-4 border-b border-[var(--sl-divider)] flex items-center justify-between">
                 <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--sl-text-primary)]">
                     {{ $isGroup ? 'Info Grup & Keamanan' : 'Info Percakapan' }}
@@ -337,7 +338,6 @@
                 @endif
             </div>
         </aside>
-    </main>
 </div>
 
 <!-- E. Functional QR Code & Invitation Modal -->
