@@ -8,11 +8,6 @@
     <!-- 1. HERO SECTION -->
     <section id="hero" class="space-y-8 scroll-mt-20">
         <div class="text-center max-w-2xl mx-auto space-y-4">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)] text-xs font-semibold">
-                <span class="w-1.5 h-1.5 rounded-full bg-[var(--sl-primary-teal)]"></span>
-                <span>WebRTC DataChannel &middot; DTLS &middot; E2EE AES-GCM</span>
-            </div>
-
             <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-[var(--sl-text-primary)] leading-[1.15]">
                 Komunikasi Peer-to-Peer Privat, Langsung Antarperangkat.
             </h1>
