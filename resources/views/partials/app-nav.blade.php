@@ -81,7 +81,7 @@
             </a>
         @endif
 
-        <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar dari sesi ini?')" class="w-full flex justify-center">
+        <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="event.preventDefault(); window.slConfirmSignOut(this);" class="w-full flex justify-center">
             @csrf
             <button type="submit" class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-[#EC643E]/25 hover:text-white transition" title="Keluar Sesi (Logout)" aria-label="Keluar Sesi (Logout)">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
