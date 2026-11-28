@@ -117,7 +117,7 @@
     </aside>
 
     <!-- C. Main Conversation Area -->
-    <main class="flex-1 flex flex-col min-w-0 bg-[var(--sl-chat-bg)] relative h-full">
+    <main class="flex-1 flex flex-col min-w-0 min-h-0 bg-[var(--sl-chat-bg)] relative h-full">
 
         <!-- Conversation Header -->
         <header class="sticky top-0 z-20 px-2.5 sm:px-5 py-2 sm:py-2.5 border-b border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex items-center justify-between gap-2 shrink-0 relative">
@@ -236,7 +236,7 @@
         </header>
 
         <!-- Messages Area -->
-        <div id="messages-container" class="flex-1 overflow-y-auto sl-scroll p-4 sm:p-5 space-y-3">
+        <div id="messages-container" class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain sl-scroll p-3 sm:p-5 space-y-3">
             <div class="flex flex-col items-center gap-1.5 my-1">
                 <span class="px-2.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] font-semibold text-[var(--sl-text-secondary)]">Hari Ini</span>
                 <div id="mode-security-banner" class="px-3 py-1 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px] text-[var(--sl-text-secondary)] text-center">
@@ -254,31 +254,31 @@
         </div>
 
         <!-- Reply Preview Bar -->
-        <div id="reply-bar" class="hidden px-4 py-2 bg-[var(--sl-active-conv)] border-t border-[var(--sl-divider)] flex items-center justify-between text-xs shrink-0">
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="text-[var(--sl-primary-teal)] font-bold">Membalas:</span>
-                <span id="reply-author" class="font-semibold text-[var(--sl-text-primary)]"></span>
-                <span id="reply-text" class="text-[var(--sl-text-secondary)] truncate max-w-xs"></span>
+        <div id="reply-bar" class="hidden px-3 sm:px-4 py-2 bg-[var(--sl-active-conv)] border-t border-[var(--sl-divider)] flex items-center justify-between gap-2 text-xs shrink-0">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span class="text-[var(--sl-primary-teal)] font-bold shrink-0">Membalas:</span>
+                <span id="reply-author" class="font-semibold text-[var(--sl-text-primary)] shrink-0"></span>
+                <span id="reply-text" class="text-[var(--sl-text-secondary)] truncate min-w-0"></span>
             </div>
-            <button type="button" onclick="cancelReply()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] font-bold text-sm">&times;</button>
-        </div>
-
-        <!-- Quick Emoji Picker Popover -->
-        <div id="emoji-popover" class="hidden absolute bottom-16 left-4 z-30 p-2 rounded-lg sl-surface shadow-md flex items-center gap-1.5 text-base">
-            @foreach(['👍', '❤️', '🔒', '✅', '😂', '🎉', '🔥', '👋'] as $em)
-                <button type="button" onclick="insertEmoji('{{ $em }}')" class="p-1 rounded hover:bg-[var(--sl-hover)]">{{ $em }}</button>
-            @endforeach
+            <button type="button" onclick="cancelReply()" class="min-w-[32px] min-h-[32px] inline-flex items-center justify-center text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] font-bold text-base shrink-0">&times;</button>
         </div>
 
         <!-- Message Composer -->
-        <div class="p-3 border-t border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] shrink-0">
-            <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-center gap-2">
-                <button type="button" onclick="toggleEmojiPicker()" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Emoji">
+        <div class="relative px-2.5 py-2 sm:p-3 sl-safe-bottom md:pb-3 border-t border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] shrink-0">
+            <!-- Quick Emoji Picker Popover -->
+            <div id="emoji-popover" class="hidden absolute bottom-full mb-2 left-2 right-2 sm:right-auto sm:left-3 z-30 p-2 rounded-lg sl-surface shadow-md flex flex-wrap items-center gap-1.5 text-base max-w-[calc(100vw-1rem)]">
+                @foreach(['👍', '❤️', '🔒', '✅', '😂', '🎉', '🔥', '👋'] as $em)
+                    <button type="button" onclick="insertEmoji('{{ $em }}')" class="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-1.5 sm:p-1 rounded hover:bg-[var(--sl-hover)] inline-flex items-center justify-center">{{ $em }}</button>
+                @endforeach
+            </div>
+
+            <form id="message-form" onsubmit="handleSendMessage(event)" class="flex items-end gap-1.5 sm:gap-2">
+                <button type="button" onclick="toggleEmojiPicker()" class="min-w-[40px] min-h-[40px] inline-flex items-center justify-center p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Emoji">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                 </button>
 
                 <select id="ephemeral_duration" aria-label="Durasi Pesan Ephemeral" title="Pesan Sementara (Ephemeral)"
-                    class="px-2 py-2 rounded-lg sl-input text-xs shrink-0">
+                    class="max-w-[78px] sm:max-w-none px-1.5 sm:px-2 py-2 min-h-[40px] rounded-lg sl-input text-xs shrink-0">
                     <option value="0">Normal</option>
                     <option value="10">10 dtk</option>
                     <option value="30">30 dtk</option>
@@ -286,10 +286,10 @@
                     <option value="300">5 mnt</option>
                 </select>
 
-                <input type="text" id="message-input" aria-label="Tulis pesan" placeholder="Tulis pesan..." autocomplete="off"
-                    class="flex-1 px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+                <textarea id="message-input" rows="1" aria-label="Tulis pesan" placeholder="Tulis pesan..." autocomplete="off"
+                    class="flex-1 min-w-0 px-3 sm:px-3.5 py-2 min-h-[40px] max-h-28 overflow-y-auto sl-scroll rounded-lg sl-input text-base md:text-sm leading-snug resize-none"></textarea>
 
-                <button type="submit" class="px-4 py-2 rounded-lg sl-btn-coral font-semibold text-xs sm:text-sm flex items-center gap-1.5 shrink-0">
+                <button type="submit" class="min-h-[40px] min-w-[44px] px-3 sm:px-4 py-2 rounded-lg sl-btn-coral font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 shrink-0">
                     <span class="hidden sm:inline">Kirim</span>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
@@ -543,14 +543,64 @@
         document.getElementById('emoji-popover')?.classList.toggle('hidden');
     }
 
+    function autoResizeComposerInput() {
+        const input = document.getElementById('message-input');
+        if (!input) return;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 112) + 'px';
+    }
+
+    function isNearMessagesBottom(threshold = 96) {
+        const container = document.getElementById('messages-container');
+        if (!container) return true;
+        return (container.scrollHeight - container.scrollTop - container.clientHeight) <= threshold;
+    }
+
+    function scrollMessagesToBottom(force = false) {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+        if (force || isNearMessagesBottom()) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
     function insertEmoji(emoji) {
         const input = document.getElementById('message-input');
         if (input) {
             input.value += emoji;
+            autoResizeComposerInput();
             input.focus();
         }
         document.getElementById('emoji-popover')?.classList.add('hidden');
     }
+
+    (() => {
+        const composerInput = document.getElementById('message-input');
+        if (!composerInput) return;
+
+        composerInput.addEventListener('input', autoResizeComposerInput);
+        composerInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                const enterSendEnabled = localStorage.getItem('securelink_enter_send') !== 'false';
+                if (enterSendEnabled) {
+                    e.preventDefault();
+                    document.getElementById('message-form')?.requestSubmit();
+                }
+            }
+        });
+        composerInput.addEventListener('focus', () => {
+            const wasNearBottom = isNearMessagesBottom();
+            if (wasNearBottom) {
+                setTimeout(() => scrollMessagesToBottom(true), 220);
+            }
+        });
+
+        window.addEventListener('securelink:keyboard-resize', (e) => {
+            if (e.detail?.keyboardOpen && isNearMessagesBottom(140)) {
+                requestAnimationFrame(() => scrollMessagesToBottom(true));
+            }
+        });
+    })();
 
     function setSidebarFilter(filter) {
         currentSidebarFilter = filter;
@@ -1335,8 +1385,8 @@
 
         list.appendChild(bubbleWrapper);
         input.value = '';
-        const container = document.getElementById('messages-container');
-        container.scrollTop = container.scrollHeight;
+        autoResizeComposerInput();
+        scrollMessagesToBottom(true);
 
         const expiresAt = duration > 0 ? Date.now() + (duration * 1000) : null;
         saveChatMessageToHistory({
@@ -1438,9 +1488,11 @@
             </div>
         `;
 
+        const shouldAutoScroll = !data._restored && isNearMessagesBottom();
         list.appendChild(bubbleWrapper);
-        const container = document.getElementById('messages-container');
-        container.scrollTop = container.scrollHeight;
+        if (shouldAutoScroll) {
+            scrollMessagesToBottom(true);
+        }
 
         const activeSidebarPreview = document.querySelector(`.sidebar-item[data-room-id="${currentRoomId}"] .sidebar-room-preview`);
         if (activeSidebarPreview && data.text) {
@@ -1596,8 +1648,8 @@
                 }
             }
         });
-        const mc = document.getElementById('messages-container');
-        if (mc) mc.scrollTop = mc.scrollHeight;
+        scrollMessagesToBottom(true);
+        requestAnimationFrame(() => scrollMessagesToBottom(true));
 
         @if(session('just_created_room'))
             openInviteModal();
@@ -1777,7 +1829,9 @@
 
                 channel.here((users) => {
                     const countEl = document.getElementById('members-count');
+                    const mobileCountEl = document.getElementById('mobile-members-count');
                     if (countEl) countEl.textContent = users.length;
+                    if (mobileCountEl) mobileCountEl.textContent = users.length;
                     users.forEach((u) => {
                         if (u.id !== currentUserId && currentUserId < u.id) window.peerManager.initiateOffer(u.id);
                     });
@@ -1785,13 +1839,19 @@
 
                 channel.joining((u) => {
                     const countEl = document.getElementById('members-count');
-                    if (countEl) countEl.textContent = parseInt(countEl.textContent || '1') + 1;
+                    const mobileCountEl = document.getElementById('mobile-members-count');
+                    const nextCount = parseInt(countEl?.textContent || '1') + 1;
+                    if (countEl) countEl.textContent = nextCount;
+                    if (mobileCountEl) mobileCountEl.textContent = nextCount;
                     if (u.id !== currentUserId && currentUserId < u.id) window.peerManager.initiateOffer(u.id);
                 });
 
                 channel.leaving((u) => {
                     const countEl = document.getElementById('members-count');
-                    if (countEl) countEl.textContent = Math.max(1, parseInt(countEl.textContent || '1') - 1);
+                    const mobileCountEl = document.getElementById('mobile-members-count');
+                    const nextCount = Math.max(1, parseInt(countEl?.textContent || '1') - 1);
+                    if (countEl) countEl.textContent = nextCount;
+                    if (mobileCountEl) mobileCountEl.textContent = nextCount;
                     if (u && u.id) window.peerManager.removePeer(u.id);
                 });
 
