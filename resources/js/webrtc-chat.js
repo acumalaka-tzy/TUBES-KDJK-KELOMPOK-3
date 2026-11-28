@@ -984,8 +984,8 @@ export class SecureLinkPeer {
         };
     }
 
-    async broadcastMessage(text, ephemeralDuration = 0, replyTo = null) {
-        const messageId = 'msg_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    async broadcastMessage(text, ephemeralDuration = 0, replyTo = null, customMessageId = null) {
+        const messageId = customMessageId || ('msg_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36));
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         const sendToPeers = async () => {

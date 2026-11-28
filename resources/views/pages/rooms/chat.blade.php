@@ -800,15 +800,7 @@
                 body: JSON.stringify({ message: text, ephemeral_duration: duration, reply_to: replyPayload }),
             }).catch((err) => console.error('[SecureLink] Broadcast error:', err));
         } else if (window.peerManager) {
-            window.peerManager.broadcastMessage(text, duration, replyPayload).then((sent) => {
-                if (sent && sent.id) {
-                    const oldId = clientMsgId;
-                    bubbleWrapper.dataset.messageId = sent.id;
-                    const toolbar = bubbleWrapper.querySelector('.msg-toolbar');
-                    if (toolbar) toolbar.outerHTML = buildBubbleToolbar(sent.id, true);
-                    updateChatHistoryItem(oldId, (item) => ({ ...item, id: sent.id }));
-                }
-            });
+            window.peerManager.broadcastMessage(text, duration, replyPayload, clientMsgId);
         }
     }
 
@@ -847,7 +839,7 @@
                     <span>${escapeHtml(data.timestamp || '')}</span>
                     ${data.transport === 'broadcast'
                         ? '<span class="text-[var(--sl-accent-coral)] font-semibold">⚠ Server Broadcast</span>'
-                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓ E2EE</span>'}
+                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓✓ Diterima</span>'}
                     ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${data.ephemeralDuration}s</span>` : ''}
                 </div>
             </div>
