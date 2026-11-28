@@ -8,13 +8,13 @@
     $allRooms = isset($userRooms) ? $userRooms : collect();
 @endphp
 
-<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)] relative">
+<div class="sl-app-shell h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)] relative">
 
     <!-- A. Slim Icon Navigation Sidebar -->
     @include('partials.app-nav')
 
     <!-- B. Conversation Sidebar -->
-    <aside id="chat-sidebar" class="w-full md:w-72 lg:w-80 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex-col shrink-0 md:flex hidden absolute md:static inset-0 z-40 h-full">
+    <aside id="chat-sidebar" class="w-full md:w-72 lg:w-80 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex-col shrink-0 md:flex hidden absolute md:static inset-0 z-40 h-full min-h-0">
         <!-- Header: Brand, User, Single New Chat Button -->
         <div class="px-3.5 py-3 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
             <div class="flex items-center gap-2 min-w-0">
@@ -24,24 +24,25 @@
                 <span class="text-xs font-bold text-[var(--sl-text-primary)] truncate">{{ $user->display_name }}</span>
             </div>
             <div class="flex items-center gap-1">
-                <button type="button" onclick="openNewChatModal('menu')" class="px-2.5 py-1 rounded-lg sl-btn-coral text-[11px] font-semibold flex items-center gap-1">
+                <button type="button" onclick="openNewChatModal('menu')" class="px-2.5 py-1.5 md:py-1 rounded-lg sl-btn-coral text-[11px] font-semibold flex items-center gap-1 min-h-[36px] md:min-h-0">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     <span>New Chat</span>
                 </button>
-                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] font-bold text-sm" title="Tutup">&times;</button>
+                <button type="button" onclick="toggleChatSidebar()" class="md:hidden min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] font-bold text-lg" title="Tutup">&times;</button>
             </div>
         </div>
 
         <!-- Search & Filter Tabs -->
         <div class="px-3 py-2 border-b border-[var(--sl-divider)] space-y-2 shrink-0">
             <input type="text" id="sidebar-search" placeholder="Cari percakapan atau Room ID..." oninput="filterSidebarRooms()"
-                class="w-full px-3 py-1.5 rounded-lg sl-input text-xs">
+                class="w-full px-3 py-1.5 rounded-lg sl-input text-base md:text-xs">
 
-            <div class="flex items-center gap-1 text-[11px] font-semibold">
-                <button type="button" onclick="setSidebarFilter('all')" data-sfilter="all" class="sfilter-pill px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition">All</button>
-                <button type="button" onclick="setSidebarFilter('private')" data-sfilter="private" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Private</button>
-                <button type="button" onclick="setSidebarFilter('group')" data-sfilter="group" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Groups</button>
-                <button type="button" onclick="setSidebarFilter('unread')" data-sfilter="unread" class="sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Unread</button>
+            <div class="flex items-center gap-1.5 md:gap-1 text-[11px] font-semibold overflow-x-auto sl-no-scrollbar">
+                <button type="button" onclick="setSidebarFilter('all')" data-sfilter="all" class="sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition whitespace-nowrap shrink-0">All</button>
+                <button type="button" onclick="setSidebarFilter('private')" data-sfilter="private" class="sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition whitespace-nowrap shrink-0">Private</button>
+                <button type="button" onclick="setSidebarFilter('group')" data-sfilter="group" class="sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition whitespace-nowrap shrink-0">Groups</button>
+                <button type="button" onclick="setSidebarFilter('unread')" data-sfilter="unread" class="sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition whitespace-nowrap shrink-0">Unread</button>
+                <button type="button" onclick="setSidebarFilter('archived')" data-sfilter="archived" class="md:hidden sfilter-pill px-2.5 py-1 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition whitespace-nowrap shrink-0">Archived</button>
             </div>
         </div>
 
@@ -119,41 +120,87 @@
     <main class="flex-1 flex flex-col min-w-0 bg-[var(--sl-chat-bg)] relative h-full">
 
         <!-- Conversation Header -->
-        <header class="px-3 sm:px-5 py-2.5 border-b border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex items-center justify-between gap-2 shrink-0">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <button type="button" onclick="toggleChatSidebar()" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Daftar Percakapan">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
-                </button>
-                <a href="{{ route('dashboard') }}" class="md:hidden p-1.5 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" title="Kembali">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <header class="sticky top-0 z-20 px-2.5 sm:px-5 py-2 sm:py-2.5 border-b border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex items-center justify-between gap-2 shrink-0 relative">
+            <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                <a href="{{ route('dashboard') }}" class="md:hidden min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" aria-label="Kembali ke daftar percakapan" title="Kembali">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </a>
 
                 <div class="w-9 h-9 rounded-full {{ $isGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center shrink-0 uppercase">
                     {{ strtoupper(substr($room->room_name, 0, $isGroup ? 2 : 1)) }}
                 </div>
 
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
                         <h1 class="text-sm font-bold text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</h1>
-                        <span class="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] font-semibold">
+                        <span class="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] font-semibold shrink-0">
                             {{ $isGroup ? 'Group' : 'Private' }}
                         </span>
                         @if($room->isLocked())
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-accent-coral)]/15 text-[var(--sl-accent-coral)] font-semibold">Terkunci</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--sl-accent-coral)]/15 text-[var(--sl-accent-coral)] font-semibold shrink-0">Terkunci</span>
                         @endif
                     </div>
-                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--sl-text-secondary)] mt-0.5">
-                        <span class="font-mono truncate">{{ $room->room_id }}</span>
-                        <span>&middot;</span>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--sl-text-secondary)] mt-0.5 min-w-0">
+                        <span class="hidden sm:inline font-mono truncate">{{ $room->room_id }}</span>
+                        <span class="hidden sm:inline">&middot;</span>
                         <span id="header-conn-status" class="font-semibold text-[var(--sl-primary-teal)] truncate">Menunggu Peer...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Header Controls -->
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <!-- Mobile Action Overflow Button -->
+            <div class="md:hidden flex items-center shrink-0 relative">
+                <button type="button" id="mobile-chat-menu-btn" onclick="toggleMobileChatMenu(event)" class="min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)]" aria-label="Menu percakapan" aria-expanded="false">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>
+                </button>
+
+                <div id="mobile-chat-menu" class="hidden absolute right-0 top-12 w-60 rounded-xl sl-surface shadow-xl border border-[var(--sl-divider)] py-1.5 z-50 text-xs">
+                    <button type="button" onclick="toggleMembersDrawer(); toggleMobileChatMenu(false)" class="w-full px-3.5 py-2.5 text-left flex items-center justify-between hover:bg-[var(--sl-hover)] text-[var(--sl-text-primary)] font-medium">
+                        <span class="flex items-center gap-2.5">
+                            <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>Info &amp; Anggota</span>
+                        </span>
+                        <span id="mobile-members-count" class="px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-[10px] font-bold">{{ count($metadata['participants']) }}</span>
+                    </button>
+
+                    <button type="button" onclick="openInviteModal(); toggleMobileChatMenu(false)" class="w-full px-3.5 py-2.5 text-left flex items-center gap-2.5 hover:bg-[var(--sl-hover)] text-[var(--sl-text-primary)] font-medium">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4v4h-4z"/></svg>
+                        <span>QR Code &amp; Undangan</span>
+                    </button>
+
+                    <button type="button" onclick="setCommunicationMode(communicationMode === 'p2p' ? 'broadcast' : 'p2p'); toggleMobileChatMenu(false)" class="w-full px-3.5 py-2.5 text-left flex items-center justify-between hover:bg-[var(--sl-hover)] text-[var(--sl-text-primary)] font-medium">
+                        <span>Mode Koneksi</span>
+                        <span id="mobile-mode-label" class="px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-[10px] font-bold">P2P WebRTC</span>
+                    </button>
+
+                    <button type="button" onclick="toggleChatSidebar(); toggleMobileChatMenu(false)" class="w-full px-3.5 py-2.5 text-left flex items-center gap-2.5 hover:bg-[var(--sl-hover)] text-[var(--sl-text-primary)] font-medium">
+                        <svg class="w-4 h-4 text-[var(--sl-text-secondary)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/></svg>
+                        <span>Daftar Percakapan</span>
+                    </button>
+
+                    @if($metadata['is_creator'] && !empty($metadata['current_dynamic_pin']))
+                        <div class="mx-3 my-1 px-2.5 py-1.5 rounded-lg bg-[var(--sl-elevated)] border border-[var(--sl-divider)] flex items-center justify-between text-[11px]">
+                            <span class="text-[var(--sl-text-secondary)]">Dynamic TOTP</span>
+                            <span class="font-mono font-bold text-[var(--sl-primary-teal)]">{{ $metadata['current_dynamic_pin'] }}</span>
+                        </div>
+                    @endif
+
+                    <div class="my-1 border-t border-[var(--sl-divider)]"></div>
+
+                    <form action="{{ route('rooms.leave.web', $room->room_id) }}" method="POST" onsubmit="event.preventDefault(); toggleMobileChatMenu(false); window.slConfirm({ title: 'Keluar Room', message: 'Apakah Anda yakin ingin keluar dari room ini?', confirmLabel: 'Keluar Room', cancelLabel: 'Batal', onConfirm: () => this.submit() });">
+                        @csrf
+                        <button type="submit" class="w-full px-3.5 py-2.5 text-left flex items-center gap-2.5 text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/10 font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span>Keluar Room</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Desktop Header Controls (Unchanged) -->
+            <div class="hidden md:flex items-center gap-2 shrink-0">
                 <!-- P2P vs Broadcast Mode Toggle -->
-                <div class="hidden sm:flex items-center p-0.5 rounded-lg bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] text-[11px] font-semibold">
+                <div class="flex items-center p-0.5 rounded-lg bg-[var(--sl-chat-bg)] border border-[var(--sl-divider)] text-[11px] font-semibold">
                     <button type="button" id="mode-btn-p2p" onclick="setCommunicationMode('p2p')" class="px-2.5 py-1 rounded-md bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] transition">
                         P2P WebRTC
                     </button>
@@ -171,7 +218,7 @@
 
                 <button type="button" onclick="openInviteModal()" class="px-2.5 py-1.5 rounded-lg sl-btn-secondary text-xs font-semibold flex items-center gap-1.5" title="QR Code &amp; Undangan">
                     <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4v4h-4z"/></svg>
-                    <span class="hidden sm:inline">Undang</span>
+                    <span>Undang</span>
                 </button>
 
                 <button type="button" onclick="toggleMembersDrawer()" class="px-2.5 py-1.5 rounded-lg bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-xs font-semibold flex items-center gap-1.5" title="Informasi &amp; Anggota">
@@ -251,12 +298,12 @@
     </main>
 
     <!-- D. Collapsible Right Information Panel -->
-    <aside id="members-drawer" class="hidden absolute md:static top-0 right-0 bottom-0 w-80 max-w-[90vw] border-l border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col z-30 overflow-y-auto sl-scroll shrink-0 h-full">
+    <aside id="members-drawer" class="hidden absolute md:static top-0 right-0 bottom-0 w-full sm:w-80 border-l border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col z-40 md:z-30 overflow-y-auto sl-scroll shrink-0 h-full min-h-0">
         <div class="p-4 border-b border-[var(--sl-divider)] flex items-center justify-between">
             <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--sl-text-primary)]">
                 {{ $isGroup ? 'Info Grup & Keamanan' : 'Info Percakapan' }}
             </h2>
-            <button type="button" onclick="toggleMembersDrawer()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-base font-bold">&times;</button>
+            <button type="button" onclick="toggleMembersDrawer()" class="min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0 inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] text-base font-bold">&times;</button>
         </div>
 
         <div class="p-4 space-y-5 text-xs">
@@ -461,6 +508,29 @@
     }
     window.toggleChatSidebar = toggleChatSidebar;
 
+    function toggleMobileChatMenu(forceState) {
+        const menu = document.getElementById('mobile-chat-menu');
+        const btn = document.getElementById('mobile-chat-menu-btn');
+        if (!menu) return;
+        if (typeof forceState === 'object' && forceState && typeof forceState.stopPropagation === 'function') {
+            forceState.stopPropagation();
+            forceState = undefined;
+        }
+        const shouldOpen = typeof forceState === 'boolean' ? forceState : menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', !shouldOpen);
+        btn?.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    }
+    window.toggleMobileChatMenu = toggleMobileChatMenu;
+
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('mobile-chat-menu');
+        const btn = document.getElementById('mobile-chat-menu-btn');
+        if (!menu || menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+            toggleMobileChatMenu(false);
+        }
+    });
+
     function toggleMembersDrawer() {
         const drawer = document.getElementById('members-drawer');
         if (!drawer) return;
@@ -486,9 +556,10 @@
         currentSidebarFilter = filter;
         document.querySelectorAll('.sfilter-pill').forEach(btn => {
             const active = btn.getAttribute('data-sfilter') === filter;
+            const mobileOnlyClass = btn.getAttribute('data-sfilter') === 'archived' ? 'md:hidden ' : '';
             btn.className = active
-                ? 'sfilter-pill px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
-                : 'sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
+                ? `${mobileOnlyClass}sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition whitespace-nowrap shrink-0`
+                : `${mobileOnlyClass}sfilter-pill px-2.5 py-1 md:px-2 md:py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition whitespace-nowrap shrink-0`;
         });
         window.updateNavActiveState?.(filter);
         filterSidebarRooms();
@@ -959,14 +1030,23 @@
         const p2pBtn = document.getElementById('mode-btn-p2p');
         const bcastBtn = document.getElementById('mode-btn-broadcast');
         const bannerText = document.getElementById('mode-security-text');
+        const mobileModeLabel = document.getElementById('mobile-mode-label');
 
         if (communicationMode === 'broadcast') {
             if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] transition';
             if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-md bg-[var(--sl-accent-coral)] text-white transition';
+            if (mobileModeLabel) {
+                mobileModeLabel.textContent = 'Broadcast';
+                mobileModeLabel.className = 'px-1.5 py-0.5 rounded bg-[var(--sl-accent-coral)]/15 text-[var(--sl-accent-coral)] text-[10px] font-bold';
+            }
             if (bannerText) bannerText.textContent = 'Broadcast Comparison Mode aktif • Pesan diteruskan melalui Server Reverb (Non-P2P)';
         } else {
             if (p2pBtn) p2pBtn.className = 'px-2.5 py-1 rounded-md bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] transition';
             if (bcastBtn) bcastBtn.className = 'px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] transition';
+            if (mobileModeLabel) {
+                mobileModeLabel.textContent = 'P2P WebRTC';
+                mobileModeLabel.className = 'px-1.5 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-[10px] font-bold';
+            }
             if (bannerText) bannerText.textContent = 'P2P WebRTC DataChannel aktif • E2EE AES-GCM • Server tidak menyimpan pesan';
         }
     }
