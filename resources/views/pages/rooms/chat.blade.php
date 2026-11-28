@@ -746,7 +746,7 @@
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${timeStr}</span>
                     <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
-                        ${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}
+                        ${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim'}
                     </span>
                     ${duration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${duration}s</span>` : ''}
                 </div>
@@ -847,7 +847,7 @@
                     <span>${escapeHtml(data.timestamp || '')}</span>
                     ${data.transport === 'broadcast'
                         ? '<span class="text-[var(--sl-accent-coral)] font-semibold">⚠ Server Broadcast</span>'
-                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓ E2EE (P2P)</span>'}
+                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓ E2EE</span>'}
                     ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${data.ephemeralDuration}s</span>` : ''}
                 </div>
             </div>
@@ -935,7 +935,7 @@
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${escapeHtml(item.timestamp || '')}</span>
                     <span class="delivery-badge ${item.transport === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
-                        ${item.transport === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}
+                        ${item.transport === 'broadcast' ? '⚠ Server Broadcast' : (item.delivered ? '✓✓ Diterima' : '✓ Terkirim')}
                     </span>
                     ${remainingSec > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${remainingSec}s</span>` : ''}
                 </div>
@@ -1008,7 +1008,8 @@
             onDiagnosticsUpdate: updateDiagnosticsUi,
             onMessageAck: (messageId) => {
                 const badge = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
-                if (badge) badge.textContent = '✓✓ Delivered (P2P ACK)';
+                if (badge) badge.textContent = '✓✓ Diterima';
+                updateChatHistoryItem(messageId, (item) => ({ ...item, delivered: true }));
             },
             onStatusChange: (status) => {
                 const statusEl = document.getElementById('header-conn-status');
