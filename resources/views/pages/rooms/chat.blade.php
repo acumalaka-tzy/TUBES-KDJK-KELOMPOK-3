@@ -360,6 +360,52 @@
     let activeReply = null;
     let communicationMode = 'p2p';
     let currentSidebarFilter = 'all';
+    const CHAT_HISTORY_KEY = `slk_history_${currentRoomId}_${currentUserId}`;
+
+    function loadChatHistory() {
+        try {
+            const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+            if (!raw) return [];
+            const now = Date.now();
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            const valid = parsed.filter(m => !m.expiresAt || m.expiresAt > now);
+            if (valid.length !== parsed.length) {
+                localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(valid));
+            }
+            return valid;
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveChatMessageToHistory(entry) {
+        try {
+            const items = loadChatHistory();
+            if (!items.some(m => m.id === entry.id)) {
+                items.push(entry);
+                localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(items.slice(-150)));
+            }
+        } catch (e) {}
+    }
+
+    function updateChatHistoryItem(msgId, updater) {
+        try {
+            const items = loadChatHistory();
+            const idx = items.findIndex(m => m.id === msgId);
+            if (idx !== -1) {
+                items[idx] = updater(items[idx]);
+                localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(items));
+            }
+        } catch (e) {}
+    }
+
+    function removeChatMessageFromHistory(msgId) {
+        try {
+            const items = loadChatHistory().filter(m => m.id !== msgId);
+            localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(items));
+        } catch (e) {}
+    }
 
     function getAvatarMarkup(icon, display, name) {
         if (icon && avatarSvgs[icon]) {
@@ -583,6 +629,11 @@
             pill.innerHTML = `<span>${emoji}</span><span class="rx-count font-bold">1</span>`;
             container.appendChild(pill);
         }
+        updateChatHistoryItem(msgId, (item) => {
+            const reactions = item.reactions || {};
+            reactions[emoji] = (reactions[emoji] || 0) + 1;
+            return { ...item, reactions };
+        });
     }
     window.applyMessageReaction = applyMessageReaction;
 
@@ -613,6 +664,7 @@
         }
         wrapper.querySelector('.msg-toolbar')?.remove();
         wrapper.querySelector('.reaction-pills')?.remove();
+        updateChatHistoryItem(msgId, (item) => ({ ...item, deleted: true }));
     }
     window.applyMessageDeleted = applyMessageDeleted;
 
@@ -706,6 +758,20 @@
         const container = document.getElementById('messages-container');
         container.scrollTop = container.scrollHeight;
 
+        const expiresAt = duration > 0 ? Date.now() + (duration * 1000) : null;
+        saveChatMessageToHistory({
+            id: clientMsgId,
+            isOwn: true,
+            senderId: currentUserId,
+            senderName: 'Anda',
+            text,
+            timestamp: timeStr,
+            replyTo: replyPayload,
+            transport: communicationMode,
+            expiresAt,
+            reactions: {},
+        });
+
         if (duration > 0) {
             let remaining = duration;
             const badge = bubbleWrapper.querySelector('.countdown-badge');
@@ -714,6 +780,7 @@
                 if (badge) badge.textContent = `· ⏱ ${remaining}s`;
                 if (remaining <= 0) {
                     clearInterval(timer);
+                    removeChatMessageFromHistory(bubbleWrapper.dataset.messageId || clientMsgId);
                     bubbleWrapper.style.transition = 'opacity 0.35s ease';
                     bubbleWrapper.style.opacity = '0';
                     setTimeout(() => bubbleWrapper.remove(), 350);
@@ -724,15 +791,22 @@
         if (communicationMode === 'broadcast') {
             fetch(`/api/rooms/${currentRoomId}/broadcast-message`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Socket-Id': window.Echo?.socketId?.() || '',
+                    'Accept': 'application/json',
+                },
                 body: JSON.stringify({ message: text, ephemeral_duration: duration, reply_to: replyPayload }),
             }).catch((err) => console.error('[SecureLink] Broadcast error:', err));
         } else if (window.peerManager) {
             window.peerManager.broadcastMessage(text, duration, replyPayload).then((sent) => {
                 if (sent && sent.id) {
+                    const oldId = clientMsgId;
                     bubbleWrapper.dataset.messageId = sent.id;
                     const toolbar = bubbleWrapper.querySelector('.msg-toolbar');
                     if (toolbar) toolbar.outerHTML = buildBubbleToolbar(sent.id, true);
+                    updateChatHistoryItem(oldId, (item) => ({ ...item, id: sent.id }));
                 }
             });
         }
@@ -783,14 +857,34 @@
         const container = document.getElementById('messages-container');
         container.scrollTop = container.scrollHeight;
 
+        if (!data._restored) {
+            const expiresAt = data.ephemeralDuration > 0 ? Date.now() + (data.ephemeralDuration * 1000) : null;
+            saveChatMessageToHistory({
+                id: data.id,
+                isOwn: false,
+                senderId: data.senderId,
+                senderName: data.senderName,
+                senderAvatarColor: data.senderAvatarColor || '#497173',
+                senderAvatarIcon: data.senderAvatarIcon || 'initial',
+                text: data.text,
+                timestamp: data.timestamp,
+                ephemeralDuration: data.ephemeralDuration || 0,
+                replyTo: data.replyTo || null,
+                transport: data.transport || 'p2p',
+                expiresAt,
+                reactions: {},
+            });
+        }
+
         if (data.ephemeralDuration > 0) {
             let remaining = data.ephemeralDuration;
             const badge = bubbleWrapper.querySelector('.countdown-badge');
             const timer = setInterval(() => {
                 remaining--;
-                if (badge) badge.textContent = `· ${remaining}s`;
+                if (badge) badge.textContent = `· ⏱ ${remaining}s`;
                 if (remaining <= 0) {
                     clearInterval(timer);
+                    removeChatMessageFromHistory(data.id);
                     bubbleWrapper.remove();
                 }
             }, 1000);
@@ -810,7 +904,90 @@
         }
     }
 
+    function renderRestoredOwnMessage(item) {
+        const list = document.getElementById('messages-list');
+        const bubbleWrapper = document.createElement('div');
+        bubbleWrapper.id = 'bubble_' + item.id;
+        bubbleWrapper.dataset.messageId = item.id;
+        bubbleWrapper.className = 'flex justify-end group';
+
+        const remainingSec = item.expiresAt ? Math.max(1, Math.ceil((item.expiresAt - Date.now()) / 1000)) : 0;
+        let replyHtml = '';
+        if (item.replyTo) {
+            replyHtml = `<div class="mb-1.5 px-2.5 py-1.5 rounded bg-[var(--sl-elevated)]/80 border-l-2 border-[var(--sl-primary-teal)] sl-chat-reply">
+                <div class="font-bold text-[var(--sl-primary-teal)]">${escapeHtml(item.replyTo.authorName)}</div>
+                <div class="truncate text-[var(--sl-text-secondary)]">${escapeHtml(item.replyTo.text)}</div>
+            </div>`;
+        }
+
+        const contentHtml = item.deleted
+            ? `<div class="msg-content italic text-[var(--sl-text-secondary)]">Pesan ini telah dihapus.</div>`
+            : `<div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(item.text)}</div>${buildBubbleToolbar(item.id, true)}`;
+
+        bubbleWrapper.innerHTML = `
+            <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
+                <span class="sender-name hidden">Anda</span>
+                <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm sl-chat-msg leading-relaxed" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
+                    ${replyHtml}
+                    ${contentHtml}
+                </div>
+                <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
+                <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
+                    <span>${escapeHtml(item.timestamp || '')}</span>
+                    <span class="delivery-badge ${item.transport === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
+                        ${item.transport === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim (P2P)'}
+                    </span>
+                    ${remainingSec > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${remainingSec}s</span>` : ''}
+                </div>
+            </div>
+        `;
+        list.appendChild(bubbleWrapper);
+
+        if (item.reactions && !item.deleted) {
+            Object.entries(item.reactions).forEach(([emoji, count]) => {
+                for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji);
+            });
+        }
+
+        if (remainingSec > 0) {
+            let rem = remainingSec;
+            const badge = bubbleWrapper.querySelector('.countdown-badge');
+            const t = setInterval(() => {
+                rem--;
+                if (badge) badge.textContent = `· ⏱ ${rem}s`;
+                if (rem <= 0) {
+                    clearInterval(t);
+                    removeChatMessageFromHistory(item.id);
+                    bubbleWrapper.remove();
+                }
+            }, 1000);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
+        // Restore local non-expired chat history
+        const history = loadChatHistory();
+        history.forEach(item => {
+            if (item.isOwn) {
+                renderRestoredOwnMessage(item);
+            } else {
+                const rem = item.expiresAt ? Math.max(1, Math.ceil((item.expiresAt - Date.now()) / 1000)) : 0;
+                renderIncomingMessage({ ...item, ephemeralDuration: rem, _restored: true });
+                if (item.deleted) applyMessageDeleted(item.id);
+                else if (item.reactions) {
+                    Object.entries(item.reactions).forEach(([emoji, count]) => {
+                        for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji);
+                    });
+                }
+            }
+        });
+        const mc = document.getElementById('messages-container');
+        if (mc) mc.scrollTop = mc.scrollHeight;
+
+        @if(session('just_created_room'))
+            openInviteModal();
+        @endif
+
         // Apply saved default ephemeral duration from Settings
         const savedEph = localStorage.getItem('securelink_ephemeral_default');
         const ephEl = document.getElementById('ephemeral_duration');
@@ -847,7 +1024,12 @@
                 window.peerManager.signalSender = (targetUserId, signal) => {
                     fetch(`/api/rooms/${currentRoomId}/signal`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Socket-Id': window.Echo?.socketId?.() || '',
+                            'Accept': 'application/json',
+                        },
                         body: JSON.stringify({ target_user_id: targetUserId, type: signal.type, signal }),
                     }).catch(() => {
                         channel.whisper('signal', { from: currentUserId, to: targetUserId, signal });

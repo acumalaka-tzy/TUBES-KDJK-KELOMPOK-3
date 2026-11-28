@@ -86,6 +86,7 @@ class RoomController extends Controller
         }
 
         return redirect()->route('rooms.show', $room->room_id)
+            ->with('just_created_room', true)
             ->with('success', "Room '{$room->room_name}' berhasil dibuat!");
     }
 
