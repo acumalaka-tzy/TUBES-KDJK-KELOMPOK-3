@@ -315,7 +315,8 @@ class RoomController extends Controller
             expiresInMinutes: (int) ($request->input('expires_in_minutes', 1440))
         );
 
-        $inviteUrl = url("/rooms/join?room_id={$room->room_id}&invite_token={$inviteData['raw_token']}");
+        $baseUrl = $request->getSchemeAndHttpHost();
+        $inviteUrl = "{$baseUrl}/rooms/join?room_id={$room->room_id}&invite_token={$inviteData['raw_token']}";
 
         return response()->json([
             'success' => true,

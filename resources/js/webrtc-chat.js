@@ -699,7 +699,16 @@ export class SecureLinkPeer {
 
         try {
             if (signal.type === 'offer' || signal.type === 'ice-restart') {
-                peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
+                const normalizedOffer = (() => {
+                    const raw = signal.sdp;
+                    const type = (typeof raw === 'object' && raw?.type) ? raw.type : 'offer';
+                    let sdp = typeof raw === 'string' ? raw : (raw?.sdp || '');
+                    sdp = sdp.replace(/\r?\n/g, '\r\n');
+                    if (sdp && !sdp.endsWith('\r\n')) sdp += '\r\n';
+                    return new RTCSessionDescription({ type, sdp });
+                })();
+
+                peer.sdpDtls = inspectSdpDtlsFingerprint(normalizedOffer.sdp);
                 const offerCollision = peer.makingOffer || pc.signalingState !== 'stable';
                 peer.ignoreOffer = !peer.isPolite && offerCollision;
 
@@ -711,10 +720,10 @@ export class SecureLinkPeer {
                 if (offerCollision) {
                     await Promise.all([
                         pc.setLocalDescription({ type: 'rollback' }),
-                        pc.setRemoteDescription(new RTCSessionDescription(signal.sdp)),
+                        pc.setRemoteDescription(normalizedOffer),
                     ]);
                 } else {
-                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    await pc.setRemoteDescription(normalizedOffer);
                 }
 
                 await this.flushPendingCandidates(peer);
@@ -730,9 +739,18 @@ export class SecureLinkPeer {
                     });
                 }
             } else if (signal.type === 'answer') {
-                peer.sdpDtls = inspectSdpDtlsFingerprint(signal.sdp?.sdp);
+                const normalizedAnswer = (() => {
+                    const raw = signal.sdp;
+                    const type = (typeof raw === 'object' && raw?.type) ? raw.type : 'answer';
+                    let sdp = typeof raw === 'string' ? raw : (raw?.sdp || '');
+                    sdp = sdp.replace(/\r?\n/g, '\r\n');
+                    if (sdp && !sdp.endsWith('\r\n')) sdp += '\r\n';
+                    return new RTCSessionDescription({ type, sdp });
+                })();
+
+                peer.sdpDtls = inspectSdpDtlsFingerprint(normalizedAnswer.sdp);
                 if (pc.signalingState === 'have-local-offer') {
-                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    await pc.setRemoteDescription(normalizedAnswer);
                     await this.flushPendingCandidates(peer);
                     this.onSecurityEvent('sdp_answer_exchanged', { target_user_id: fromUserId });
                 }
