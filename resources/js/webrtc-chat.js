@@ -48,7 +48,10 @@ export class SecureLinkPeer {
         this.onSecurityStatusChange = config.onSecurityStatusChange || (() => {});
         this.onSecurityEvent = config.onSecurityEvent || (() => {});
         this.onPeerListChange = config.onPeerListChange || (() => {});
+        this.onMessageSent = config.onMessageSent || (() => {});
         this.onMessageAck = config.onMessageAck || (() => {});
+        this.onMessageRead = config.onMessageRead || (() => {});
+        this.onMessageFailed = config.onMessageFailed || (() => {});
         this.onDiagnosticsUpdate = config.onDiagnosticsUpdate || (() => {});
         this.signalSender = config.signalSender || null;
 
@@ -583,9 +586,17 @@ export class SecureLinkPeer {
                 }
 
                 if (data.type === 'ack') {
-                    this.handleAck(data.messageId);
-                    this.onMessageAck(data.messageId);
+                    const ackSenderId = data.senderId || peerRecord.targetUserId;
+                    const ackedBy = this.handleAck(data.messageId, ackSenderId);
+                    this.onMessageAck(data.messageId, ackSenderId, ackedBy);
                     this.onSecurityEvent('message_delivery_acknowledged', { message_id: data.messageId });
+                    return;
+                }
+
+                if (data.type === 'read-receipt') {
+                    const readerId = data.senderId || peerRecord.targetUserId;
+                    const ids = Array.isArray(data.messageIds) ? data.messageIds : (data.messageId ? [data.messageId] : []);
+                    this.handleReadReceipt(ids, readerId);
                     return;
                 }
 
@@ -609,12 +620,12 @@ export class SecureLinkPeer {
 
                 if (data.type === 'chat') {
                     if (this.seenMessages.has(data.id)) {
-                        dc.send(JSON.stringify({ type: 'ack', messageId: data.id }));
+                        dc.send(JSON.stringify({ type: 'ack', messageId: data.id, senderId: this.userId }));
                         return;
                     }
 
                     this.seenMessages.add(data.id);
-                    dc.send(JSON.stringify({ type: 'ack', messageId: data.id }));
+                    dc.send(JSON.stringify({ type: 'ack', messageId: data.id, senderId: this.userId }));
 
                     const aadContext = {
                         roomId: this.roomId,
@@ -984,48 +995,72 @@ export class SecureLinkPeer {
         };
     }
 
+    async sendRecordToPeers(record) {
+        const promises = Array.from(this.peers.values()).map(async (peer) => {
+            if (!peer.dc || peer.dc.readyState !== 'open') return false;
+
+            try {
+                const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(record.text, peer, record.id);
+                const payload = JSON.stringify({
+                    type: 'chat',
+                    id: record.id,
+                    senderId: this.userId,
+                    senderName: this.userName,
+                    senderAvatarColor: this.userAvatarColor,
+                    senderAvatarIcon: this.userAvatarIcon,
+                    ciphertext,
+                    iv,
+                    encrypted,
+                    algorithm: algorithm || null,
+                    timestamp: record.timestamp,
+                    ephemeralDuration: record.ephemeralDuration,
+                    replyTo: record.replyTo,
+                });
+
+                peer.dc.send(payload);
+                return true;
+            } catch (err) {
+                console.error(`[SecureLink] Gagal mengirim pesan ke ${peer.targetUserId}:`, err);
+                this.onSecurityEvent('e2ee_failed', {
+                    target_user_id: peer.targetUserId,
+                    reason: 'encrypt_aborted',
+                });
+                return false;
+            }
+        });
+
+        const results = await Promise.all(promises);
+        const sentCount = results.filter(Boolean).length;
+        if (sentCount > 0 && !record.sent) {
+            record.sent = true;
+            this.onMessageSent(record.id);
+        }
+        return sentCount;
+    }
+
+    scheduleRecordRetry(record) {
+        if (this.destroyed || record.delivered) {
+            return;
+        }
+        if (record.retries >= this.maxMessageRetries) {
+            if (!record.delivered && !record.failed) {
+                record.failed = true;
+                this.onMessageFailed(record.id, 'ack_timeout');
+            }
+            return;
+        }
+        const delay = 1500 * Math.pow(2, record.retries);
+        record.retryTimer = setTimeout(async () => {
+            if (this.destroyed || record.delivered) return;
+            record.retries++;
+            await this.sendRecordToPeers(record);
+            this.scheduleRecordRetry(record);
+        }, delay);
+    }
+
     async broadcastMessage(text, ephemeralDuration = 0, replyTo = null, customMessageId = null) {
         const messageId = customMessageId || ('msg_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36));
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        const sendToPeers = async () => {
-            const promises = Array.from(this.peers.values()).map(async (peer) => {
-                if (!peer.dc || peer.dc.readyState !== 'open') return false;
-
-                try {
-                    const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(text, peer, messageId);
-                    const payload = JSON.stringify({
-                        type: 'chat',
-                        id: messageId,
-                        senderId: this.userId,
-                        senderName: this.userName,
-                        senderAvatarColor: this.userAvatarColor,
-                        senderAvatarIcon: this.userAvatarIcon,
-                        ciphertext,
-                        iv,
-                        encrypted,
-                        algorithm: algorithm || null,
-                        timestamp,
-                        ephemeralDuration,
-                        replyTo,
-                    });
-
-                    peer.dc.send(payload);
-                    return true;
-                } catch (err) {
-                    console.error(`[SecureLink] Gagal mengirim pesan ke ${peer.targetUserId}:`, err);
-                    this.onSecurityEvent('e2ee_failed', {
-                        target_user_id: peer.targetUserId,
-                        reason: 'encrypt_aborted',
-                    });
-                    return false;
-                }
-            });
-
-            return Promise.all(promises);
-        };
-
-        await sendToPeers();
 
         const record = {
             id: messageId,
@@ -1033,27 +1068,26 @@ export class SecureLinkPeer {
             ephemeralDuration,
             replyTo,
             timestamp,
+            sent: false,
             delivered: false,
+            failed: false,
+            ackedBy: new Set(),
+            readBy: new Set(),
             retries: 0,
             retryTimer: null,
         };
         this.messageStore.set(messageId, record);
 
-        const scheduleRetry = () => {
-            if (this.destroyed || record.delivered || record.retries >= this.maxMessageRetries) {
-                return;
-            }
-            const delay = 1500 * Math.pow(2, record.retries);
-            record.retryTimer = setTimeout(async () => {
-                if (this.destroyed || record.delivered) return;
-                record.retries++;
-                await sendToPeers();
-                scheduleRetry();
-            }, delay);
-        };
+        await this.sendRecordToPeers(record);
 
         if (this.peers.size > 0) {
-            scheduleRetry();
+            this.scheduleRecordRetry(record);
+        } else {
+            record.retryTimer = setTimeout(() => {
+                if (this.destroyed || record.delivered || record.sent) return;
+                record.failed = true;
+                this.onMessageFailed(record.id, 'no_peer_connected');
+            }, 12000);
         }
 
         return {
@@ -1063,6 +1097,32 @@ export class SecureLinkPeer {
             ephemeralDuration,
             replyTo,
         };
+    }
+
+    async retryMessage(messageId) {
+        const record = this.messageStore.get(messageId);
+        if (!record || this.destroyed) return false;
+
+        if (record.retryTimer) {
+            clearTimeout(record.retryTimer);
+            record.retryTimer = null;
+        }
+        record.failed = false;
+        record.retries = 0;
+
+        await this.sendRecordToPeers(record);
+
+        if (this.peers.size > 0) {
+            this.scheduleRecordRetry(record);
+        } else {
+            record.retryTimer = setTimeout(() => {
+                if (this.destroyed || record.delivered || record.sent) return;
+                record.failed = true;
+                this.onMessageFailed(record.id, 'no_peer_connected');
+            }, 12000);
+        }
+
+        return true;
     }
 
     getSecurityInfo() {
@@ -1122,7 +1182,7 @@ export class SecureLinkPeer {
     async flushPendingMessages(peerRecord) {
         if (!peerRecord?.dc || peerRecord.dc.readyState !== 'open') return;
         for (const record of this.messageStore.values()) {
-            if (record.delivered) continue;
+            if (record.delivered || record.failed) continue;
             try {
                 const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(record.text, peerRecord, record.id);
                 peerRecord.dc.send(JSON.stringify({
@@ -1140,10 +1200,38 @@ export class SecureLinkPeer {
                     ephemeralDuration: record.ephemeralDuration,
                     replyTo: record.replyTo,
                 }));
+                if (!record.sent) {
+                    record.sent = true;
+                    if (record.retryTimer) {
+                        clearTimeout(record.retryTimer);
+                        record.retryTimer = null;
+                    }
+                    this.onMessageSent(record.id);
+                    this.scheduleRecordRetry(record);
+                }
             } catch (err) {
                 // Key exchange may still be in progress
             }
         }
+    }
+
+    sendReadReceipt(messageIds) {
+        const ids = (Array.isArray(messageIds) ? messageIds : [messageIds]).filter(Boolean);
+        if (ids.length === 0) return;
+
+        const payload = JSON.stringify({
+            type: 'read-receipt',
+            messageIds: ids,
+            senderId: this.userId,
+        });
+
+        this.peers.forEach((peer) => {
+            if (peer.dc && peer.dc.readyState === 'open') {
+                try {
+                    peer.dc.send(payload);
+                } catch (e) {}
+            }
+        });
     }
 
     sendReaction(messageId, emoji) {
@@ -1176,14 +1264,43 @@ export class SecureLinkPeer {
         });
     }
 
-    handleAck(messageId) {
+    handleAck(messageId, senderId = null) {
         const item = this.messageStore.get(messageId);
         if (item) {
+            item.sent = true;
             item.delivered = true;
+            item.failed = false;
+            if (senderId) {
+                item.ackedBy.add(senderId);
+            }
             if (item.retryTimer) {
                 clearTimeout(item.retryTimer);
                 item.retryTimer = null;
             }
+            return Array.from(item.ackedBy);
+        }
+        return senderId ? [senderId] : [];
+    }
+
+    handleReadReceipt(messageIds, readerId = null) {
+        for (const messageId of messageIds) {
+            const item = this.messageStore.get(messageId);
+            let readBy = readerId ? [readerId] : [];
+            if (item) {
+                item.sent = true;
+                item.delivered = true;
+                item.failed = false;
+                if (readerId) {
+                    item.ackedBy.add(readerId);
+                    item.readBy.add(readerId);
+                }
+                if (item.retryTimer) {
+                    clearTimeout(item.retryTimer);
+                    item.retryTimer = null;
+                }
+                readBy = Array.from(item.readBy);
+            }
+            this.onMessageRead(messageId, readerId, readBy);
         }
     }
 
