@@ -187,8 +187,9 @@ export class SecureLinkPeer {
         const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
         const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
         const nonceManager = isPeerRecord ? peerOrKey.nonceManager : new NonceManager();
+        const isDtlsOnly = isPeerRecord && peerOrKey.e2eeStatus === 'dtls_only';
 
-        if (!this.e2eeEnabled) {
+        if (!this.e2eeEnabled || isDtlsOnly || !window.crypto?.subtle) {
             return {
                 ciphertext: bytesToBase64(new TextEncoder().encode(text)),
                 iv: null,
@@ -211,8 +212,9 @@ export class SecureLinkPeer {
         const isPeerRecord = peerOrKey && typeof peerOrKey === 'object' && 'targetUserId' in peerOrKey;
         const sharedKey = isPeerRecord ? peerOrKey.sharedKey : peerOrKey;
         const nonceManager = isPeerRecord ? peerOrKey.nonceManager : null;
+        const isDtlsOnly = isPeerRecord && peerOrKey.e2eeStatus === 'dtls_only';
 
-        if (!this.e2eeEnabled && !ivB64 && metadata.encrypted === false) {
+        if ((!this.e2eeEnabled || isDtlsOnly || !window.crypto?.subtle) && !ivB64 && metadata.encrypted === false) {
             return new TextDecoder().decode(base64ToBytes(ciphertextB64));
         }
 
@@ -473,17 +475,48 @@ export class SecureLinkPeer {
             await this.verifyDtlsStatus(peerRecord);
 
             if (this.e2eeEnabled) {
-                await this.cryptoReady;
-                const bundle = await this.keyManager.getPublicKeyBundle();
-                peerRecord.e2eeStatus = 'exchanging';
-                if (dc.readyState === 'open') {
-                    dc.send(JSON.stringify({
-                        type: 'key-exchange',
-                        senderId: this.userId,
-                        keyId: bundle.keyId,
-                        publicKey: bundle.publicJwk,
-                    }));
+                const hasWebCrypto = Boolean(window.crypto && window.crypto.subtle);
+                if (hasWebCrypto) {
+                    try {
+                        await this.cryptoReady;
+                        const bundle = await this.keyManager.getPublicKeyBundle();
+                        peerRecord.e2eeStatus = 'exchanging';
+                        if (dc.readyState === 'open') {
+                            dc.send(JSON.stringify({
+                                type: 'key-exchange',
+                                senderId: this.userId,
+                                e2eeSupported: true,
+                                keyId: bundle.keyId,
+                                publicKey: bundle.publicJwk,
+                            }));
+                        }
+                    } catch (err) {
+                        console.warn('[SecureLink] Web Crypto unavailable, falling back to DTLS transport:', err);
+                        peerRecord.e2eeStatus = 'dtls_only';
+                        if (dc.readyState === 'open') {
+                            dc.send(JSON.stringify({
+                                type: 'key-exchange',
+                                senderId: this.userId,
+                                e2eeSupported: false,
+                            }));
+                        }
+                    }
+                } else {
+                    peerRecord.e2eeStatus = 'dtls_only';
+                    if (dc.readyState === 'open') {
+                        dc.send(JSON.stringify({
+                            type: 'key-exchange',
+                            senderId: this.userId,
+                            e2eeSupported: false,
+                        }));
+                    }
                 }
+            } else {
+                peerRecord.e2eeStatus = 'disabled';
+            }
+
+            if (peerRecord.e2eeStatus === 'dtls_only' || peerRecord.e2eeStatus === 'disabled') {
+                await this.flushPendingMessages(peerRecord);
             }
 
             this.startPingLoop(peerRecord);
@@ -496,6 +529,21 @@ export class SecureLinkPeer {
 
                 if (data.type === 'key-exchange') {
                     if (!this.e2eeEnabled) return;
+                    if (data.e2eeSupported === false || !window.crypto?.subtle) {
+                        peerRecord.sharedKey = null;
+                        peerRecord.e2eeStatus = 'dtls_only';
+                        if (dc.readyState === 'open') {
+                            dc.send(JSON.stringify({
+                                type: 'key-exchange-ack',
+                                senderId: this.userId,
+                                e2eeSupported: false,
+                            }));
+                        }
+                        await this.flushPendingMessages(peerRecord);
+                        this.notifyStatus();
+                        return;
+                    }
+
                     const derived = await this.deriveSharedKey(data.publicKey, peerRecord.targetUserId, peerRecord);
                     if (derived && dc.readyState === 'open') {
                         dc.send(JSON.stringify({
@@ -503,6 +551,7 @@ export class SecureLinkPeer {
                             senderId: this.userId,
                             keyId: this.keyManager.keyId,
                         }));
+                        await this.flushPendingMessages(peerRecord);
                     }
                     this.notifyStatus();
                     return;
@@ -510,6 +559,11 @@ export class SecureLinkPeer {
 
                 if (data.type === 'key-exchange-ack') {
                     peerRecord.peerAckedKey = true;
+                    if (data.e2eeSupported === false) {
+                        peerRecord.e2eeStatus = 'dtls_only';
+                        peerRecord.sharedKey = null;
+                    }
+                    await this.flushPendingMessages(peerRecord);
                     this.onSecurityStatusChange(this.getE2eeSummary());
                     this.notifyStatus();
                     return;
@@ -1045,6 +1099,33 @@ export class SecureLinkPeer {
             overallLabel: overall.label,
             vpnNote: 'Status VPN Tailscale tidak dapat diverifikasi langsung oleh browser; gunakan halaman diagnostik.',
         };
+    }
+
+    async flushPendingMessages(peerRecord) {
+        if (!peerRecord?.dc || peerRecord.dc.readyState !== 'open') return;
+        for (const record of this.messageStore.values()) {
+            if (record.delivered) continue;
+            try {
+                const { ciphertext, iv, encrypted, algorithm } = await this.encryptText(record.text, peerRecord, record.id);
+                peerRecord.dc.send(JSON.stringify({
+                    type: 'chat',
+                    id: record.id,
+                    senderId: this.userId,
+                    senderName: this.userName,
+                    senderAvatarColor: this.userAvatarColor,
+                    senderAvatarIcon: this.userAvatarIcon,
+                    ciphertext,
+                    iv,
+                    encrypted,
+                    algorithm: algorithm || null,
+                    timestamp: record.timestamp,
+                    ephemeralDuration: record.ephemeralDuration,
+                    replyTo: record.replyTo,
+                }));
+            } catch (err) {
+                // Key exchange may still be in progress
+            }
+        }
     }
 
     sendReaction(messageId, emoji) {
