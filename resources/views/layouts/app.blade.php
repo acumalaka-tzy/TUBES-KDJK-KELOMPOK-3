@@ -2,7 +2,7 @@
 <html lang="id" class="h-full scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SecureLink — Private P2P Messaging')</title>
     <link rel="icon" type="image/jpeg" href="{{ asset('images/securelink-logo.jpg') }}">
@@ -209,8 +209,30 @@
             document.getElementById('mobile-nav')?.classList.toggle('hidden');
         }
 
+        function syncMobileViewportHeight() {
+            const root = document.documentElement;
+            if (window.innerWidth >= 768) {
+                root.style.removeProperty('--sl-vvh');
+                return;
+            }
+            const vv = window.visualViewport;
+            const height = vv ? Math.round(vv.height) : window.innerHeight;
+            root.style.setProperty('--sl-vvh', `${height}px`);
+            if (vv && vv.offsetTop > 0) {
+                window.scrollTo(0, 0);
+            }
+            window.dispatchEvent(new CustomEvent('securelink:keyboard-resize', { detail: { height } }));
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncMobileViewportHeight);
+            window.visualViewport.addEventListener('scroll', syncMobileViewportHeight);
+        }
+        window.addEventListener('resize', syncMobileViewportHeight);
+
         document.addEventListener('DOMContentLoaded', () => {
             updateThemeIcons(localStorage.getItem('securelink_theme') || 'system');
+            syncMobileViewportHeight();
         });
     </script>
 

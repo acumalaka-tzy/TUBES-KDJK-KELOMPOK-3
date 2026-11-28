@@ -1,18 +1,18 @@
-<!-- Global Toast Container (Top-Right, Auto-dismiss 4s) -->
-<div id="sl-toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-[calc(100vw-2rem)] pointer-events-none"></div>
+<!-- Global Toast Container (Top-Right on Desktop, Full-Width Padded on Mobile) -->
+<div id="sl-toast-container" class="fixed top-3 left-3 right-3 sm:left-auto sm:top-4 sm:right-4 z-[100] flex flex-col gap-2 sm:max-w-sm sm:w-[calc(100vw-2rem)] pointer-events-none"></div>
 
 <!-- Global Confirmation Modal (Replaces native window.confirm) -->
-<div id="sl-confirm-modal" class="fixed inset-0 z-[90] hidden bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="sl-confirm-title">
-    <div class="sl-surface rounded-xl max-w-sm w-full p-5 space-y-4 shadow-xl">
+<div id="sl-confirm-modal" class="fixed inset-0 z-[90] hidden bg-black/50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="sl-confirm-title">
+    <div class="sl-surface rounded-xl max-w-sm w-full p-5 space-y-4 shadow-xl max-h-[90dvh] overflow-y-auto">
         <div class="space-y-1.5">
             <h3 id="sl-confirm-title" class="text-sm font-bold text-[var(--sl-text-primary)]">Konfirmasi</h3>
             <p id="sl-confirm-message" class="text-xs text-[var(--sl-text-secondary)] leading-relaxed"></p>
         </div>
         <div class="flex items-center justify-end gap-2 pt-1">
-            <button type="button" id="sl-confirm-cancel" class="px-4 py-2 rounded-lg sl-btn-secondary text-xs font-semibold">
+            <button type="button" id="sl-confirm-cancel" class="px-4 py-2 min-h-[40px] rounded-lg sl-btn-secondary text-xs font-semibold">
                 Cancel
             </button>
-            <button type="button" id="sl-confirm-accept" class="px-4 py-2 rounded-lg sl-btn-coral text-xs font-semibold">
+            <button type="button" id="sl-confirm-accept" class="px-4 py-2 min-h-[40px] rounded-lg sl-btn-coral text-xs font-semibold">
                 Confirm
             </button>
         </div>
