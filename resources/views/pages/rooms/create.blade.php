@@ -41,7 +41,7 @@
                     <input type="text" id="room_name" name="room_name" required maxlength="100"
                         value="{{ old('room_name') }}"
                         placeholder="Contoh: Diskusi Proyek Jaringan"
-                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm">
+                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm">
                 </div>
 
                 <div>
@@ -55,7 +55,7 @@
                     </div>
                     <input type="text" id="room_id" name="room_id"
                         value="{{ old('room_id', $suggestedRoomId) }}"
-                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm font-mono uppercase">
+                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm font-mono uppercase">
                 </div>
 
                 <div>
@@ -64,7 +64,7 @@
                     </label>
                     <input type="number" id="max_participants" name="max_participants" min="2" max="50"
                         value="{{ old('max_participants', $defaultMax) }}"
-                        class="w-32 px-3.5 py-2 rounded-lg sl-input text-sm">
+                        class="w-full sm:w-32 px-3.5 py-2 rounded-lg sl-input text-base sm:text-sm">
                 </div>
             </div>
 
@@ -76,7 +76,7 @@
                         Room PIN Statis (Opsional)
                     </label>
                     <input type="password" id="pin" name="pin" maxlength="16" placeholder="Kosongkan jika tanpa PIN"
-                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm">
+                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm">
                 </div>
 
                 <label for="dynamic_pin_enabled" class="flex items-start gap-3 p-3 rounded-lg bg-[var(--sl-main-surface)] border border-[var(--sl-divider)] cursor-pointer">
@@ -101,7 +101,7 @@
                     <label for="default_ephemeral_duration" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">
                         Durasi Pesan Ephemeral Standar
                     </label>
-                    <select id="default_ephemeral_duration" name="default_ephemeral_duration" class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm">
+                    <select id="default_ephemeral_duration" name="default_ephemeral_duration" class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm">
                         <option value="0">Nonaktif (Pesan Normal)</option>
                         <option value="10">10 Detik</option>
                         <option value="30">30 Detik</option>
@@ -111,9 +111,9 @@
                 </div>
             </div>
 
-            <div class="pt-3 flex items-center justify-end gap-2.5">
-                <a href="{{ route('dashboard') }}" class="px-4 py-2.5 rounded-lg sl-btn-secondary text-xs font-semibold">Batal</a>
-                <button type="submit" class="px-5 py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">Buat Room Sekarang</button>
+            <div class="pt-3 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                <a href="{{ route('dashboard') }}" class="px-4 py-2.5 rounded-lg sl-btn-secondary text-xs font-semibold text-center min-h-[42px] sm:min-h-0 inline-flex items-center justify-center">Batal</a>
+                <button type="submit" class="px-5 py-2.5 rounded-lg sl-btn-coral text-xs font-semibold min-h-[42px] sm:min-h-0">Buat Room Sekarang</button>
             </div>
         </form>
     </div>

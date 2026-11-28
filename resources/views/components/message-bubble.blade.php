@@ -14,7 +14,7 @@
         <x-avatar :name="$senderName" :color="$senderColor" size="sm" />
     @endif
 
-    <div class="flex flex-col {{ $isSelf ? 'items-end' : 'items-start' }} max-w-[85%] sm:max-w-[70%]">
+    <div class="flex flex-col {{ $isSelf ? 'items-end' : 'items-start' }} min-w-0 max-w-[85%] sm:max-w-[70%]">
         <!-- Metadata Header -->
         <div class="flex items-center gap-1.5 text-[11px] text-[#667085] dark:text-[#A8B2C3] mb-1">
             @if(!$isSelf)
@@ -27,7 +27,7 @@
         </div>
 
         <!-- Bubble Container -->
-        <div class="relative p-3.5 rounded-2xl {{ $isSelf ? 'rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F]' : 'rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[#111B21] dark:text-[#E9EDEF]' }} text-xs leading-relaxed shadow-xs">
+        <div class="relative p-3 sm:p-3.5 max-w-full min-w-0 rounded-2xl {{ $isSelf ? 'rounded-tr-sm bg-[#D9FDD3] dark:bg-[#005C4B] text-[#111B21] dark:text-[#E9EDEF] border border-[#C5E8B7] dark:border-[#004D3F]' : 'rounded-tl-sm bg-white dark:bg-[#202C33] border border-[#E9EDEF] dark:border-[#222D34] text-[#111B21] dark:text-[#E9EDEF]' }} text-xs leading-relaxed shadow-xs">
             @if($replyAuthor && $replySnippet)
                 <div class="mb-2 p-2 rounded-lg {{ $isSelf ? 'bg-[#C2E8BC]/80 dark:bg-[#004A3C]/80 text-[#111B21] dark:text-[#E9EDEF] border-l-2 border-[#00A884]' : 'bg-[#F0F2F5] dark:bg-[#111B21] border-l-2 border-[#00A884] text-[#111B21] dark:text-[#E9EDEF]' }} text-[11px]">
                     <div class="font-bold text-[#008069] dark:text-[#25D366]">{{ $replyAuthor }}</div>
@@ -35,7 +35,7 @@
                 </div>
             @endif
 
-            <div class="msg-content break-words whitespace-pre-wrap select-text">
+            <div class="msg-content break-words [overflow-wrap:anywhere] whitespace-pre-wrap select-text">
                 {{ $slot }}
             </div>
         </div>

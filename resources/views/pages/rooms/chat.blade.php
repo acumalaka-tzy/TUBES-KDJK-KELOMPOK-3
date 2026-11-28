@@ -383,18 +383,18 @@
 </div>
 
 <!-- E. QR Code & Invitation Modal -->
-<div id="invite-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
-    <div class="sl-surface rounded-xl max-w-sm w-full p-5 space-y-4 shadow-lg max-h-[92vh] overflow-y-auto">
+<div id="invite-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="sl-surface rounded-xl max-w-sm w-full p-4 sm:p-5 space-y-4 shadow-lg max-h-[90dvh] overflow-y-auto sl-scroll">
         <div class="flex items-center justify-between pb-2.5 border-b border-[var(--sl-divider)]">
-            <div>
-                <h3 class="text-sm font-bold text-[var(--sl-text-primary)]">{{ $room->room_name }}</h3>
+            <div class="min-w-0 pr-2">
+                <h3 class="text-sm font-bold text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</h3>
                 <p class="text-[11px] text-[var(--sl-text-secondary)]">Bagikan QR Code atau tautan undangan bertoken</p>
             </div>
-            <button type="button" onclick="closeInviteModal()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-lg font-bold">&times;</button>
+            <button type="button" onclick="closeInviteModal()" class="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-lg font-bold shrink-0">&times;</button>
         </div>
 
         <div class="flex flex-col items-center justify-center p-4 bg-white rounded-lg border border-[var(--sl-divider)]">
-            <canvas id="invite-qr-canvas" class="w-44 h-44"></canvas>
+            <canvas id="invite-qr-canvas" class="w-40 h-40 sm:w-44 sm:h-44"></canvas>
             <div id="invite-status-text" class="text-[11px] text-[#7D8B8D] mt-2 text-center">Membuat token undangan...</div>
         </div>
 
@@ -402,21 +402,21 @@
             <label class="block text-xs font-semibold text-[var(--sl-text-primary)]">Tautan Undangan</label>
             <div class="flex items-center gap-2">
                 <input type="text" id="invite-link-input" readonly value="{{ route('rooms.join', ['room_id' => $room->room_id]) }}"
-                    class="w-full px-3 py-2 rounded-lg sl-input text-xs font-mono">
-                <button type="button" onclick="copyInviteLink()" class="px-3 py-2 rounded-lg sl-btn-primary text-xs font-semibold shrink-0">Salin</button>
+                    class="w-full min-w-0 px-3 py-2 rounded-lg sl-input text-base sm:text-xs font-mono">
+                <button type="button" onclick="copyInviteLink()" class="min-h-[40px] sm:min-h-0 px-3.5 py-2 rounded-lg sl-btn-primary text-xs font-semibold shrink-0">Salin</button>
             </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="downloadCurrentQr()" class="py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
+            <button type="button" onclick="downloadCurrentQr()" class="min-h-[40px] sm:min-h-0 py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
                 Download QR
             </button>
             @if($metadata['is_creator'])
-                <button type="button" id="modal-revoke-btn" onclick="revokeCurrentInvite()" class="py-2 px-3 rounded-lg border border-[var(--sl-accent-coral)]/40 text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/10 text-xs font-semibold disabled:opacity-40" disabled>
+                <button type="button" id="modal-revoke-btn" onclick="revokeCurrentInvite()" class="min-h-[40px] sm:min-h-0 py-2 px-3 rounded-lg border border-[var(--sl-accent-coral)]/40 text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/10 text-xs font-semibold disabled:opacity-40" disabled>
                     Cabut Token
                 </button>
             @else
-                <button type="button" onclick="closeInviteModal()" class="py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">Tutup</button>
+                <button type="button" onclick="closeInviteModal()" class="min-h-[40px] sm:min-h-0 py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">Tutup</button>
             @endif
         </div>
     </div>
@@ -903,7 +903,7 @@
             .map(em => `<button type="button" onclick="reactToMessage('${escapeHtml(msgId)}', '${em}'); closeAllBubbleToolbars();" class="text-base sm:text-lg leading-none px-1 py-0.5 rounded-full hover:bg-[var(--sl-hover)] hover:scale-115 active:scale-110 transition">${em}</button>`)
             .join('');
         const posClass = isOwn ? 'right-2' : 'left-2';
-        return `<div class="msg-toolbar absolute -top-5 ${posClass} hidden group-hover:flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-xs sm:text-[13px] shadow-md z-20 whitespace-nowrap max-w-[92vw] overflow-x-auto">
+        return `<div class="msg-toolbar absolute -top-5 ${posClass} hidden group-hover:flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-xs sm:text-[13px] shadow-md z-20 whitespace-nowrap max-w-[calc(100vw-2rem)] sm:max-w-[92vw] overflow-x-auto sl-no-scrollbar">
             ${emojis}
             <span class="text-[var(--sl-divider)]">|</span>
             <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(msgId)}'); closeAllBubbleToolbars();" class="px-1.5 py-0.5 rounded hover:bg-[var(--sl-hover)] hover:text-[var(--sl-primary-teal)] font-semibold transition" title="Balas">Balas</button>
@@ -1367,11 +1367,11 @@
         }
 
         bubbleWrapper.innerHTML = `
-            <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
+            <div class="flex flex-col items-end min-w-0 max-w-[82%] sm:max-w-[68%]">
                 <span class="sender-name hidden">Anda</span>
                 <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm sl-chat-msg leading-relaxed" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
                     ${replyHtml}
-                    <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
+                    <div class="msg-content break-words [overflow-wrap:anywhere] whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
                     ${buildBubbleToolbar(clientMsgId, true)}
                 </div>
                 <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
@@ -1470,11 +1470,11 @@
             <div class="w-7 h-7 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 uppercase overflow-hidden" style="background-color: ${data.senderAvatarColor || '#497173'}">
                 ${getAvatarMarkup(data.senderAvatarIcon, data.senderAvatarDisplay, data.senderName)}
             </div>
-            <div class="flex flex-col items-start max-w-[82%] sm:max-w-[68%]">
+            <div class="flex flex-col items-start min-w-0 max-w-[82%] sm:max-w-[68%]">
                 <div class="relative px-3.5 py-2.5 rounded-xl rounded-tl-sm bg-[var(--sl-bubble-in)] border border-[var(--sl-divider)] sl-chat-msg text-[var(--sl-text-primary)] leading-relaxed">
                     ${senderLabel}
                     ${replyHtml}
-                    <div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
+                    <div class="msg-content break-words [overflow-wrap:anywhere] whitespace-pre-wrap select-text">${escapeHtml(data.text)}</div>
                     ${buildBubbleToolbar(data.id, false)}
                 </div>
                 <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
@@ -1578,13 +1578,13 @@
 
         const contentHtml = item.deleted
             ? `<div class="msg-content italic text-[var(--sl-text-secondary)]">Pesan ini telah dihapus.</div>`
-            : `<div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(item.text)}</div>${buildBubbleToolbar(item.id, true)}`;
+            : `<div class="msg-content break-words [overflow-wrap:anywhere] whitespace-pre-wrap select-text">${escapeHtml(item.text)}</div>${buildBubbleToolbar(item.id, true)}`;
 
         const restoredStatus = normalizeMessageStatus(item);
         bubbleWrapper.dataset.status = restoredStatus;
 
         bubbleWrapper.innerHTML = `
-            <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
+            <div class="flex flex-col items-end min-w-0 max-w-[82%] sm:max-w-[68%]">
                 <span class="sender-name hidden">Anda</span>
                 <div class="relative px-3.5 py-2.5 rounded-xl rounded-tr-sm sl-chat-msg leading-relaxed" style="background-color: var(--sl-bubble-out); color: var(--sl-bubble-out-text);">
                     ${replyHtml}

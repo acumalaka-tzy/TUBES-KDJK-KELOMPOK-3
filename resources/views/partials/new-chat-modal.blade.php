@@ -1,14 +1,14 @@
 <!-- Unified New Chat Modal (4 Actions: Private Chat, Create Group, Join Room, Scan QR Code) -->
-<div id="new-chat-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
-    <div class="sl-surface rounded-xl max-w-md w-full p-5 space-y-4 shadow-xl max-h-[92vh] overflow-y-auto sl-scroll">
+<div id="new-chat-modal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-3 sm:p-4">
+    <div class="sl-surface rounded-xl max-w-md w-full p-4 sm:p-5 space-y-4 shadow-xl max-h-[90dvh] overflow-y-auto sl-scroll">
         <div class="flex items-center justify-between pb-2.5 border-b border-[var(--sl-divider)]">
             <div class="flex items-center gap-2">
-                <button type="button" id="nc-back-btn" onclick="showNewChatView('menu')" class="hidden p-1 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)]">
+                <button type="button" id="nc-back-btn" onclick="showNewChatView('menu')" class="hidden min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 inline-flex items-center justify-center p-1 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)]">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
                 <h3 id="nc-modal-title" class="text-sm font-bold text-[var(--sl-text-primary)]">New Chat</h3>
             </div>
-            <button type="button" onclick="closeNewChatModal()" class="text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-lg font-bold leading-none">&times;</button>
+            <button type="button" onclick="closeNewChatModal()" class="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 inline-flex items-center justify-center rounded-lg text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] text-lg font-bold leading-none">&times;</button>
         </div>
 
         <!-- View 0: 4-Option Menu -->
@@ -61,13 +61,13 @@
             <input type="hidden" name="e2ee_enabled" value="1">
             <div>
                 <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Nama Kontak / Percakapan</label>
-                <input type="text" name="room_name" required maxlength="100" placeholder="Contoh: Chat dengan Raka" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                <input type="text" name="room_name" required maxlength="100" placeholder="Contoh: Chat dengan Raka" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">PIN Akses (Opsional)</label>
-                <input type="password" name="pin" maxlength="16" placeholder="Kosongkan jika pakai link/QR undangan" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                <input type="password" name="pin" maxlength="16" placeholder="Kosongkan jika pakai link/QR undangan" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
             </div>
-            <button type="submit" class="w-full py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">Mulai Private Chat</button>
+            <button type="submit" class="w-full min-h-[42px] sm:min-h-0 py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">Mulai Private Chat</button>
         </form>
 
         <!-- View 2: Create Group Form -->
@@ -76,23 +76,23 @@
             <input type="hidden" name="e2ee_enabled" value="1">
             <div>
                 <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Nama Grup</label>
-                <input type="text" name="room_name" required maxlength="100" placeholder="Contoh: Tim Keamanan Jaringan" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                <input type="text" name="room_name" required maxlength="100" placeholder="Contoh: Tim Keamanan Jaringan" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Maks. Anggota</label>
-                    <input type="number" name="max_participants" min="3" max="50" value="10" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                    <input type="number" name="max_participants" min="3" max="50" value="10" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">PIN (Opsional)</label>
-                    <input type="password" name="pin" maxlength="16" placeholder="Opsional" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                    <input type="password" name="pin" maxlength="16" placeholder="Opsional" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
                 </div>
             </div>
             <label class="flex items-center gap-2 text-xs text-[var(--sl-text-secondary)] cursor-pointer">
                 <input type="checkbox" name="dynamic_pin_enabled" value="1" class="rounded">
                 <span>Aktifkan Dynamic PIN (TOTP 30 detik)</span>
             </label>
-            <button type="submit" class="w-full py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">Buat Group Chat</button>
+            <button type="submit" class="w-full min-h-[42px] sm:min-h-0 py-2.5 rounded-lg sl-btn-coral text-xs font-semibold">Buat Group Chat</button>
         </form>
 
         <!-- View 3: Join Room Form -->
@@ -100,13 +100,13 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Room ID</label>
-                <input type="text" name="room_id" required placeholder="Contoh: SEC-8F2-9K1" class="w-full px-3 py-2 rounded-lg sl-input text-xs font-mono uppercase">
+                <input type="text" name="room_id" required placeholder="Contoh: SEC-8F2-9K1" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs font-mono uppercase">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">PIN Room (Jika Ada)</label>
-                <input type="password" name="pin" maxlength="16" placeholder="PIN statis atau Dynamic PIN" class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                <input type="password" name="pin" maxlength="16" placeholder="PIN statis atau Dynamic PIN" class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
             </div>
-            <button type="submit" class="w-full py-2.5 rounded-lg sl-btn-primary text-xs font-semibold">Gabung Room</button>
+            <button type="submit" class="w-full min-h-[42px] sm:min-h-0 py-2.5 rounded-lg sl-btn-primary text-xs font-semibold">Gabung Room</button>
         </form>
 
         <!-- View 4: Scan QR Code -->
@@ -119,10 +119,10 @@
                         Klik Aktifkan Kamera untuk memindai QR Code
                     </div>
                 </div>
-                <div class="flex gap-2 w-full">
-                    <button type="button" id="nc-btn-start-scan" onclick="ncStartQrScan()" class="flex-1 py-1.5 px-2.5 rounded-lg sl-btn-primary text-xs font-semibold">Aktifkan Kamera</button>
-                    <button type="button" id="nc-btn-stop-scan" onclick="ncStopQrScan()" class="hidden flex-1 py-1.5 px-2.5 rounded-lg sl-btn-secondary text-xs font-semibold">Tutup Kamera</button>
-                    <label class="py-1.5 px-2.5 rounded-lg sl-btn-secondary text-xs font-semibold cursor-pointer">
+                <div class="flex flex-wrap gap-2 w-full">
+                    <button type="button" id="nc-btn-start-scan" onclick="ncStartQrScan()" class="flex-1 min-h-[40px] sm:min-h-0 py-1.5 px-2.5 rounded-lg sl-btn-primary text-xs font-semibold">Aktifkan Kamera</button>
+                    <button type="button" id="nc-btn-stop-scan" onclick="ncStopQrScan()" class="hidden flex-1 min-h-[40px] sm:min-h-0 py-1.5 px-2.5 rounded-lg sl-btn-secondary text-xs font-semibold">Tutup Kamera</button>
+                    <label class="min-h-[40px] sm:min-h-0 inline-flex items-center justify-center py-1.5 px-3 rounded-lg sl-btn-secondary text-xs font-semibold cursor-pointer">
                         Unggah QR
                         <input type="file" accept="image/*" class="hidden" onchange="ncHandleQrFile(this)">
                     </label>
@@ -132,8 +132,8 @@
             <div id="nc-qr-feedback" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
 
             <div class="flex gap-2">
-                <input type="text" id="nc-qr-manual" placeholder="Atau tempel link undangan..." class="flex-1 px-3 py-1.5 rounded-lg sl-input text-xs font-mono">
-                <button type="button" onclick="ncValidateManual()" class="px-3 py-1.5 rounded-lg sl-btn-secondary text-xs font-semibold">Cek</button>
+                <input type="text" id="nc-qr-manual" placeholder="Atau tempel link undangan..." class="flex-1 min-w-0 px-3 py-2 sm:py-1.5 rounded-lg sl-input text-base sm:text-xs font-mono">
+                <button type="button" onclick="ncValidateManual()" class="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 rounded-lg sl-btn-secondary text-xs font-semibold shrink-0">Cek</button>
             </div>
 
             <div id="nc-qr-confirm" class="hidden p-3 rounded-lg bg-[var(--sl-soft-teal)] border border-[var(--sl-divider)] space-y-2">
@@ -143,8 +143,8 @@
                     @csrf
                     <input type="hidden" id="nc-confirm-room-id" name="room_id">
                     <input type="hidden" id="nc-confirm-token" name="invite_token">
-                    <input type="password" id="nc-confirm-pin" name="pin" placeholder="Masukkan PIN room" class="hidden w-full px-2.5 py-1.5 rounded sl-input text-xs">
-                    <button type="submit" class="w-full py-2 rounded-lg sl-btn-coral text-xs font-semibold">Konfirmasi &amp; Gabung</button>
+                    <input type="password" id="nc-confirm-pin" name="pin" placeholder="Masukkan PIN room" class="hidden w-full px-2.5 py-2 sm:py-1.5 rounded sl-input text-base sm:text-xs">
+                    <button type="submit" class="w-full min-h-[40px] sm:min-h-0 py-2 rounded-lg sl-btn-coral text-xs font-semibold">Konfirmasi &amp; Gabung</button>
                 </form>
             </div>
         </div>

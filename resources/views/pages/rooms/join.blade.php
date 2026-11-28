@@ -37,7 +37,7 @@
                     <input type="text" id="room_id" name="room_id" required
                         value="{{ old('room_id', $prefilledRoomId) }}"
                         placeholder="Contoh: SEC-8F2-9K1"
-                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm font-mono uppercase">
+                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm font-mono uppercase">
                 </div>
 
                 <div>
@@ -46,10 +46,10 @@
                     </label>
                     <input type="password" id="pin" name="pin" maxlength="16"
                         placeholder="PIN statis atau Dynamic PIN 6-digit"
-                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-sm">
+                        class="w-full px-3.5 py-2.5 rounded-lg sl-input text-base sm:text-sm">
                 </div>
 
-                <button type="submit" class="w-full py-2.5 px-4 rounded-lg sl-btn-coral font-semibold text-sm">
+                <button type="submit" class="w-full min-h-[42px] sm:min-h-0 py-2.5 px-4 rounded-lg sl-btn-coral font-semibold text-sm">
                     Gabung ke Room
                 </button>
             </form>
@@ -67,14 +67,14 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 w-full">
-                    <button type="button" id="btn-start-scan" onclick="beginCameraScan()" class="flex-1 py-2 px-3 rounded-lg sl-btn-primary text-xs font-semibold">
+                <div class="flex flex-wrap items-center gap-2 w-full">
+                    <button type="button" id="btn-start-scan" onclick="beginCameraScan()" class="flex-1 min-h-[40px] sm:min-h-0 py-2 px-3 rounded-lg sl-btn-primary text-xs font-semibold">
                         Aktifkan Kamera
                     </button>
-                    <button type="button" id="btn-stop-scan" onclick="haltCameraScan()" class="hidden flex-1 py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
+                    <button type="button" id="btn-stop-scan" onclick="haltCameraScan()" class="hidden flex-1 min-h-[40px] sm:min-h-0 py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold">
                         Tutup Kamera
                     </button>
-                    <label class="py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold cursor-pointer text-center">
+                    <label class="min-h-[40px] sm:min-h-0 inline-flex items-center justify-center py-2 px-3 rounded-lg sl-btn-secondary text-xs font-semibold cursor-pointer text-center">
                         Unggah QR
                         <input type="file" accept="image/*" class="hidden" onchange="handleQrFileUpload(this)">
                     </label>
@@ -91,8 +91,8 @@
                 </label>
                 <div class="flex gap-2">
                     <input type="text" id="qr-manual-link" placeholder="https://.../rooms/join?room_id=..."
-                        class="flex-1 px-3 py-2 rounded-lg sl-input text-xs font-mono">
-                    <button type="button" onclick="validateManualPaste()" class="px-3 py-2 rounded-lg sl-btn-secondary text-xs font-semibold shrink-0">
+                        class="flex-1 min-w-0 px-3 py-2 rounded-lg sl-input text-base sm:text-xs font-mono">
+                    <button type="button" onclick="validateManualPaste()" class="min-h-[40px] sm:min-h-0 px-3 py-2 rounded-lg sl-btn-secondary text-xs font-semibold shrink-0">
                         Cek
                     </button>
                 </div>
@@ -114,10 +114,10 @@
                     <div id="qr-pin-group" class="hidden">
                         <label for="qr-confirm-pin" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Room PIN</label>
                         <input type="password" id="qr-confirm-pin" name="pin" maxlength="16" placeholder="Masukkan PIN room"
-                            class="w-full px-3 py-2 rounded-lg sl-input text-xs">
+                            class="w-full px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
                     </div>
 
-                    <button type="submit" id="qr-confirm-submit" class="w-full py-2 px-4 rounded-lg sl-btn-coral text-xs font-semibold">
+                    <button type="submit" id="qr-confirm-submit" class="w-full min-h-[42px] sm:min-h-0 py-2 px-4 rounded-lg sl-btn-coral text-xs font-semibold">
                         Konfirmasi &amp; Gabung Room
                     </button>
                 </form>
