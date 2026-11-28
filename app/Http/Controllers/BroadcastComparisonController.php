@@ -158,6 +158,7 @@ class BroadcastComparisonController extends Controller
             }
         }
 
+        $unreadCount = null;
         if ($nextStatus === 'read') {
             $participant = RoomParticipant::where('room_id', $room->room_id)
                 ->where('user_id', $user->user_id)
@@ -168,6 +169,7 @@ class BroadcastComparisonController extends Controller
                 $participant->update(['last_read_message_id' => $validated['message_id']]);
                 $this->conversationState->notifyUserConversationUpdated($participant, 'read');
             }
+            $unreadCount = $this->conversationState->getUnreadCountForUser($room->room_id, $user->user_id);
         }
 
         broadcast(new MessageReceiptUpdated(
@@ -181,6 +183,7 @@ class BroadcastComparisonController extends Controller
             'success' => true,
             'message_id' => $validated['message_id'],
             'status' => $nextStatus,
+            'unread_count' => $unreadCount,
         ]);
     }
 }

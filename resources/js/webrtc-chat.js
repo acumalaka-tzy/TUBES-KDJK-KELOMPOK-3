@@ -606,6 +606,7 @@ export class SecureLinkPeer {
                     this.onReactionReceived({
                         messageId: data.messageId,
                         emoji: data.emoji,
+                        action: data.action || 'add',
                         senderId: data.senderId,
                         senderName: data.senderName,
                     });
@@ -1320,12 +1321,13 @@ export class SecureLinkPeer {
         });
     }
 
-    sendReaction(messageId, emoji) {
+    sendReaction(messageId, emoji, action = 'add') {
         if (!messageId || !emoji) return;
         const payload = JSON.stringify({
             type: 'reaction',
             messageId,
             emoji,
+            action,
             senderId: this.userId,
             senderName: this.userName,
         });

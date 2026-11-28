@@ -141,7 +141,51 @@
 <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const currentUserId = @json($user->user_id);
+    const initialRoomSummaries = @json($roomSummaries);
     let currentFilter = new URLSearchParams(window.location.search).get('filter') || 'all';
+
+    async function resolveEnvelopePreview(roomId, envelope, fallbackText) {
+        if (envelope && envelope.ciphertext) {
+            try {
+                if (envelope.transport === 'broadcast' && !envelope.encrypted && !envelope.iv) {
+                    return envelope.ciphertext;
+                }
+                const fromB64 = (b64) => {
+                    const bin = atob(b64);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    return bytes;
+                };
+                if (!envelope.iv || envelope.encrypted === false) {
+                    return new TextDecoder().decode(fromB64(envelope.ciphertext));
+                }
+                if (window.crypto?.subtle) {
+                    const enc = new TextEncoder();
+                    const keyMat = await window.crypto.subtle.digest('SHA-256', enc.encode(`securelink-room-envelope:${roomId}`));
+                    const key = await window.crypto.subtle.importKey('raw', keyMat, { name: 'AES-GCM' }, false, ['decrypt']);
+                    const aad = enc.encode(`${roomId}|${envelope.sender_id}|${envelope.id}`);
+                    const plainBuf = await window.crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: fromB64(envelope.iv), additionalData: aad },
+                        key,
+                        fromB64(envelope.ciphertext)
+                    );
+                    return new TextDecoder().decode(plainBuf);
+                }
+            } catch (e) {}
+        }
+
+        try {
+            const raw = localStorage.getItem(`securelink_chat_${roomId}_${currentUserId}`);
+            if (raw) {
+                const items = JSON.parse(raw).filter(m => !m.deleted && (!m.expiresAt || m.expiresAt > Date.now()));
+                if (items.length > 0 && items[items.length - 1].text) {
+                    return items[items.length - 1].text;
+                }
+            }
+        } catch (e) {}
+
+        return fallbackText || 'Pesan terenkripsi';
+    }
 
     function setNavFilter(filter) {
         currentFilter = filter;
@@ -225,7 +269,11 @@
             titleEl.className = `room-title text-xs ${unreadCount > 0 ? 'font-semibold' : 'font-medium'} text-[var(--sl-text-primary)] truncate`;
         }
         if (previewEl) {
-            if (data.last_message_preview) previewEl.textContent = data.last_message_preview;
+            if (data.last_message_envelope || data.last_message_preview) {
+                resolveEnvelopePreview(data.room_id, data.last_message_envelope, data.last_message_preview).then((plain) => {
+                    if (plain) previewEl.textContent = plain;
+                });
+            }
             previewEl.className = `room-preview text-[11px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]'} truncate`;
         }
         if (timeEl) {
@@ -283,6 +331,15 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         setNavFilter(currentFilter);
+
+        Object.entries(initialRoomSummaries || {}).forEach(([rId, summary]) => {
+            const previewEl = document.querySelector(`.room-item[data-room-id="${rId}"] .room-preview`);
+            if (previewEl && (summary.last_message_envelope || summary.last_message_preview)) {
+                resolveEnvelopePreview(rId, summary.last_message_envelope, previewEl.textContent.trim()).then((plain) => {
+                    if (plain) previewEl.textContent = plain;
+                });
+            }
+        });
 
         if (window.Echo && currentUserId) {
             try {

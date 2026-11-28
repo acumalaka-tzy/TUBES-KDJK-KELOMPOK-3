@@ -46,10 +46,20 @@ class ConversationStateService
             ->first();
 
         $preview = null;
+        $envelope = null;
         if ($latestMessage) {
             $preview = ($latestMessage->transport === 'broadcast' && !$latestMessage->encrypted)
                 ? mb_strimwidth($latestMessage->ciphertext, 0, 48, '...')
                 : 'Pesan terenkripsi';
+
+            $envelope = [
+                'id' => $latestMessage->message_id,
+                'sender_id' => $latestMessage->sender_id,
+                'ciphertext' => $latestMessage->ciphertext,
+                'iv' => $latestMessage->iv,
+                'encrypted' => (bool) $latestMessage->encrypted,
+                'transport' => $latestMessage->transport,
+            ];
         }
 
         $lastTime = $latestMessage?->client_timestamp
@@ -65,6 +75,7 @@ class ConversationStateService
             'archived_at' => $participation->archived_at?->toIso8601String(),
             'unread_count' => $unreadCount,
             'last_message_preview' => $preview,
+            'last_message_envelope' => $envelope,
             'last_message_time' => $lastTime,
             'last_activity_at' => $lastActivity?->toIso8601String(),
         ];
@@ -85,7 +96,8 @@ class ConversationStateService
             action: $action,
             lastMessagePreview: $summary['last_message_preview'],
             lastMessageTime: $summary['last_message_time'],
-            lastActivityAt: $summary['last_activity_at']
+            lastActivityAt: $summary['last_activity_at'],
+            lastMessageEnvelope: $summary['last_message_envelope']
         ));
     }
 

@@ -20,7 +20,8 @@ class UserConversationUpdated implements ShouldBroadcastNow
         public string $action = 'message',
         public ?string $lastMessagePreview = null,
         public ?string $lastMessageTime = null,
-        public ?string $lastActivityAt = null
+        public ?string $lastActivityAt = null,
+        public ?array $lastMessageEnvelope = null
     ) {}
 
     public function broadcastOn(): array
@@ -45,6 +46,7 @@ class UserConversationUpdated implements ShouldBroadcastNow
             'last_message_preview' => $this->lastMessagePreview,
             'last_message_time' => $this->lastMessageTime,
             'last_activity_at' => $this->lastActivityAt ?? now()->toIso8601String(),
+            'last_message_envelope' => $this->lastMessageEnvelope,
         ];
     }
 }

@@ -543,6 +543,51 @@
         document.querySelectorAll('.sidebar-conv-menu').forEach(menu => menu.classList.add('hidden'));
     });
 
+    const initialSidebarSummaries = @json($roomSummaries ?? []);
+
+    async function resolveSidebarEnvelopePreview(roomId, envelope, fallbackText) {
+        if (envelope && envelope.ciphertext) {
+            try {
+                if (envelope.transport === 'broadcast' && !envelope.encrypted && !envelope.iv) {
+                    return envelope.ciphertext;
+                }
+                const fromB64 = (b64) => {
+                    const bin = atob(b64);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    return bytes;
+                };
+                if (!envelope.iv || envelope.encrypted === false) {
+                    return new TextDecoder().decode(fromB64(envelope.ciphertext));
+                }
+                if (window.crypto?.subtle) {
+                    const enc = new TextEncoder();
+                    const keyMat = await window.crypto.subtle.digest('SHA-256', enc.encode(`securelink-room-envelope:${roomId}`));
+                    const key = await window.crypto.subtle.importKey('raw', keyMat, { name: 'AES-GCM' }, false, ['decrypt']);
+                    const aad = enc.encode(`${roomId}|${envelope.sender_id}|${envelope.id}`);
+                    const plainBuf = await window.crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: fromB64(envelope.iv), additionalData: aad },
+                        key,
+                        fromB64(envelope.ciphertext)
+                    );
+                    return new TextDecoder().decode(plainBuf);
+                }
+            } catch (e) {}
+        }
+
+        try {
+            const raw = localStorage.getItem(`securelink_chat_${roomId}_${currentUserId}`);
+            if (raw) {
+                const items = JSON.parse(raw).filter(m => !m.deleted && (!m.expiresAt || m.expiresAt > Date.now()));
+                if (items.length > 0 && items[items.length - 1].text) {
+                    return items[items.length - 1].text;
+                }
+            }
+        } catch (e) {}
+
+        return fallbackText || 'Pesan terenkripsi';
+    }
+
     function applySidebarConversationUpdate(data) {
         if (!data || !data.room_id) return;
         const item = document.querySelector(`.sidebar-item[data-room-id="${data.room_id}"]`);
@@ -564,7 +609,11 @@
             titleEl.className = `sidebar-room-title text-xs ${unreadCount > 0 || isActiveRoom ? 'font-semibold' : 'font-medium'} truncate ${isActiveRoom ? 'text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)]'}`;
         }
         if (previewEl) {
-            if (data.last_message_preview) previewEl.textContent = data.last_message_preview;
+            if (data.last_message_envelope || data.last_message_preview) {
+                resolveSidebarEnvelopePreview(data.room_id, data.last_message_envelope, data.last_message_preview).then((plain) => {
+                    if (plain) previewEl.textContent = plain;
+                });
+            }
             previewEl.className = `sidebar-room-preview text-[11px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]'} truncate`;
         }
         if (timeEl) {
@@ -730,51 +779,125 @@
 
     function buildBubbleToolbar(msgId, isOwn) {
         const emojis = ['👍', '❤️', '😂', '🔥', '🔒']
-            .map(em => `<button type="button" onclick="reactToMessage('${escapeHtml(msgId)}', '${em}')" class="hover:scale-110 transition px-0.5">${em}</button>`)
+            .map(em => `<button type="button" onclick="reactToMessage('${escapeHtml(msgId)}', '${em}'); closeAllBubbleToolbars();" class="text-base sm:text-lg leading-none px-1 py-0.5 rounded-full hover:bg-[var(--sl-hover)] hover:scale-115 active:scale-110 transition">${em}</button>`)
             .join('');
         const posClass = isOwn ? 'right-2' : 'left-2';
-        return `<div class="msg-toolbar absolute -top-3.5 ${posClass} hidden group-hover:flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[11px] shadow-xs z-10">
+        return `<div class="msg-toolbar absolute -top-5 ${posClass} hidden group-hover:flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-xs sm:text-[13px] shadow-md z-20 whitespace-nowrap max-w-[92vw] overflow-x-auto">
             ${emojis}
             <span class="text-[var(--sl-divider)]">|</span>
-            <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(msgId)}')" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Balas">Balas</button>
-            <button type="button" onclick="copyMessageText(this)" class="hover:text-[var(--sl-primary-teal)] font-medium" title="Salin">Salin</button>
-            <button type="button" onclick="deleteMessage('${escapeHtml(msgId)}', ${isOwn ? 'true' : 'false'})" class="text-[var(--sl-accent-coral)] hover:underline font-medium" title="Hapus">Hapus</button>
+            <button type="button" onclick="handleReplyFromBubble(this, '${escapeHtml(msgId)}'); closeAllBubbleToolbars();" class="px-1.5 py-0.5 rounded hover:bg-[var(--sl-hover)] hover:text-[var(--sl-primary-teal)] font-semibold transition" title="Balas">Balas</button>
+            <button type="button" onclick="copyMessageText(this); closeAllBubbleToolbars();" class="px-1.5 py-0.5 rounded hover:bg-[var(--sl-hover)] hover:text-[var(--sl-primary-teal)] font-semibold transition" title="Salin">Salin</button>
+            <button type="button" onclick="deleteMessage('${escapeHtml(msgId)}', ${isOwn ? 'true' : 'false'}); closeAllBubbleToolbars();" class="px-1.5 py-0.5 rounded hover:bg-[var(--sl-hover)] text-[var(--sl-accent-coral)] font-semibold transition" title="Hapus">Hapus</button>
         </div>`;
     }
 
-    function reactToMessage(msgId, emoji) {
-        applyMessageReaction(msgId, emoji);
-        if (window.peerManager) {
-            window.peerManager.sendReaction(msgId, emoji);
-        }
+    function closeAllBubbleToolbars() {
+        document.querySelectorAll('.group.sl-toolbar-open').forEach(el => {
+            el.classList.remove('sl-toolbar-open');
+            const tb = el.querySelector('.msg-toolbar');
+            if (tb) tb.classList.add('hidden');
+        });
     }
-    window.reactToMessage = reactToMessage;
+    window.closeAllBubbleToolbars = closeAllBubbleToolbars;
 
-    function applyMessageReaction(msgId, emoji) {
+    document.addEventListener('click', (e) => {
+        const clickedToolbar = e.target.closest('.msg-toolbar');
+        if (clickedToolbar) return;
+
+        const msgBubble = e.target.closest('[data-message-id] .msg-content');
+        if (msgBubble) {
+            const groupEl = msgBubble.closest('.group');
+            const toolbar = groupEl?.querySelector('.msg-toolbar');
+            if (groupEl && toolbar) {
+                const wasOpen = groupEl.classList.contains('sl-toolbar-open');
+                closeAllBubbleToolbars();
+                if (!wasOpen) {
+                    groupEl.classList.add('sl-toolbar-open');
+                    toolbar.classList.remove('hidden');
+                    toolbar.classList.add('flex');
+                }
+            }
+            return;
+        }
+
+        closeAllBubbleToolbars();
+    });
+
+    const messageReactionsMap = new Map();
+
+    function renderMessageReactionPills(msgId) {
         const wrapper = document.querySelector(`[data-message-id="${msgId}"]`);
         if (!wrapper) return;
         const container = wrapper.querySelector('.reaction-pills');
         if (!container) return;
 
-        container.classList.remove('hidden');
-        const existing = container.querySelector(`[data-emoji="${emoji}"]`);
-        if (existing) {
-            const countEl = existing.querySelector('.rx-count');
-            countEl.textContent = parseInt(countEl.textContent || '1') + 1;
-        } else {
+        const emojiMap = messageReactionsMap.get(msgId) || {};
+        container.innerHTML = '';
+
+        let hasAny = false;
+        Object.entries(emojiMap).forEach(([emoji, userSet]) => {
+            if (!userSet || userSet.size === 0) return;
+            hasAny = true;
+            const reactedByMe = userSet.has(currentUserId);
             const pill = document.createElement('button');
             pill.type = 'button';
             pill.dataset.emoji = emoji;
             pill.onclick = () => reactToMessage(msgId, emoji);
-            pill.className = 'px-1.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] flex items-center gap-1 text-[var(--sl-text-primary)]';
-            pill.innerHTML = `<span>${emoji}</span><span class="rx-count font-bold">1</span>`;
+            pill.className = reactedByMe
+                ? 'px-1.5 py-0.5 rounded-full bg-[var(--sl-active-conv)] border border-[var(--sl-primary-teal)] text-[10px] flex items-center gap-1 text-[var(--sl-primary-teal)]'
+                : 'px-1.5 py-0.5 rounded-full bg-[var(--sl-elevated)] border border-[var(--sl-divider)] text-[10px] flex items-center gap-1 text-[var(--sl-text-primary)]';
+            pill.innerHTML = `<span>${emoji}</span><span class="rx-count font-bold">${userSet.size}</span>`;
             container.appendChild(pill);
-        }
-        updateChatHistoryItem(msgId, (item) => {
-            const reactions = item.reactions || {};
-            reactions[emoji] = (reactions[emoji] || 0) + 1;
-            return { ...item, reactions };
         });
+
+        container.classList.toggle('hidden', !hasAny);
+    }
+
+    function reactToMessage(msgId, emoji) {
+        const emojiMap = messageReactionsMap.get(msgId) || {};
+        const alreadyReacted = emojiMap[emoji]?.has(currentUserId) || false;
+        const action = alreadyReacted ? 'remove' : 'add';
+
+        applyMessageReaction(msgId, emoji, currentUserId, action);
+        if (window.peerManager) {
+            window.peerManager.sendReaction(msgId, emoji, action);
+        }
+    }
+    window.reactToMessage = reactToMessage;
+
+    function applyMessageReaction(msgId, emoji, senderId = currentUserId, action = 'add', skipPersist = false) {
+        if (!msgId || !emoji) return;
+        let emojiMap = messageReactionsMap.get(msgId);
+        if (!emojiMap) {
+            emojiMap = {};
+            messageReactionsMap.set(msgId, emojiMap);
+        }
+        if (!emojiMap[emoji]) {
+            emojiMap[emoji] = new Set();
+        }
+
+        const actorId = senderId || 'peer';
+        if (action === 'remove') {
+            emojiMap[emoji].delete(actorId);
+        } else {
+            emojiMap[emoji].add(actorId);
+        }
+
+        renderMessageReactionPills(msgId);
+
+        if (!skipPersist) {
+            updateChatHistoryItem(msgId, (item) => {
+                const reactionUsers = {};
+                const reactions = {};
+                Object.entries(emojiMap).forEach(([em, set]) => {
+                    if (set.size > 0) {
+                        reactionUsers[em] = Array.from(set);
+                        reactions[em] = set.size;
+                    }
+                });
+                return { ...item, reactions, reactionUsers };
+            });
+        }
     }
     window.applyMessageReaction = applyMessageReaction;
 
@@ -971,7 +1094,19 @@
                 'Accept': 'application/json',
             },
             body: JSON.stringify({ message_id: messageId, status }),
-        }).catch(() => {});
+        })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+            if (data && data.success && status === 'read' && typeof data.unread_count === 'number') {
+                applySidebarConversationUpdate({
+                    room_id: currentRoomId,
+                    unread_count: data.unread_count,
+                    is_archived: document.querySelector(`.sidebar-item[data-room-id="${currentRoomId}"]`)?.getAttribute('data-archived') === '1',
+                    action: 'read',
+                });
+            }
+        })
+        .catch(() => {});
     }
 
     function ensureIncomingObserver() {
@@ -995,22 +1130,32 @@
         return incomingVisibilityObserver;
     }
 
+    function isElementVisibleInContainer(el, container) {
+        if (!el || !container) return false;
+        const cRect = container.getBoundingClientRect();
+        const eRect = el.getBoundingClientRect();
+        if (eRect.height === 0 && eRect.width === 0) return false;
+        return eRect.bottom > cRect.top && eRect.top < cRect.bottom;
+    }
+
     function flushVisibleReadReceipts() {
         if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
-        if (unreadIncomingMessages.size === 0 || visibleIncomingIds.size === 0) return;
+        if (unreadIncomingMessages.size === 0) return;
 
+        const container = document.getElementById('messages-container');
         const p2pIds = [];
-        const broadcastIds = [];
+        const allReadIds = [];
 
-        for (const msgId of Array.from(visibleIncomingIds)) {
-            const entry = unreadIncomingMessages.get(msgId);
-            if (!entry) continue;
-            if (entry.transport === 'broadcast') {
-                broadcastIds.push(msgId);
-            } else {
+        for (const [msgId, entry] of Array.from(unreadIncomingMessages.entries())) {
+            const isVisible = visibleIncomingIds.has(msgId) || isElementVisibleInContainer(entry.el, container);
+            if (!isVisible) continue;
+
+            allReadIds.push(msgId);
+            if (entry.transport !== 'broadcast') {
                 p2pIds.push(msgId);
             }
             unreadIncomingMessages.delete(msgId);
+            visibleIncomingIds.delete(msgId);
             if (incomingVisibilityObserver && entry.el) {
                 incomingVisibilityObserver.unobserve(entry.el);
             }
@@ -1020,7 +1165,7 @@
         if (p2pIds.length > 0 && window.peerManager) {
             window.peerManager.sendReadReceipt(p2pIds);
         }
-        broadcastIds.forEach((id) => sendBroadcastReceipt(id, 'read'));
+        allReadIds.forEach((id) => sendBroadcastReceipt(id, 'read'));
     }
 
     window.addEventListener('focus', flushVisibleReadReceipts);
@@ -1252,6 +1397,7 @@
             if (obs) {
                 obs.observe(bubbleWrapper);
             }
+            requestAnimationFrame(() => flushVisibleReadReceipts());
         }
 
         if (data.ephemeralDuration > 0) {
@@ -1322,10 +1468,16 @@
         `;
         list.appendChild(bubbleWrapper);
 
-        if (item.reactions && !item.deleted) {
-            Object.entries(item.reactions).forEach(([emoji, count]) => {
-                for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji);
-            });
+        if (!item.deleted) {
+            if (item.reactionUsers) {
+                Object.entries(item.reactionUsers).forEach(([emoji, users]) => {
+                    (users || []).forEach((uid) => applyMessageReaction(item.id, emoji, uid, 'add', true));
+                });
+            } else if (item.reactions) {
+                Object.entries(item.reactions).forEach(([emoji, count]) => {
+                    for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji, `restored_${i}`, 'add', true);
+                });
+            }
         }
 
         if (remainingSec > 0) {
@@ -1353,9 +1505,13 @@
                 const rem = item.expiresAt ? Math.max(1, Math.ceil((item.expiresAt - Date.now()) / 1000)) : 0;
                 renderIncomingMessage({ ...item, ephemeralDuration: rem, _restored: true });
                 if (item.deleted) applyMessageDeleted(item.id);
-                else if (item.reactions) {
+                else if (item.reactionUsers) {
+                    Object.entries(item.reactionUsers).forEach(([emoji, users]) => {
+                        (users || []).forEach((uid) => applyMessageReaction(item.id, emoji, uid, 'add', true));
+                    });
+                } else if (item.reactions) {
                     Object.entries(item.reactions).forEach(([emoji, count]) => {
-                        for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji);
+                        for (let i = 0; i < count; i++) applyMessageReaction(item.id, emoji, `restored_${i}`, 'add', true);
                     });
                 }
             }
@@ -1382,7 +1538,7 @@
             userAvatarColor: currentUserAvatar,
             userAvatarIcon: currentUserAvatarIcon,
             onMessageReceived: renderIncomingMessage,
-            onReactionReceived: (rx) => applyMessageReaction(rx.messageId, rx.emoji),
+            onReactionReceived: (rx) => applyMessageReaction(rx.messageId, rx.emoji, rx.senderId, rx.action || 'add'),
             onMessageDeleted: (del) => applyMessageDeleted(del.messageId),
             onDiagnosticsUpdate: updateDiagnosticsUi,
             onMessageSent: (messageId) => {
@@ -1454,9 +1610,19 @@
                 if (!data.success || !Array.isArray(data.messages)) return;
 
                 for (const msg of data.messages) {
-                    if (document.getElementById('bubble_peer_' + msg.id)) {
+                    const existingBubble = document.getElementById('bubble_peer_' + msg.id);
+                    if (existingBubble) {
                         if (msg.receipt_status === 'pending') {
                             sendBroadcastReceipt(msg.id, 'delivered');
+                        }
+                        if (msg.receipt_status !== 'read') {
+                            unreadIncomingMessages.set(msg.id, {
+                                id: msg.id,
+                                transport: msg.transport || 'p2p',
+                                el: existingBubble,
+                            });
+                            const obs = ensureIncomingObserver();
+                            if (obs) obs.observe(existingBubble);
                         }
                         continue;
                     }
@@ -1495,6 +1661,14 @@
         };
 
         filterSidebarRooms();
+        Object.entries(initialSidebarSummaries || {}).forEach(([rId, summary]) => {
+            const previewEl = document.querySelector(`.sidebar-item[data-room-id="${rId}"] .sidebar-room-preview`);
+            if (previewEl && (summary.last_message_envelope || summary.last_message_preview)) {
+                resolveSidebarEnvelopePreview(rId, summary.last_message_envelope, previewEl.textContent.trim()).then((plain) => {
+                    if (plain) previewEl.textContent = plain;
+                });
+            }
+        });
         updateRoomPresence('in_conversation');
         syncPendingMessages();
 
