@@ -56,6 +56,9 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/broadcast-message', [BroadcastComparisonController::class, 'send'])
             ->middleware('throttle:60,1')
             ->name('api.rooms.broadcast');
+        Route::post('/{roomId}/receipt', [BroadcastComparisonController::class, 'receipt'])
+            ->middleware('throttle:120,1')
+            ->name('api.rooms.receipt');
         Route::get('/{roomId}/security-info', [SecurityInformationController::class, 'roomInfo'])->name('api.rooms.security_info');
         Route::get('/{roomId}/security-logs', [SecurityLogController::class, 'index'])->name('api.rooms.security_logs.index');
         Route::post('/{roomId}/security-logs', [SecurityLogController::class, 'store'])->name('api.rooms.security_logs.store');
