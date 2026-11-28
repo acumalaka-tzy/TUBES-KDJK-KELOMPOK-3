@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Events\BroadcastMessageSent;
+use App\Events\MessageReceiptUpdated;
 use App\Events\RoomParticipantUpdated;
 use App\Models\Room;
 use App\Models\RoomParticipant;
@@ -148,6 +150,93 @@ class RoomAdministrationAndChatFeaturesTest extends TestCase
             ->assertSee('copyMessageText')
             ->assertSee('deleteMessage')
             ->assertSee('ephemeral_duration')
+            ->assertSee('renderStatusBadge')
+            ->assertSee('retryChatMessage')
             ->assertSee('Apakah Anda yakin ingin keluar dari akun SecureLink?');
+    }
+
+    public function test_member_can_send_delivered_and_read_receipts_via_reverb_event(): void
+    {
+        Event::fake([MessageReceiptUpdated::class]);
+        [, $member, , $room] = $this->seedRoom();
+
+        $deliveredRes = $this->withSession(['securelink_user_id' => $member->user_id])
+            ->postJson("/api/rooms/{$room->room_id}/receipt", [
+                'message_id' => 'msg_test_123',
+                'status' => 'delivered',
+            ]);
+
+        $deliveredRes->assertOk()->assertJson([
+            'success' => true,
+            'message_id' => 'msg_test_123',
+            'status' => 'delivered',
+        ]);
+
+        Event::assertDispatched(MessageReceiptUpdated::class, function ($event) use ($room, $member) {
+            return $event->roomId === $room->room_id
+                && $event->messageId === 'msg_test_123'
+                && $event->userId === $member->user_id
+                && $event->status === 'delivered';
+        });
+
+        $readRes = $this->withSession(['securelink_user_id' => $member->user_id])
+            ->postJson("/api/rooms/{$room->room_id}/receipt", [
+                'message_id' => 'msg_test_123',
+                'status' => 'read',
+            ]);
+
+        $readRes->assertOk()->assertJson([
+            'success' => true,
+            'message_id' => 'msg_test_123',
+            'status' => 'read',
+        ]);
+
+        Event::assertDispatched(MessageReceiptUpdated::class, function ($event) use ($room, $member) {
+            return $event->roomId === $room->room_id
+                && $event->messageId === 'msg_test_123'
+                && $event->userId === $member->user_id
+                && $event->status === 'read';
+        });
+    }
+
+    public function test_receipt_endpoint_rejects_invalid_status_and_outsiders(): void
+    {
+        [, $member, $outsider, $room] = $this->seedRoom();
+
+        $this->withSession(['securelink_user_id' => $member->user_id])
+            ->postJson("/api/rooms/{$room->room_id}/receipt", [
+                'message_id' => 'msg_bad',
+                'status' => 'sending',
+            ])
+            ->assertStatus(422);
+
+        $this->withSession(['securelink_user_id' => $outsider->user_id])
+            ->postJson("/api/rooms/{$room->room_id}/receipt", [
+                'message_id' => 'msg_outsider',
+                'status' => 'read',
+            ])
+            ->assertStatus(403);
+    }
+
+    public function test_broadcast_message_preserves_client_message_id(): void
+    {
+        Event::fake([BroadcastMessageSent::class]);
+        [$creator, , , $room] = $this->seedRoom();
+
+        $response = $this->withSession(['securelink_user_id' => $creator->user_id])
+            ->postJson("/api/rooms/{$room->room_id}/broadcast-message", [
+                'message' => 'Hello broadcast status',
+                'message_id' => 'msg_client_custom_99',
+                'ephemeral_duration' => 0,
+            ]);
+
+        $response->assertOk()->assertJson([
+            'success' => true,
+            'id' => 'msg_client_custom_99',
+        ]);
+
+        Event::assertDispatched(BroadcastMessageSent::class, function ($event) {
+            return $event->messageId === 'msg_client_custom_99';
+        });
     }
 }
