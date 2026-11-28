@@ -707,6 +707,216 @@
         }
     }
 
+    const STATUS_RANK = { failed: 0, sending: 1, sent: 2, delivered: 3, read: 4 };
+    const unreadIncomingMessages = new Map();
+    const visibleIncomingIds = new Set();
+    let incomingVisibilityObserver = null;
+
+    function normalizeMessageStatus(item) {
+        if (!item) return 'sent';
+        if (item.status && STATUS_RANK[item.status] !== undefined) return item.status;
+        if (Array.isArray(item.readBy) && item.readBy.length > 0) return 'read';
+        if (item.delivered || (Array.isArray(item.ackedBy) && item.ackedBy.length > 0)) return 'delivered';
+        return 'sent';
+    }
+
+    function renderStatusBadge(status, messageId, meta = {}) {
+        const readCount = Array.isArray(meta.readBy) ? meta.readBy.length : 0;
+        const ackCount = Array.isArray(meta.ackedBy) ? meta.ackedBy.length : 0;
+        const groupSuffix = (isGroupRoom && status === 'read' && readCount > 0)
+            ? ` (${readCount})`
+            : (isGroupRoom && status === 'delivered' && ackCount > 0 ? ` (${ackCount})` : '');
+
+        switch (status) {
+            case 'sending':
+                return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-medium" title="Sedang mengirim pesan">
+                    <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+                    <span>Mengirim...</span>
+                </span>`;
+            case 'sent':
+                return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-semibold" title="Terkirim">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 20 7"></polyline></svg>
+                    <span>Terkirim</span>
+                </span>`;
+            case 'delivered':
+                return `<span class="inline-flex items-center gap-1 text-[#7D8B8D] dark:text-[#98A6A8] font-semibold" title="${isGroupRoom && ackCount > 0 ? `Diterima oleh ${ackCount} anggota` : 'Diterima perangkat penerima'}">
+                    <svg class="w-4 h-3.5 shrink-0" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 13 7 18 17 7"></polyline><polyline points="9 13 14 18 24 7"></polyline></svg>
+                    <span>Diterima${groupSuffix}</span>
+                </span>`;
+            case 'read':
+                return `<span class="inline-flex items-center gap-1 text-[var(--sl-primary-teal)] font-semibold" title="${isGroupRoom && readCount > 0 ? `Dibaca oleh ${readCount} anggota` : 'Dibaca oleh penerima'}">
+                    <svg class="w-4 h-3.5 shrink-0" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 13 7 18 17 7"></polyline><polyline points="9 13 14 18 24 7"></polyline></svg>
+                    <span>Dibaca${groupSuffix}</span>
+                </span>`;
+            case 'failed':
+                return `<span class="inline-flex items-center gap-1.5 text-[var(--sl-accent-coral)] font-semibold" title="Pengiriman pesan gagal">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><circle cx="12" cy="16" r="0.8" fill="currentColor"></circle></svg>
+                    <span>Gagal dikirim</span>
+                    <button type="button" onclick="retryChatMessage('${messageId}')" class="underline hover:opacity-80 cursor-pointer font-bold">Coba lagi</button>
+                </span>`;
+            default:
+                return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-semibold">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 20 7"></polyline></svg>
+                    <span>Terkirim</span>
+                </span>`;
+        }
+    }
+
+    function updateMessageStatus(messageId, nextStatus, meta = {}) {
+        if (!messageId || STATUS_RANK[nextStatus] === undefined) return;
+        const bubble = document.getElementById('bubble_' + messageId) || document.querySelector(`[data-message-id="${messageId}"]`);
+        const currentStatus = bubble?.dataset.status || 'sending';
+        const allowDowngrade = Boolean(meta.allowDowngrade);
+
+        if (!allowDowngrade) {
+            if (nextStatus === 'failed') {
+                if (currentStatus === 'delivered' || currentStatus === 'read') return;
+            } else if (STATUS_RANK[nextStatus] < STATUS_RANK[currentStatus]) {
+                return;
+            }
+        }
+
+        let mergedAckedBy = Array.isArray(meta.ackedBy) ? [...new Set(meta.ackedBy)] : null;
+        let mergedReadBy = Array.isArray(meta.readBy) ? [...new Set(meta.readBy)] : null;
+
+        updateChatHistoryItem(messageId, (item) => {
+            const ackSet = new Set(Array.isArray(item.ackedBy) ? item.ackedBy : []);
+            const readSet = new Set(Array.isArray(item.readBy) ? item.readBy : []);
+            if (meta.ackUserId) ackSet.add(meta.ackUserId);
+            if (meta.readUserId) {
+                ackSet.add(meta.readUserId);
+                readSet.add(meta.readUserId);
+            }
+            if (mergedAckedBy) mergedAckedBy.forEach((id) => ackSet.add(id));
+            if (mergedReadBy) mergedReadBy.forEach((id) => readSet.add(id));
+
+            mergedAckedBy = Array.from(ackSet);
+            mergedReadBy = Array.from(readSet);
+
+            return {
+                ...item,
+                status: nextStatus,
+                delivered: nextStatus === 'delivered' || nextStatus === 'read' || Boolean(item.delivered),
+                ackedBy: mergedAckedBy,
+                readBy: mergedReadBy,
+            };
+        });
+
+        if (bubble) {
+            bubble.dataset.status = nextStatus;
+            const badge = bubble.querySelector('.delivery-badge');
+            if (badge) {
+                badge.innerHTML = renderStatusBadge(nextStatus, messageId, {
+                    ackedBy: mergedAckedBy || meta.ackedBy || [],
+                    readBy: mergedReadBy || meta.readBy || [],
+                });
+            }
+        }
+    }
+
+    function sendBroadcastReceipt(messageId, status) {
+        if (!messageId || !['delivered', 'read'].includes(status)) return;
+        fetch(`/api/rooms/${currentRoomId}/receipt`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Socket-Id': window.Echo?.socketId?.() || '',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ message_id: messageId, status }),
+        }).catch(() => {});
+    }
+
+    function ensureIncomingObserver() {
+        if (incomingVisibilityObserver) return incomingVisibilityObserver;
+        const container = document.getElementById('messages-container');
+        if (!container || typeof IntersectionObserver === 'undefined') return null;
+
+        incomingVisibilityObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                const msgId = entry.target?.dataset?.messageId;
+                if (!msgId) return;
+                if (entry.isIntersecting) {
+                    visibleIncomingIds.add(msgId);
+                } else {
+                    visibleIncomingIds.delete(msgId);
+                }
+            });
+            flushVisibleReadReceipts();
+        }, { root: container, threshold: 0.2 });
+
+        return incomingVisibilityObserver;
+    }
+
+    function flushVisibleReadReceipts() {
+        if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+        if (unreadIncomingMessages.size === 0 || visibleIncomingIds.size === 0) return;
+
+        const p2pIds = [];
+        const broadcastIds = [];
+
+        for (const msgId of Array.from(visibleIncomingIds)) {
+            const entry = unreadIncomingMessages.get(msgId);
+            if (!entry) continue;
+            if (entry.transport === 'broadcast') {
+                broadcastIds.push(msgId);
+            } else {
+                p2pIds.push(msgId);
+            }
+            unreadIncomingMessages.delete(msgId);
+            if (incomingVisibilityObserver && entry.el) {
+                incomingVisibilityObserver.unobserve(entry.el);
+            }
+            updateChatHistoryItem(msgId, (item) => ({ ...item, readSent: true }));
+        }
+
+        if (p2pIds.length > 0 && window.peerManager) {
+            window.peerManager.sendReadReceipt(p2pIds);
+        }
+        broadcastIds.forEach((id) => sendBroadcastReceipt(id, 'read'));
+    }
+
+    window.addEventListener('focus', flushVisibleReadReceipts);
+    document.addEventListener('visibilitychange', flushVisibleReadReceipts);
+
+    window.retryChatMessage = function(messageId) {
+        const history = loadChatHistory();
+        const item = history.find((m) => m.id === messageId && m.isOwn);
+        if (!item) return;
+
+        updateMessageStatus(messageId, 'sending', { allowDowngrade: true });
+
+        if (item.transport === 'broadcast') {
+            fetch(`/api/rooms/${currentRoomId}/broadcast-message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Socket-Id': window.Echo?.socketId?.() || '',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: item.text,
+                    message_id: messageId,
+                    ephemeral_duration: item.ephemeralDuration || 0,
+                    reply_to: item.replyTo || null,
+                }),
+            }).then((res) => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                updateMessageStatus(messageId, 'sent');
+            }).catch(() => {
+                updateMessageStatus(messageId, 'failed');
+            });
+        } else if (window.peerManager) {
+            window.peerManager.retryMessage(messageId).then((found) => {
+                if (!found) {
+                    window.peerManager.broadcastMessage(item.text, item.ephemeralDuration || 0, item.replyTo || null, messageId);
+                }
+            });
+        }
+    };
+
     function handleSendMessage(e) {
         e.preventDefault();
         const input = document.getElementById('message-input');
@@ -724,6 +934,7 @@
         const bubbleWrapper = document.createElement('div');
         bubbleWrapper.id = 'bubble_' + clientMsgId;
         bubbleWrapper.dataset.messageId = clientMsgId;
+        bubbleWrapper.dataset.status = 'sending';
         bubbleWrapper.className = 'flex justify-end group';
 
         let replyHtml = '';
@@ -745,9 +956,7 @@
                 <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${timeStr}</span>
-                    <span class="delivery-badge ${communicationMode === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
-                        ${communicationMode === 'broadcast' ? '⚠ Server Broadcast' : '✓ Terkirim'}
-                    </span>
+                    <span class="delivery-badge">${renderStatusBadge('sending', clientMsgId)}</span>
                     ${duration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${duration}s</span>` : ''}
                 </div>
             </div>
@@ -768,6 +977,9 @@
             timestamp: timeStr,
             replyTo: replyPayload,
             transport: communicationMode,
+            status: 'sending',
+            ackedBy: [],
+            readBy: [],
             expiresAt,
             reactions: {},
         });
@@ -797,10 +1009,20 @@
                     'X-Socket-Id': window.Echo?.socketId?.() || '',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ message: text, ephemeral_duration: duration, reply_to: replyPayload }),
-            }).catch((err) => console.error('[SecureLink] Broadcast error:', err));
+                body: JSON.stringify({ message: text, message_id: clientMsgId, ephemeral_duration: duration, reply_to: replyPayload }),
+            })
+            .then((res) => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                updateMessageStatus(clientMsgId, 'sent');
+            })
+            .catch((err) => {
+                console.error('[SecureLink] Broadcast error:', err);
+                updateMessageStatus(clientMsgId, 'failed');
+            });
         } else if (window.peerManager) {
             window.peerManager.broadcastMessage(text, duration, replyPayload, clientMsgId);
+        } else {
+            updateMessageStatus(clientMsgId, 'failed');
         }
     }
 
@@ -839,7 +1061,7 @@
                     <span>${escapeHtml(data.timestamp || '')}</span>
                     ${data.transport === 'broadcast'
                         ? '<span class="text-[var(--sl-accent-coral)] font-semibold">⚠ Server Broadcast</span>'
-                        : '<span class="text-[var(--sl-primary-teal)] font-semibold">✓✓ Diterima</span>'}
+                        : ''}
                     ${data.ephemeralDuration > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${data.ephemeralDuration}s</span>` : ''}
                 </div>
             </div>
@@ -863,9 +1085,22 @@
                 ephemeralDuration: data.ephemeralDuration || 0,
                 replyTo: data.replyTo || null,
                 transport: data.transport || 'p2p',
+                readSent: false,
                 expiresAt,
                 reactions: {},
             });
+        }
+
+        if (!data.readSent && data.id) {
+            unreadIncomingMessages.set(data.id, {
+                id: data.id,
+                transport: data.transport || 'p2p',
+                el: bubbleWrapper,
+            });
+            const obs = ensureIncomingObserver();
+            if (obs) {
+                obs.observe(bubbleWrapper);
+            }
         }
 
         if (data.ephemeralDuration > 0) {
@@ -916,6 +1151,9 @@
             ? `<div class="msg-content italic text-[var(--sl-text-secondary)]">Pesan ini telah dihapus.</div>`
             : `<div class="msg-content break-words whitespace-pre-wrap select-text">${escapeHtml(item.text)}</div>${buildBubbleToolbar(item.id, true)}`;
 
+        const restoredStatus = normalizeMessageStatus(item);
+        bubbleWrapper.dataset.status = restoredStatus;
+
         bubbleWrapper.innerHTML = `
             <div class="flex flex-col items-end max-w-[82%] sm:max-w-[68%]">
                 <span class="sender-name hidden">Anda</span>
@@ -926,9 +1164,7 @@
                 <div class="reaction-pills hidden flex flex-wrap gap-1 mt-1"></div>
                 <div class="flex items-center gap-1.5 text-[10px] text-[var(--sl-text-secondary)] mt-1">
                     <span>${escapeHtml(item.timestamp || '')}</span>
-                    <span class="delivery-badge ${item.transport === 'broadcast' ? 'text-[var(--sl-accent-coral)]' : 'text-[var(--sl-primary-teal)]'} font-semibold">
-                        ${item.transport === 'broadcast' ? '⚠ Server Broadcast' : (item.delivered ? '✓✓ Diterima' : '✓ Terkirim')}
-                    </span>
+                    <span class="delivery-badge">${renderStatusBadge(restoredStatus, item.id, { ackedBy: item.ackedBy || [], readBy: item.readBy || [] })}</span>
                     ${remainingSec > 0 ? `<span class="countdown-badge text-[var(--sl-accent-coral)] font-semibold">&middot; ⏱ ${remainingSec}s</span>` : ''}
                 </div>
             </div>
@@ -998,10 +1234,17 @@
             onReactionReceived: (rx) => applyMessageReaction(rx.messageId, rx.emoji),
             onMessageDeleted: (del) => applyMessageDeleted(del.messageId),
             onDiagnosticsUpdate: updateDiagnosticsUi,
-            onMessageAck: (messageId) => {
-                const badge = document.querySelector(`[data-message-id="${messageId}"] .delivery-badge`);
-                if (badge) badge.textContent = '✓✓ Diterima';
-                updateChatHistoryItem(messageId, (item) => ({ ...item, delivered: true }));
+            onMessageSent: (messageId) => {
+                updateMessageStatus(messageId, 'sent');
+            },
+            onMessageAck: (messageId, ackUserId, ackedBy) => {
+                updateMessageStatus(messageId, 'delivered', { ackUserId, ackedBy });
+            },
+            onMessageRead: (messageId, readUserId, readBy) => {
+                updateMessageStatus(messageId, 'read', { readUserId, readBy });
+            },
+            onMessageFailed: (messageId) => {
+                updateMessageStatus(messageId, 'failed');
             },
             onStatusChange: (status) => {
                 const statusEl = document.getElementById('header-conn-status');
@@ -1058,7 +1301,19 @@
                 });
 
                 channel.listen('.broadcast.message', (data) => {
-                    if (data.senderId !== currentUserId) renderIncomingMessage(data);
+                    if (data.senderId !== currentUserId) {
+                        renderIncomingMessage(data);
+                        sendBroadcastReceipt(data.id, 'delivered');
+                    }
+                });
+
+                channel.listen('.message.receipt', (data) => {
+                    if (!data || data.user_id === currentUserId) return;
+                    if (data.status === 'delivered') {
+                        updateMessageStatus(data.message_id, 'delivered', { ackUserId: data.user_id });
+                    } else if (data.status === 'read') {
+                        updateMessageStatus(data.message_id, 'read', { readUserId: data.user_id });
+                    }
                 });
 
                 channel.listen('.room.participant.updated', (data) => {
