@@ -4,7 +4,9 @@
 
 @section('app_shell')
 @php
-    $activeSection = request()->query('section', 'account');
+    $requestedSection = request()->query('section');
+    $activeSection = $requestedSection ?: 'account';
+    $mobileDetailOpen = !empty($requestedSection);
     $settingsColor = old('avatar_color', $user->avatar_color ?? '#497173');
     $settingsIcon = old('avatar_icon', $user->avatar_icon ?? 'initial');
     $characterMetadata = \App\Models\UserSession::$characterMetadata;
@@ -14,19 +16,26 @@
     $initialLetter = strtoupper(substr(old('display_name', $user->display_name ?? 'A'), 0, 1) ?: 'U');
 @endphp
 
-<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
+<div class="sl-app-shell h-screen w-screen overflow-hidden flex flex-col md:flex-row bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
 
-    <!-- A. Slim Icon Navigation Sidebar -->
+    <!-- A. Slim Icon Navigation Sidebar (Desktop md+ only) -->
     @include('partials.app-nav')
 
-    <!-- B. Settings Category Sidebar (Column 1) -->
-    <aside class="w-full md:w-72 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col shrink-0 h-full overflow-y-auto sl-scroll">
-        <div class="px-4 py-3.5 border-b border-[var(--sl-divider)]">
-            <h1 class="text-sm font-bold text-[var(--sl-text-primary)]">Pengaturan &amp; Diagnostik</h1>
-            <p class="text-[11px] text-[var(--sl-text-secondary)] mt-0.5">Akun, tampilan, keamanan &amp; koneksi</p>
+    <!-- B. Settings Category Sidebar (Column 1: full screen on mobile list view, fixed column on desktop) -->
+    <aside id="settings-sidebar" class="{{ $mobileDetailOpen ? 'hidden md:flex' : 'flex' }} w-full flex-1 min-h-0 md:flex-none md:w-72 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex-col shrink-0 md:h-full">
+        <div class="px-4 py-3.5 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+                <a href="{{ route('dashboard') }}" class="md:hidden p-2 -ml-1 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" aria-label="Kembali ke Chats">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </a>
+                <div class="min-w-0">
+                    <h1 class="text-sm font-bold text-[var(--sl-text-primary)] truncate">Pengaturan &amp; Diagnostik</h1>
+                    <p class="text-[11px] text-[var(--sl-text-secondary)] mt-0.5 truncate">Akun, tampilan, keamanan &amp; koneksi</p>
+                </div>
+            </div>
         </div>
 
-        <nav class="p-2 space-y-0.5 text-xs font-medium">
+        <nav class="flex-1 min-h-0 overflow-y-auto sl-scroll p-2 space-y-0.5 text-xs font-medium">
             @php
                 $categories = [
                     'account' => ['label' => 'Account', 'desc' => 'Profil & identitas sesi'],
@@ -39,18 +48,49 @@
                 ];
             @endphp
             @foreach($categories as $key => $cat)
-                <button type="button" onclick="showSettingsSection('{{ $key }}')" data-sec-btn="{{ $key }}"
-                    class="sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col {{ $activeSection === $key ? 'bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]' }}">
-                    <span class="font-semibold">{{ $cat['label'] }}</span>
-                    <span class="text-[10px] text-[var(--sl-text-secondary)]">{{ $cat['desc'] }}</span>
+                <button type="button" onclick="showSettingsSection('{{ $key }}', true)" data-sec-btn="{{ $key }}"
+                    class="sec-nav-btn w-full text-left px-3 py-3 md:py-2.5 rounded-lg transition flex items-center justify-between gap-2 {{ $activeSection === $key ? 'bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]' }}">
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-semibold">{{ $cat['label'] }}</span>
+                        <span class="text-[10px] text-[var(--sl-text-secondary)]">{{ $cat['desc'] }}</span>
+                    </div>
+                    <svg class="w-4 h-4 md:hidden text-[var(--sl-text-secondary)] shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>
             @endforeach
+        </nav>
+
+        <!-- Mobile Bottom Navigation Bar on Settings Category View -->
+        <nav aria-label="Mobile Navigation" class="md:hidden shrink-0 border-t border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] grid grid-cols-4 sl-safe-bottom">
+            <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Chats</span>
+            </a>
+            <a href="{{ route('dashboard', ['filter' => 'private']) }}" class="flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Contacts</span>
+            </a>
+            <a href="{{ route('dashboard', ['filter' => 'archived']) }}" class="flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                <span>Archived</span>
+            </a>
+            <span class="flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-primary-teal)]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Settings</span>
+            </span>
         </nav>
     </aside>
 
     <!-- C. Settings Detail Panel (Column 2) -->
-    <main class="flex-1 bg-[var(--sl-chat-bg)] overflow-y-auto sl-scroll p-5 sm:p-8 h-full">
-        <div class="max-w-2xl space-y-6">
+    <main id="settings-main" class="{{ $mobileDetailOpen ? 'flex' : 'hidden md:block' }} flex-1 flex-col min-w-0 min-h-0 bg-[var(--sl-chat-bg)] overflow-y-auto overscroll-y-contain sl-scroll h-full">
+        <!-- Mobile Sticky Back Header for Settings Detail -->
+        <div class="md:hidden sticky top-0 z-10 px-3 py-2.5 bg-[var(--sl-conv-bg)] border-b border-[var(--sl-divider)] flex items-center gap-2 shrink-0">
+            <button type="button" onclick="backToSettingsList()" class="p-2 -ml-1 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] flex items-center gap-1 text-xs font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                <span>Pengaturan</span>
+            </button>
+            <span id="mobile-settings-title" class="text-xs font-bold text-[var(--sl-text-primary)] truncate">{{ $categories[$activeSection]['label'] ?? 'Account' }}</span>
+        </div>
+        <div class="p-4 sm:p-8 max-w-2xl space-y-6 sl-safe-bottom">
 
             @if(session('success'))
                 <div class="px-4 py-2.5 rounded-lg bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] text-xs font-semibold">
@@ -86,14 +126,14 @@
                     <div>
                         <label for="display_name" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">Display Name</label>
                         <input type="text" id="display_name" name="display_name" value="{{ old('display_name', $user->display_name) }}" required minlength="2" maxlength="50"
-                            oninput="updateSettingsAvatarPreview()" class="w-full px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+                            oninput="updateSettingsAvatarPreview()" class="w-full px-3.5 py-2 rounded-lg sl-input text-base sm:text-sm">
                     </div>
 
                     <div>
                         <label for="about_status" class="block text-xs font-semibold text-[var(--sl-text-primary)] mb-1">About / Status</label>
                         <input type="text" id="about_status" maxlength="100" placeholder="Tersedia untuk komunikasi terenkripsi"
                             oninput="localStorage.setItem('securelink_about', this.value)"
-                            class="w-full px-3.5 py-2 rounded-lg sl-input text-xs sm:text-sm">
+                            class="w-full px-3.5 py-2 rounded-lg sl-input text-base sm:text-sm">
                     </div>
 
                     <div>
@@ -208,7 +248,7 @@
                     <!-- Chat Font Size -->
                     <div class="space-y-2 pt-3 border-t border-[var(--sl-divider)]">
                         <label for="pref-font-size" class="block text-xs font-semibold text-[var(--sl-text-primary)]">Ukuran Font Chat</label>
-                        <select id="pref-font-size" onchange="handleFontSizeChange(this.value)" class="w-56 px-3 py-2 rounded-lg sl-input text-xs">
+                        <select id="pref-font-size" onchange="handleFontSizeChange(this.value)" class="w-full sm:w-56 px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
                             <option value="small">Small (12px)</option>
                             <option value="medium" selected>Medium (Default)</option>
                             <option value="large">Large (15.5px)</option>
@@ -281,7 +321,7 @@
 
                     <div class="pt-1">
                         <label for="sec-ephemeral-default" class="block font-semibold text-[var(--sl-text-primary)] mb-1">Default Ephemeral Message Duration</label>
-                        <select id="sec-ephemeral-default" onchange="syncEphemeralDefault(this.value)" class="w-48 px-3 py-2 rounded-lg sl-input text-xs">
+                        <select id="sec-ephemeral-default" onchange="syncEphemeralDefault(this.value)" class="w-full sm:w-48 px-3 py-2 rounded-lg sl-input text-base sm:text-xs">
                             <option value="0">Nonaktif (Normal)</option>
                             <option value="10">10 Detik</option>
                             <option value="30">30 Detik</option>
@@ -402,18 +442,48 @@
     const avatarSvgs = @json(\App\Models\UserSession::$avatarSvgs);
     let currentSettingsIcon = "{{ $settingsIcon }}";
 
-    function showSettingsSection(key) {
+    const sectionTitles = @json(collect($categories)->mapWithKeys(fn($v, $k) => [$k => $v['label']]));
+
+    function showSettingsSection(key, openMobileDetail = false) {
         document.querySelectorAll('.sec-panel').forEach(p => p.classList.add('hidden'));
         document.getElementById('sec-' + key)?.classList.remove('hidden');
 
         document.querySelectorAll('.sec-nav-btn').forEach(btn => {
             const active = btn.getAttribute('data-sec-btn') === key;
             btn.className = active
-                ? 'sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]'
-                : 'sec-nav-btn w-full text-left px-3 py-2.5 rounded-lg transition flex flex-col text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]';
+                ? 'sec-nav-btn w-full text-left px-3 py-3 md:py-2.5 rounded-lg transition flex items-center justify-between gap-2 bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)]'
+                : 'sec-nav-btn w-full text-left px-3 py-3 md:py-2.5 rounded-lg transition flex items-center justify-between gap-2 text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]';
         });
 
+        const titleEl = document.getElementById('mobile-settings-title');
+        if (titleEl && sectionTitles[key]) {
+            titleEl.textContent = sectionTitles[key];
+        }
+
+        if (openMobileDetail && window.innerWidth < 768) {
+            const sb = document.getElementById('settings-sidebar');
+            const main = document.getElementById('settings-main');
+            if (sb && main) {
+                sb.classList.remove('flex');
+                sb.classList.add('hidden', 'md:flex');
+                main.classList.remove('hidden', 'md:block');
+                main.classList.add('flex');
+                main.scrollTop = 0;
+            }
+        }
+
         if (key === 'connection') loadConnectionDiagnostics();
+    }
+
+    function backToSettingsList() {
+        const sb = document.getElementById('settings-sidebar');
+        const main = document.getElementById('settings-main');
+        if (sb && main) {
+            sb.classList.remove('hidden', 'md:flex');
+            sb.classList.add('flex');
+            main.classList.remove('flex');
+            main.classList.add('hidden', 'md:block');
+        }
     }
 
     function selectSettingsAvatarPreset(key) {

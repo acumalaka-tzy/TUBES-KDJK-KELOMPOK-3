@@ -3,7 +3,7 @@
     $isSettingsActive = request()->routeIs('settings');
 @endphp
 
-<aside aria-label="Primary Navigation" class="w-14 sm:w-16 bg-[var(--sl-nav-bg)] text-white flex flex-col items-center justify-between py-3.5 shrink-0 select-none z-30">
+<aside aria-label="Primary Navigation" class="hidden md:flex w-16 bg-[var(--sl-nav-bg)] text-white flex-col items-center justify-between py-3.5 shrink-0 select-none z-30">
     <!-- Top: Brand & Core Navigation -->
     <div class="flex flex-col items-center gap-2 w-full px-2">
         <a href="{{ route('dashboard') }}" class="w-10 h-10 rounded-xl bg-white flex items-center justify-center mb-2 overflow-hidden p-0.5 hover:opacity-90 transition" title="SecureLink">
@@ -103,5 +103,9 @@
         archBtn.classList.toggle('text-white/75', !isArch);
         archBtn.classList.toggle('hover:bg-white/10', !isArch);
         if (archInd) archInd.classList.toggle('hidden', !isArch);
+
+        if (typeof window.updateMobileNavActiveState === 'function') {
+            window.updateMobileNavActiveState(filter);
+        }
     };
 </script>

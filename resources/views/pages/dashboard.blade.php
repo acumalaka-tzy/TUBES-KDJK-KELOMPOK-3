@@ -3,16 +3,19 @@
 @section('title', 'Chats — SecureLink')
 
 @section('app_shell')
-<div class="h-screen w-screen overflow-hidden flex bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
+<div class="sl-app-shell h-screen w-screen overflow-hidden flex flex-col md:flex-row bg-[var(--sl-page-bg)] text-[var(--sl-text-primary)]">
 
-    <!-- A. Slim Icon Navigation Sidebar -->
+    <!-- A. Slim Icon Navigation Sidebar (Desktop md+ only) -->
     @include('partials.app-nav')
 
-    <!-- B. Conversation Sidebar -->
-    <section class="w-full md:w-80 lg:w-96 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col shrink-0 h-full">
-        <!-- Header: Brand, User, Single New Chat Button -->
-        <div class="px-4 py-3 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
+    <!-- B. Conversation Sidebar (Full screen on mobile, fixed column on desktop) -->
+    <section class="w-full flex-1 min-h-0 md:flex-none md:w-80 lg:w-96 border-r border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] flex flex-col shrink-0 md:h-full">
+        <!-- Header: Brand, User, New Chat & Mobile Drawer Trigger -->
+        <div class="px-3.5 sm:px-4 py-3 border-b border-[var(--sl-divider)] flex items-center justify-between gap-2 shrink-0">
             <div class="flex items-center gap-2.5 min-w-0">
+                <button type="button" onclick="toggleMobileDashboardDrawer(true)" class="md:hidden p-2 -ml-1 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] shrink-0" aria-label="Menu Navigasi" title="Menu Navigasi">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden p-0.5 shrink-0" style="background-color: {{ $user->avatar_color }}">
                     {!! $user->avatar_html !!}
                 </div>
@@ -23,7 +26,7 @@
             </div>
 
             <button type="button" onclick="openNewChatModal('menu')" title="Buat Room Baru"
-                class="px-3 py-1.5 rounded-lg sl-btn-coral text-xs font-semibold flex items-center gap-1.5 shrink-0">
+                class="px-3 py-2 md:py-1.5 rounded-lg sl-btn-coral text-xs font-semibold flex items-center gap-1.5 shrink-0 min-h-[36px]">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>New Chat</span>
             </button>
@@ -32,18 +35,19 @@
         <!-- Search & Filter Tabs -->
         <div class="px-3 py-2.5 border-b border-[var(--sl-divider)] space-y-2 shrink-0">
             <input type="text" id="room-search" placeholder="Cari percakapan atau Room ID..." oninput="filterRooms()"
-                class="w-full px-3 py-1.5 rounded-lg sl-input text-xs">
+                class="w-full px-3 py-2 md:py-1.5 rounded-lg sl-input text-base md:text-xs">
 
-            <div class="flex items-center gap-1 text-[11px] font-semibold">
-                <button type="button" onclick="setNavFilter('all')" data-filter="all" class="filter-pill px-2.5 py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition">All</button>
-                <button type="button" onclick="setNavFilter('private')" data-filter="private" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Private</button>
-                <button type="button" onclick="setNavFilter('group')" data-filter="group" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Groups</button>
-                <button type="button" onclick="setNavFilter('unread')" data-filter="unread" class="filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Unread</button>
+            <div class="flex items-center gap-1.5 text-xs md:text-[11px] font-semibold overflow-x-auto sl-no-scrollbar">
+                <button type="button" onclick="setNavFilter('all')" data-filter="all" class="filter-pill whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition">All</button>
+                <button type="button" onclick="setNavFilter('private')" data-filter="private" class="filter-pill whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Private</button>
+                <button type="button" onclick="setNavFilter('group')" data-filter="group" class="filter-pill whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Groups</button>
+                <button type="button" onclick="setNavFilter('unread')" data-filter="unread" class="filter-pill whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Unread</button>
+                <button type="button" onclick="setNavFilter('archived')" data-filter="archived" class="filter-pill md:hidden whitespace-nowrap shrink-0 px-2.5 py-1.5 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition">Archived</button>
             </div>
         </div>
 
         <!-- Conversation List (Flat List Layout) -->
-        <div id="conversation-list" class="flex-1 overflow-y-auto sl-scroll divide-y divide-[var(--sl-divider)]/50">
+        <div id="conversation-list" class="flex-1 min-h-0 overflow-y-auto overscroll-y-contain sl-scroll divide-y divide-[var(--sl-divider)]/50">
             @if($participations->isEmpty())
                 <div class="p-6 text-center space-y-1.5">
                     <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Belum ada percakapan</div>
@@ -115,7 +119,88 @@
         </div>
     </section>
 
-    <!-- C. Minimalist Empty State Area -->
+    <!-- Mobile Bottom Navigation Bar (Dashboard only, hidden on desktop md+) -->
+    <nav aria-label="Mobile Navigation" class="md:hidden shrink-0 border-t border-[var(--sl-divider)] bg-[var(--sl-conv-bg)] grid grid-cols-4 sl-safe-bottom z-20">
+        <button type="button" onclick="setNavFilter('all')" data-mnav="all"
+            class="mnav-btn flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-primary-teal)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Chats</span>
+        </button>
+        <button type="button" onclick="setNavFilter('private')" data-mnav="private"
+            class="mnav-btn flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Contacts</span>
+        </button>
+        <button type="button" onclick="setNavFilter('archived')" data-mnav="archived"
+            class="mnav-btn flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+            <span>Archived</span>
+        </button>
+        <a href="{{ route('settings') }}"
+            class="flex flex-col items-center justify-center py-2 gap-0.5 text-[11px] font-semibold text-[var(--sl-text-secondary)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    <!-- Mobile Navigation Slide-Over Drawer (Hidden on desktop md+) -->
+    <div id="mobile-dashboard-drawer" class="hidden md:hidden fixed inset-0 z-50 flex">
+        <div onclick="toggleMobileDashboardDrawer(false)" class="fixed inset-0 bg-black/50"></div>
+        <aside class="relative z-10 w-72 max-w-[85vw] h-full bg-[var(--sl-conv-bg)] border-r border-[var(--sl-divider)] flex flex-col justify-between p-4 shadow-xl sl-safe-bottom">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-[var(--sl-divider)]">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden p-0.5 shrink-0" style="background-color: {{ $user->avatar_color }}">
+                            {!! $user->avatar_html !!}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-[var(--sl-text-primary)] truncate">{{ $user->display_name }}</div>
+                            <div class="text-[10px] font-mono text-[var(--sl-text-secondary)] truncate">{{ $user->user_id }}</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="toggleMobileDashboardDrawer(false)" class="p-2 rounded-lg text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] text-base font-bold">&times;</button>
+                </div>
+
+                <div class="space-y-1 text-xs font-semibold">
+                    <button type="button" onclick="setNavFilter('all'); toggleMobileDashboardDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] text-left">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Chats</span>
+                    </button>
+                    <button type="button" onclick="setNavFilter('private'); toggleMobileDashboardDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] text-left">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        <span>Contacts</span>
+                    </button>
+                    <button type="button" onclick="setNavFilter('group'); toggleMobileDashboardDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] text-left">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+                        <span>Groups</span>
+                    </button>
+                    <button type="button" onclick="setNavFilter('archived'); toggleMobileDashboardDrawer(false);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] text-left">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                        <span>Archived</span>
+                    </button>
+                    <a href="{{ route('settings') }}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]">
+                        <svg class="w-4 h-4 text-[var(--sl-primary-teal)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-[var(--sl-divider)] space-y-2 text-xs font-semibold">
+                <button type="button" onclick="cycleTheme()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)]">
+                    <span>Ganti Tema</span>
+                    <span class="text-[11px] text-[var(--sl-text-secondary)]">Light / Dark</span>
+                </button>
+                <form action="{{ route('identity.logout.web') }}" method="POST" onsubmit="event.preventDefault(); window.slConfirmSignOut(this);">
+                    @csrf
+                    <button type="submit" class="w-full text-left px-3 py-2.5 rounded-lg text-[var(--sl-accent-coral)] hover:bg-[var(--sl-accent-coral)]/10 transition">
+                        Keluar Sesi (Logout)
+                    </button>
+                </form>
+            </div>
+        </aside>
+    </div>
+
+    <!-- C. Minimalist Empty State Area (Desktop only) -->
     <main class="hidden md:flex flex-1 bg-[var(--sl-chat-bg)] flex-col items-center justify-center p-8 text-center h-full">
         <div class="max-w-sm space-y-4">
             <div class="w-12 h-12 rounded-xl bg-[var(--sl-soft-teal)] text-[var(--sl-primary-teal)] flex items-center justify-center mx-auto">
@@ -187,15 +272,34 @@
         return fallbackText || 'Pesan terenkripsi';
     }
 
+    function toggleMobileDashboardDrawer(open) {
+        const drawer = document.getElementById('mobile-dashboard-drawer');
+        if (!drawer) return;
+        const shouldOpen = typeof open === 'boolean' ? open : drawer.classList.contains('hidden');
+        drawer.classList.toggle('hidden', !shouldOpen);
+    }
+
+    function updateMobileNavActiveState(filter) {
+        document.querySelectorAll('.mnav-btn').forEach(btn => {
+            const key = btn.getAttribute('data-mnav');
+            const isActive = (key === filter) || (key === 'all' && (filter === 'group' || filter === 'unread'));
+            btn.classList.toggle('text-[var(--sl-primary-teal)]', isActive);
+            btn.classList.toggle('text-[var(--sl-text-secondary)]', !isActive);
+        });
+    }
+    window.updateMobileNavActiveState = updateMobileNavActiveState;
+
     function setNavFilter(filter) {
         currentFilter = filter;
         document.querySelectorAll('.filter-pill').forEach(btn => {
             const active = btn.getAttribute('data-filter') === filter;
+            const mobileOnly = btn.classList.contains('md:hidden') ? ' md:hidden' : '';
             btn.className = active
-                ? 'filter-pill px-2.5 py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
-                : 'filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
+                ? `filter-pill${mobileOnly} whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition`
+                : `filter-pill${mobileOnly} whitespace-nowrap shrink-0 px-2.5 py-1.5 md:py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition`;
         });
         window.updateNavActiveState?.(filter);
+        updateMobileNavActiveState(filter);
         filterRooms();
     }
     window.setNavFilter = setNavFilter;
