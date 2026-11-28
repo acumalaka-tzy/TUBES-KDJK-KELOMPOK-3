@@ -54,42 +54,64 @@
                     @php
                         $room = $part->room;
                         $isGroup = $room->max_participants > 2;
-                        $isArchived = $room->isLocked();
+                        $summary = $roomSummaries[$room->room_id] ?? ['is_archived' => (bool) $part->is_archived, 'unread_count' => 0, 'last_message_preview' => null, 'last_message_time' => $part->last_seen_at?->format('H:i')];
+                        $isArchived = (bool) ($summary['is_archived'] ?? false);
+                        $unreadCount = (int) ($summary['unread_count'] ?? 0);
+                        $unreadLabel = $unreadCount > 99 ? '99+' : (string) $unreadCount;
+                        $previewText = $summary['last_message_preview'] ?: ($isGroup ? ($room->active_participants_count . ' anggota · ' . $room->room_id) : ('Private P2P · ' . $room->room_id));
+                        $timeText = $summary['last_message_time'] ?: $part->last_seen_at?->format('H:i');
                     @endphp
-                    <a href="{{ route('rooms.show', $room->room_id) }}"
-                       class="room-item flex items-center justify-between gap-2.5 px-3.5 py-3 hover:bg-[var(--sl-hover)] transition"
-                       data-name="{{ strtolower($room->room_name) }}"
-                       data-id="{{ strtolower($room->room_id) }}"
-                       data-type="{{ $isGroup ? 'group' : 'private' }}"
-                       data-archived="{{ $isArchived ? '1' : '0' }}"
-                       data-unread="0">
-                        <div class="flex items-center gap-3 min-w-0">
+                    <div class="room-item relative group flex items-center justify-between gap-2 px-3.5 py-3 hover:bg-[var(--sl-hover)] transition"
+                         data-room-id="{{ $room->room_id }}"
+                         data-name="{{ strtolower($room->room_name) }}"
+                         data-id="{{ strtolower($room->room_id) }}"
+                         data-type="{{ $isGroup ? 'group' : 'private' }}"
+                         data-archived="{{ $isArchived ? '1' : '0' }}"
+                         data-unread="{{ $unreadCount }}">
+                        <a href="{{ route('rooms.show', $room->room_id) }}" class="flex items-center gap-3 min-w-0 flex-1">
                             <div class="relative shrink-0">
                                 <div class="w-10 h-10 rounded-full {{ $isGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center uppercase">
                                     {{ strtoupper(substr($room->room_name, 0, $isGroup ? 2 : 1)) }}
                                 </div>
-                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]"></span>
+                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]" title="Online"></span>
                             </div>
-                            <div class="min-w-0">
-                                <div class="text-xs font-semibold text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</div>
-                                <div class="text-[11px] text-[var(--sl-text-secondary)] truncate">
-                                    @if($isGroup)
-                                        {{ $room->active_participants_count }} anggota &middot; {{ $room->room_id }}
-                                    @else
-                                        Private P2P &middot; {{ $room->room_id }}
-                                    @endif
+                            <div class="min-w-0 flex-1">
+                                <div class="room-title text-xs {{ $unreadCount > 0 ? 'font-semibold' : 'font-medium' }} text-[var(--sl-text-primary)] truncate">{{ $room->room_name }}</div>
+                                <div class="room-preview text-[11px] {{ $unreadCount > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]' }} truncate">
+                                    {{ $previewText }}
+                                </div>
+                            </div>
+                        </a>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <div class="flex flex-col items-end gap-1">
+                                <div class="room-time text-[10px] {{ $unreadCount > 0 ? 'font-semibold text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)]' }}">{{ $timeText }}</div>
+                                <span class="unread-badge {{ $unreadCount > 0 ? 'inline-flex' : 'hidden' }} items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] text-[10px] font-bold leading-none">{{ $unreadLabel }}</span>
+                            </div>
+                            <div class="relative">
+                                <button type="button" onclick="toggleConvMenu(event, '{{ $room->room_id }}')" class="p-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-active-conv)] transition" title="Opsi percakapan" aria-label="Opsi percakapan">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>
+                                </button>
+                                <div id="conv-menu-{{ $room->room_id }}" class="conv-context-menu hidden absolute right-0 top-7 w-44 rounded-lg bg-[var(--sl-conv-bg)] border border-[var(--sl-divider)] shadow-lg py-1 z-50">
+                                    <button type="button" onclick="toggleArchiveConversation(event, '{{ $room->room_id }}')" class="archive-toggle-btn w-full text-left px-3 py-1.5 text-xs text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] transition">
+                                        {{ $isArchived ? 'Keluarkan dari arsip' : 'Arsipkan percakapan' }}
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-[10px] text-[var(--sl-text-secondary)]">{{ $part->last_seen_at?->format('H:i') }}</div>
-                            @if($isArchived)
-                                <span class="text-[10px] text-[var(--sl-accent-coral)] font-semibold">Locked</span>
-                            @endif
-                        </div>
-                    </a>
+                    </div>
                 @endforeach
             @endif
+
+            <!-- Archived Empty State -->
+            <div id="archived-empty-state" class="hidden p-8 text-center space-y-2">
+                <div class="w-10 h-10 rounded-xl bg-[var(--sl-hover)] text-[var(--sl-text-secondary)] flex items-center justify-center mx-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>
+                    </svg>
+                </div>
+                <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Belum ada percakapan yang diarsipkan</div>
+                <div class="text-[11px] text-[var(--sl-text-secondary)]">Percakapan yang diarsipkan akan muncul di sini.</div>
+            </div>
         </div>
     </section>
 
@@ -117,6 +139,8 @@
 @include('partials.new-chat-modal')
 
 <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const currentUserId = @json($user->user_id);
     let currentFilter = new URLSearchParams(window.location.search).get('filter') || 'all';
 
     function setNavFilter(filter) {
@@ -127,32 +151,145 @@
                 ? 'filter-pill px-2.5 py-1 rounded-md bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
                 : 'filter-pill px-2.5 py-1 rounded-md text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
         });
+        window.updateNavActiveState?.(filter);
         filterRooms();
     }
     window.setNavFilter = setNavFilter;
 
     function filterRooms() {
         const query = (document.getElementById('room-search')?.value || '').toLowerCase().trim();
+        let visibleCount = 0;
+
         document.querySelectorAll('.room-item').forEach(item => {
             const name = item.getAttribute('data-name') || '';
             const id = item.getAttribute('data-id') || '';
             const type = item.getAttribute('data-type') || 'private';
             const archived = item.getAttribute('data-archived') === '1';
-            const unread = item.getAttribute('data-unread') === '1';
+            const unreadCount = parseInt(item.getAttribute('data-unread') || '0', 10);
 
             const matchesQuery = name.includes(query) || id.includes(query);
             let matchesFilter = true;
-            if (currentFilter === 'private') matchesFilter = (type === 'private');
-            else if (currentFilter === 'group') matchesFilter = (type === 'group');
-            else if (currentFilter === 'archived') matchesFilter = archived;
-            else if (currentFilter === 'unread') matchesFilter = unread;
+            if (currentFilter === 'archived') {
+                matchesFilter = archived;
+            } else if (archived) {
+                matchesFilter = false;
+            } else if (currentFilter === 'private') {
+                matchesFilter = (type === 'private');
+            } else if (currentFilter === 'group') {
+                matchesFilter = (type === 'group');
+            } else if (currentFilter === 'unread') {
+                matchesFilter = unreadCount > 0;
+            }
 
-            item.style.display = (matchesQuery && matchesFilter) ? 'flex' : 'none';
+            const show = matchesQuery && matchesFilter;
+            item.style.display = show ? 'flex' : 'none';
+            if (show) visibleCount++;
         });
+
+        const archivedEmpty = document.getElementById('archived-empty-state');
+        if (archivedEmpty) {
+            archivedEmpty.classList.toggle('hidden', !(currentFilter === 'archived' && visibleCount === 0));
+        }
+    }
+
+    function toggleConvMenu(event, roomId) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.querySelectorAll('.conv-context-menu').forEach(menu => {
+            if (menu.id !== `conv-menu-${roomId}`) menu.classList.add('hidden');
+        });
+        document.getElementById(`conv-menu-${roomId}`)?.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.conv-context-menu').forEach(menu => menu.classList.add('hidden'));
+    });
+
+    function applyConversationUpdate(data) {
+        if (!data || !data.room_id) return;
+        const item = document.querySelector(`.room-item[data-room-id="${data.room_id}"]`);
+        if (!item) return;
+
+        const unreadCount = parseInt(data.unread_count ?? 0, 10);
+        const isArchived = Boolean(data.is_archived);
+        item.setAttribute('data-unread', String(unreadCount));
+        item.setAttribute('data-archived', isArchived ? '1' : '0');
+
+        const titleEl = item.querySelector('.room-title');
+        const previewEl = item.querySelector('.room-preview');
+        const timeEl = item.querySelector('.room-time');
+        const badgeEl = item.querySelector('.unread-badge');
+        const archiveBtn = item.querySelector('.archive-toggle-btn');
+
+        if (titleEl) {
+            titleEl.className = `room-title text-xs ${unreadCount > 0 ? 'font-semibold' : 'font-medium'} text-[var(--sl-text-primary)] truncate`;
+        }
+        if (previewEl) {
+            if (data.last_message_preview) previewEl.textContent = data.last_message_preview;
+            previewEl.className = `room-preview text-[11px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]'} truncate`;
+        }
+        if (timeEl) {
+            if (data.last_message_time) timeEl.textContent = data.last_message_time;
+            timeEl.className = `room-time text-[10px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)]'}`;
+        }
+        if (badgeEl) {
+            badgeEl.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+            badgeEl.classList.toggle('hidden', unreadCount <= 0);
+            badgeEl.classList.toggle('inline-flex', unreadCount > 0);
+        }
+        if (archiveBtn) {
+            archiveBtn.textContent = isArchived ? 'Keluarkan dari arsip' : 'Arsipkan percakapan';
+        }
+
+        if (data.action === 'message') {
+            const list = document.getElementById('conversation-list');
+            if (list && list.firstElementChild !== item) {
+                list.insertBefore(item, list.firstElementChild);
+            }
+        }
+
+        filterRooms();
+    }
+
+    function toggleArchiveConversation(event, roomId) {
+        event.preventDefault();
+        event.stopPropagation();
+        const item = document.querySelector(`.room-item[data-room-id="${roomId}"]`);
+        const isArchived = item?.getAttribute('data-archived') === '1';
+        const endpoint = isArchived ? `/api/rooms/${roomId}/unarchive` : `/api/rooms/${roomId}/archive`;
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                applyConversationUpdate({
+                    room_id: roomId,
+                    unread_count: parseInt(item?.getAttribute('data-unread') || '0', 10),
+                    is_archived: Boolean(data.is_archived),
+                    action: data.is_archived ? 'archived' : 'unarchived',
+                });
+                window.slToast?.(data.is_archived ? 'Percakapan diarsipkan.' : 'Percakapan dikeluarkan dari arsip.', 'success');
+            }
+        })
+        .catch(() => window.slToast?.('Gagal memperbarui status arsip.', 'error'));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (currentFilter !== 'all') setNavFilter(currentFilter);
+        setNavFilter(currentFilter);
+
+        if (window.Echo && currentUserId) {
+            try {
+                window.Echo.private(`user.${currentUserId}`)
+                    .listen('.conversation.updated', (data) => applyConversationUpdate(data));
+            } catch (e) {}
+        }
     });
 </script>
 @endsection

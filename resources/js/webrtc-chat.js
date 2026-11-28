@@ -49,9 +49,11 @@ export class SecureLinkPeer {
         this.onSecurityEvent = config.onSecurityEvent || (() => {});
         this.onPeerListChange = config.onPeerListChange || (() => {});
         this.onMessageSent = config.onMessageSent || (() => {});
+        this.onMessageQueued = config.onMessageQueued || (() => {});
         this.onMessageAck = config.onMessageAck || (() => {});
         this.onMessageRead = config.onMessageRead || (() => {});
         this.onMessageFailed = config.onMessageFailed || (() => {});
+        this.pendingMessageSaver = config.pendingMessageSaver || null;
         this.onDiagnosticsUpdate = config.onDiagnosticsUpdate || (() => {});
         this.signalSender = config.signalSender || null;
 
@@ -1044,8 +1046,12 @@ export class SecureLinkPeer {
         }
         if (record.retries >= this.maxMessageRetries) {
             if (!record.delivered && !record.failed) {
-                record.failed = true;
-                this.onMessageFailed(record.id, 'ack_timeout');
+                if (this.pendingMessageSaver && !record.queued) {
+                    this.queueRecordOnServer(record);
+                } else if (!record.queued) {
+                    record.failed = true;
+                    this.onMessageFailed(record.id, 'ack_timeout');
+                }
             }
             return;
         }
@@ -1056,6 +1062,92 @@ export class SecureLinkPeer {
             await this.sendRecordToPeers(record);
             this.scheduleRecordRetry(record);
         }, delay);
+    }
+
+    async encryptRoomEnvelope(text, messageId) {
+        if (!window.crypto?.subtle) {
+            return {
+                ciphertext: bytesToBase64(new TextEncoder().encode(text)),
+                iv: null,
+                encrypted: false,
+                algorithm: null,
+            };
+        }
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.digest('SHA-256', enc.encode(`securelink-room-envelope:${this.roomId}`));
+        const roomKey = await window.crypto.subtle.importKey('raw', keyMaterial, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const aad = enc.encode(`${this.roomId}|${this.userId}|${messageId}`);
+        const encryptedBuf = await window.crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv, additionalData: aad },
+            roomKey,
+            enc.encode(text)
+        );
+        return {
+            ciphertext: bytesToBase64(new Uint8Array(encryptedBuf)),
+            iv: bytesToBase64(iv),
+            encrypted: true,
+            algorithm: 'AES-256-GCM-ENVELOPE',
+        };
+    }
+
+    async decryptRoomEnvelope(ciphertext, iv, senderId, messageId, encrypted = true, transport = 'p2p') {
+        if (transport === 'broadcast' && encrypted === false && !iv) {
+            return ciphertext;
+        }
+        if (!iv || encrypted === false) {
+            try {
+                return new TextDecoder().decode(base64ToBytes(ciphertext));
+            } catch (e) {
+                return ciphertext;
+            }
+        }
+        if (!window.crypto?.subtle) {
+            return '[Pesan terenkripsi — buka melalui HTTPS atau localhost untuk dekripsi]';
+        }
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.digest('SHA-256', enc.encode(`securelink-room-envelope:${this.roomId}`));
+        const roomKey = await window.crypto.subtle.importKey('raw', keyMaterial, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+        const aad = enc.encode(`${this.roomId}|${senderId}|${messageId}`);
+        const plainBuf = await window.crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: base64ToBytes(iv), additionalData: aad },
+            roomKey,
+            base64ToBytes(ciphertext)
+        );
+        return new TextDecoder().decode(plainBuf);
+    }
+
+    async queueRecordOnServer(record) {
+        if (!this.pendingMessageSaver) {
+            record.failed = true;
+            this.onMessageFailed(record.id, 'no_peer_connected');
+            return false;
+        }
+        try {
+            const envelope = await this.encryptRoomEnvelope(record.text, record.id);
+            const ok = await this.pendingMessageSaver({
+                message_id: record.id,
+                ciphertext: envelope.ciphertext,
+                iv: envelope.iv,
+                encrypted: envelope.encrypted,
+                algorithm: envelope.algorithm,
+                transport: 'p2p',
+                ephemeral_duration: record.ephemeralDuration || 0,
+                reply_to: record.replyTo || null,
+                client_timestamp: record.timestamp,
+            });
+            if (ok) {
+                record.queued = true;
+                record.failed = false;
+                this.onMessageQueued(record.id);
+                return true;
+            }
+        } catch (err) {
+            console.error('[SecureLink] Gagal menyimpan pending envelope:', err);
+        }
+        record.failed = true;
+        this.onMessageFailed(record.id, 'server_store_failed');
+        return false;
     }
 
     async broadcastMessage(text, ephemeralDuration = 0, replyTo = null, customMessageId = null) {
@@ -1069,6 +1161,7 @@ export class SecureLinkPeer {
             replyTo,
             timestamp,
             sent: false,
+            queued: false,
             delivered: false,
             failed: false,
             ackedBy: new Set(),
@@ -1078,16 +1171,12 @@ export class SecureLinkPeer {
         };
         this.messageStore.set(messageId, record);
 
-        await this.sendRecordToPeers(record);
+        const sentCount = await this.sendRecordToPeers(record);
 
-        if (this.peers.size > 0) {
+        if (sentCount > 0) {
             this.scheduleRecordRetry(record);
         } else {
-            record.retryTimer = setTimeout(() => {
-                if (this.destroyed || record.delivered || record.sent) return;
-                record.failed = true;
-                this.onMessageFailed(record.id, 'no_peer_connected');
-            }, 12000);
+            await this.queueRecordOnServer(record);
         }
 
         return {
@@ -1108,18 +1197,15 @@ export class SecureLinkPeer {
             record.retryTimer = null;
         }
         record.failed = false;
+        record.queued = false;
         record.retries = 0;
 
-        await this.sendRecordToPeers(record);
+        const sentCount = await this.sendRecordToPeers(record);
 
-        if (this.peers.size > 0) {
+        if (sentCount > 0) {
             this.scheduleRecordRetry(record);
         } else {
-            record.retryTimer = setTimeout(() => {
-                if (this.destroyed || record.delivered || record.sent) return;
-                record.failed = true;
-                this.onMessageFailed(record.id, 'no_peer_connected');
-            }, 12000);
+            await this.queueRecordOnServer(record);
         }
 
         return true;

@@ -7,6 +7,8 @@ use App\Http\Requests\JoinRoomRequest;
 use App\Http\Requests\KickParticipantRequest;
 use App\Http\Requests\UpdateRoomSettingsRequest;
 use App\Models\Room;
+use App\Models\RoomParticipant;
+use App\Services\ConversationStateService;
 use App\Services\RoomPinValidationService;
 use App\Services\RoomService;
 use App\Services\UserIdentityService;
@@ -19,7 +21,8 @@ class RoomController extends Controller
     public function __construct(
         protected RoomService $roomService,
         protected UserIdentityService $identityService,
-        protected RoomPinValidationService $pinService
+        protected RoomPinValidationService $pinService,
+        protected ConversationStateService $conversationState
     ) {}
 
     /**
@@ -41,6 +44,7 @@ class RoomController extends Controller
 
         $rooms = $participations->map(function ($part) {
             $room = $part->room;
+            $summary = $this->conversationState->getRoomSummaryForParticipant($part);
 
             return [
                 'room_id' => $room->room_id,
@@ -48,6 +52,10 @@ class RoomController extends Controller
                 'role' => $part->role,
                 'is_locked' => $room->isLocked(),
                 'has_pin' => $room->hasPin(),
+                'is_archived' => $summary['is_archived'],
+                'unread_count' => $summary['unread_count'],
+                'last_message_preview' => $summary['last_message_preview'],
+                'last_message_time' => $summary['last_message_time'],
                 'active_participants_count' => $room->active_participants_count,
                 'max_participants' => $room->max_participants,
                 'joined_at' => $part->joined_at?->toIso8601String(),
@@ -557,6 +565,74 @@ class RoomController extends Controller
             'success' => true,
             'message' => 'Secret Dynamic PIN (TOTP) berhasil dirotasi.',
             'dynamic_pin' => $status,
+        ]);
+    }
+
+    /**
+     * Archive a conversation for the current user only.
+     */
+    public function archive(Request $request, string $roomId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $participant = RoomParticipant::with('room')
+            ->where('room_id', $roomId)
+            ->where('user_id', $user->user_id)
+            ->where('is_kicked', false)
+            ->first();
+
+        if (! $participant) {
+            return response()->json(['success' => false, 'message' => 'Anda bukan anggota room ini.'], 403);
+        }
+
+        $participant->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        $this->conversationState->notifyUserConversationUpdated($participant->fresh(['room']), 'archived');
+
+        return response()->json([
+            'success' => true,
+            'room_id' => $roomId,
+            'is_archived' => true,
+        ]);
+    }
+
+    /**
+     * Unarchive a conversation for the current user only.
+     */
+    public function unarchive(Request $request, string $roomId): JsonResponse
+    {
+        $user = $this->identityService->getCurrentUser($request);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Tidak terautentikasi.'], 401);
+        }
+
+        $participant = RoomParticipant::with('room')
+            ->where('room_id', $roomId)
+            ->where('user_id', $user->user_id)
+            ->where('is_kicked', false)
+            ->first();
+
+        if (! $participant) {
+            return response()->json(['success' => false, 'message' => 'Anda bukan anggota room ini.'], 403);
+        }
+
+        $participant->update([
+            'is_archived' => false,
+            'archived_at' => null,
+        ]);
+
+        $this->conversationState->notifyUserConversationUpdated($participant->fresh(['room']), 'unarchived');
+
+        return response()->json([
+            'success' => true,
+            'room_id' => $roomId,
+            'is_archived' => false,
         ]);
     }
 }

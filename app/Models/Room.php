@@ -105,6 +105,16 @@ class Room extends Model
         return $this->hasMany(SecurityLog::class, 'room_id', 'room_id');
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(RoomMessage::class, 'room_id', 'room_id');
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(MessageReceipt::class, 'room_id', 'room_id');
+    }
+
     /**
      * Check if room is protected with a static or dynamic PIN.
      */

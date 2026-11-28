@@ -11,12 +11,12 @@
         </a>
 
         <!-- Chats -->
-        <a href="{{ route('dashboard') }}"
-           onclick="if (typeof window.setNavFilter === 'function') { window.setNavFilter('all'); }"
+        <a id="nav-chats-btn" href="{{ route('dashboard') }}"
+           onclick="if (typeof window.setNavFilter === 'function') { event.preventDefault(); window.setNavFilter('all'); }"
            class="group relative w-10 h-10 rounded-xl flex items-center justify-center transition {{ $isChatsActive ? 'bg-white/20 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white' }}"
            title="Chats">
             @if($isChatsActive)
-                <span class="absolute -left-2 w-1 h-5 rounded-r bg-[var(--sl-accent-coral)]"></span>
+                <span id="nav-chats-indicator" class="absolute -left-2 w-1 h-5 rounded-r bg-[var(--sl-accent-coral)]"></span>
             @endif
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -24,22 +24,12 @@
             <span class="pointer-events-none hidden md:block opacity-0 group-hover:opacity-100 transition absolute left-13 px-2 py-1 rounded bg-[#20292B] text-white text-[11px] font-medium whitespace-nowrap z-50">Chats</span>
         </a>
 
-        <!-- Contacts -->
-        <button type="button"
-           onclick="if (typeof window.setNavFilter === 'function') { window.setNavFilter('private'); } else { window.location.href='{{ route('dashboard', ['filter' => 'private']) }}'; }"
-           class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-white/10 hover:text-white transition"
-           title="Contacts">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span class="pointer-events-none hidden md:block opacity-0 group-hover:opacity-100 transition absolute left-13 px-2 py-1 rounded bg-[#20292B] text-white text-[11px] font-medium whitespace-nowrap z-50">Contacts</span>
-        </button>
-
         <!-- Archived -->
-        <button type="button"
+        <button id="nav-archived-btn" type="button"
            onclick="if (typeof window.setNavFilter === 'function') { window.setNavFilter('archived'); } else { window.location.href='{{ route('dashboard', ['filter' => 'archived']) }}'; }"
            class="group relative w-10 h-10 rounded-xl flex items-center justify-center text-white/75 hover:bg-white/10 hover:text-white transition"
            title="Archived">
+            <span id="nav-archived-indicator" class="hidden absolute -left-2 w-1 h-5 rounded-r bg-[var(--sl-accent-coral)]"></span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                 <rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>
             </svg>
@@ -92,3 +82,26 @@
         </form>
     </div>
 </aside>
+
+<script>
+    window.updateNavActiveState = function(filter) {
+        const chatsBtn = document.getElementById('nav-chats-btn');
+        const chatsInd = document.getElementById('nav-chats-indicator');
+        const archBtn = document.getElementById('nav-archived-btn');
+        const archInd = document.getElementById('nav-archived-indicator');
+        if (!chatsBtn || !archBtn) return;
+
+        const isArch = (filter === 'archived');
+        chatsBtn.classList.toggle('bg-white/20', !isArch);
+        chatsBtn.classList.toggle('text-white', !isArch);
+        chatsBtn.classList.toggle('text-white/75', isArch);
+        chatsBtn.classList.toggle('hover:bg-white/10', isArch);
+        if (chatsInd) chatsInd.classList.toggle('hidden', isArch);
+
+        archBtn.classList.toggle('bg-white/20', isArch);
+        archBtn.classList.toggle('text-white', isArch);
+        archBtn.classList.toggle('text-white/75', !isArch);
+        archBtn.classList.toggle('hover:bg-white/10', !isArch);
+        if (archInd) archInd.classList.toggle('hidden', !isArch);
+    };
+</script>

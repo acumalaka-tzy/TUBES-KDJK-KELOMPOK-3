@@ -19,7 +19,11 @@ class RoomParticipant extends Model
         'display_name',
         'role',
         'connection_status',
+        'presence_state',
         'is_kicked',
+        'is_archived',
+        'archived_at',
+        'last_read_message_id',
         'joined_at',
         'last_seen_at',
     ];
@@ -28,6 +32,8 @@ class RoomParticipant extends Model
     {
         return [
             'is_kicked' => 'boolean',
+            'is_archived' => 'boolean',
+            'archived_at' => 'datetime',
             'joined_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];

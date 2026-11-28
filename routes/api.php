@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BroadcastComparisonController;
+use App\Http\Controllers\ConversationMessageController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SecurityInformationController;
 use App\Http\Controllers\SecurityLogController;
@@ -59,6 +60,19 @@ Route::prefix('rooms')->middleware(['identity'])->group(function () {
         Route::post('/{roomId}/receipt', [BroadcastComparisonController::class, 'receipt'])
             ->middleware('throttle:120,1')
             ->name('api.rooms.receipt');
+        Route::post('/{roomId}/messages', [ConversationMessageController::class, 'store'])
+            ->middleware('throttle:120,1')
+            ->name('api.rooms.messages.store');
+        Route::get('/{roomId}/pending-messages', [ConversationMessageController::class, 'pending'])
+            ->middleware('throttle:60,1')
+            ->name('api.rooms.messages.pending');
+        Route::post('/{roomId}/presence', [ConversationMessageController::class, 'updatePresence'])
+            ->middleware('throttle:120,1')
+            ->name('api.rooms.presence');
+        Route::post('/{roomId}/archive', [RoomController::class, 'archive'])
+            ->name('api.rooms.archive');
+        Route::post('/{roomId}/unarchive', [RoomController::class, 'unarchive'])
+            ->name('api.rooms.unarchive');
         Route::get('/{roomId}/security-info', [SecurityInformationController::class, 'roomInfo'])->name('api.rooms.security_info');
         Route::get('/{roomId}/security-logs', [SecurityLogController::class, 'index'])->name('api.rooms.security_logs.index');
         Route::post('/{roomId}/security-logs', [SecurityLogController::class, 'store'])->name('api.rooms.security_logs.store');

@@ -52,34 +52,66 @@
                     $uRoom = $uPart->room;
                     $isActive = ($uRoom->room_id === $room->room_id);
                     $uIsGroup = $uRoom->max_participants > 2;
+                    $uSummary = $roomSummaries[$uRoom->room_id] ?? ['is_archived' => (bool) $uPart->is_archived, 'unread_count' => 0, 'last_message_preview' => null, 'last_message_time' => $uPart->last_seen_at?->format('H:i')];
+                    $uArchived = (bool) ($uSummary['is_archived'] ?? false);
+                    $uUnread = (int) ($uSummary['unread_count'] ?? 0);
+                    $uUnreadLabel = $uUnread > 99 ? '99+' : (string) $uUnread;
+                    $uPreview = $uSummary['last_message_preview'] ?: (($uIsGroup ? ($uRoom->active_participants_count ?? 1) . ' anggota' : 'Private P2P') . ' · ' . $uRoom->room_id);
+                    $uTime = $uSummary['last_message_time'] ?: $uPart->last_seen_at?->format('H:i');
                 @endphp
-                <a href="{{ route('rooms.show', $uRoom->room_id) }}"
-                   class="sidebar-item flex items-center justify-between gap-2.5 px-3.5 py-2.5 transition {{ $isActive ? 'bg-[var(--sl-active-conv)]' : 'hover:bg-[var(--sl-hover)]' }}"
-                   data-name="{{ strtolower($uRoom->room_name) }}"
-                   data-id="{{ strtolower($uRoom->room_id) }}"
-                   data-type="{{ $uIsGroup ? 'group' : 'private' }}"
-                   data-unread="0">
-                    <div class="flex items-center gap-2.5 min-w-0">
+                <div class="sidebar-item relative group flex items-center justify-between gap-2 px-3.5 py-2.5 transition {{ $isActive ? 'bg-[var(--sl-active-conv)]' : 'hover:bg-[var(--sl-hover)]' }}"
+                     data-room-id="{{ $uRoom->room_id }}"
+                     data-name="{{ strtolower($uRoom->room_name) }}"
+                     data-id="{{ strtolower($uRoom->room_id) }}"
+                     data-type="{{ $uIsGroup ? 'group' : 'private' }}"
+                     data-archived="{{ $uArchived ? '1' : '0' }}"
+                     data-unread="{{ $uUnread }}">
+                    <a href="{{ route('rooms.show', $uRoom->room_id) }}" class="flex items-center gap-2.5 min-w-0 flex-1">
                         <div class="relative shrink-0">
                             <div class="w-9 h-9 rounded-full {{ $uIsGroup ? 'bg-[var(--sl-secondary-teal)]' : 'bg-[var(--sl-primary-teal)]' }} text-white dark:text-[#182425] text-xs font-bold flex items-center justify-center uppercase">
                                 {{ strtoupper(substr($uRoom->room_name, 0, $uIsGroup ? 2 : 1)) }}
                             </div>
-                            <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]"></span>
+                            <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[var(--sl-success)] ring-2 ring-[var(--sl-conv-bg)]" title="Online"></span>
                         </div>
-                        <div class="min-w-0">
-                            <div class="text-xs font-semibold truncate {{ $isActive ? 'text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)]' }}">{{ $uRoom->room_name }}</div>
-                            <div class="text-[11px] text-[var(--sl-text-secondary)] truncate">
-                                {{ $uIsGroup ? ($uRoom->active_participants_count ?? 1) . ' anggota' : 'Private P2P' }} &middot; {{ $uRoom->room_id }}
+                        <div class="min-w-0 flex-1">
+                            <div class="sidebar-room-title text-xs {{ $uUnread > 0 ? 'font-semibold' : ($isActive ? 'font-semibold' : 'font-medium') }} truncate {{ $isActive ? 'text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)]' }}">{{ $uRoom->room_name }}</div>
+                            <div class="sidebar-room-preview text-[11px] {{ $uUnread > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]' }} truncate">
+                                {{ $uPreview }}
+                            </div>
+                        </div>
+                    </a>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="sidebar-room-time text-[10px] {{ $uUnread > 0 ? 'font-semibold text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)]' }}">{{ $uTime }}</span>
+                            <span class="sidebar-unread-badge {{ $uUnread > 0 ? 'inline-flex' : 'hidden' }} items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[var(--sl-primary-teal)] text-white dark:text-[#182425] text-[10px] font-bold leading-none">{{ $uUnreadLabel }}</span>
+                        </div>
+                        <div class="relative">
+                            <button type="button" onclick="toggleSidebarConvMenu(event, '{{ $uRoom->room_id }}')" class="p-1 rounded-md text-[var(--sl-text-secondary)] hover:text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] transition" title="Opsi percakapan" aria-label="Opsi percakapan">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>
+                            </button>
+                            <div id="sidebar-conv-menu-{{ $uRoom->room_id }}" class="sidebar-conv-menu hidden absolute right-0 top-6 w-44 rounded-lg bg-[var(--sl-conv-bg)] border border-[var(--sl-divider)] shadow-lg py-1 z-50">
+                                <button type="button" onclick="toggleSidebarArchive(event, '{{ $uRoom->room_id }}')" class="sidebar-archive-btn w-full text-left px-3 py-1.5 text-xs text-[var(--sl-text-primary)] hover:bg-[var(--sl-hover)] transition">
+                                    {{ $uArchived ? 'Keluarkan dari arsip' : 'Arsipkan percakapan' }}
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <span class="text-[10px] text-[var(--sl-text-secondary)] shrink-0">{{ $uPart->last_seen_at?->format('H:i') }}</span>
-                </a>
+                </div>
             @empty
                 <div class="p-4 text-center text-xs text-[var(--sl-text-secondary)]">
                     Room aktif: <strong class="text-[var(--sl-text-primary)]">{{ $room->room_name }}</strong>
                 </div>
             @endforelse
+
+            <div id="sidebar-archived-empty" class="hidden p-6 text-center space-y-2">
+                <div class="w-9 h-9 rounded-xl bg-[var(--sl-hover)] text-[var(--sl-text-secondary)] flex items-center justify-center mx-auto">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>
+                    </svg>
+                </div>
+                <div class="text-xs font-semibold text-[var(--sl-text-primary)]">Belum ada percakapan yang diarsipkan</div>
+                <div class="text-[11px] text-[var(--sl-text-secondary)]">Percakapan yang diarsipkan akan muncul di sini.</div>
+            </div>
         </div>
     </aside>
 
@@ -458,25 +490,134 @@
                 ? 'sfilter-pill px-2 py-0.5 rounded bg-[var(--sl-active-conv)] text-[var(--sl-primary-teal)] transition'
                 : 'sfilter-pill px-2 py-0.5 rounded text-[var(--sl-text-secondary)] hover:bg-[var(--sl-hover)] transition';
         });
+        window.updateNavActiveState?.(filter);
         filterSidebarRooms();
     }
+    window.setNavFilter = setSidebarFilter;
 
     function filterSidebarRooms() {
         const query = (document.getElementById('sidebar-search')?.value || '').toLowerCase().trim();
+        let visibleCount = 0;
         document.querySelectorAll('.sidebar-item').forEach(item => {
             const name = item.getAttribute('data-name') || '';
             const id = item.getAttribute('data-id') || '';
             const type = item.getAttribute('data-type') || 'private';
-            const unread = item.getAttribute('data-unread') === '1';
+            const archived = item.getAttribute('data-archived') === '1';
+            const unreadCount = parseInt(item.getAttribute('data-unread') || '0', 10);
 
             const matchesQuery = name.includes(query) || id.includes(query);
             let matchesFilter = true;
-            if (currentSidebarFilter === 'private') matchesFilter = (type === 'private');
-            else if (currentSidebarFilter === 'group') matchesFilter = (type === 'group');
-            else if (currentSidebarFilter === 'unread') matchesFilter = unread;
+            if (currentSidebarFilter === 'archived') {
+                matchesFilter = archived;
+            } else if (archived) {
+                matchesFilter = false;
+            } else if (currentSidebarFilter === 'private') {
+                matchesFilter = (type === 'private');
+            } else if (currentSidebarFilter === 'group') {
+                matchesFilter = (type === 'group');
+            } else if (currentSidebarFilter === 'unread') {
+                matchesFilter = unreadCount > 0;
+            }
 
-            item.style.display = (matchesQuery && matchesFilter) ? 'flex' : 'none';
+            const show = matchesQuery && matchesFilter;
+            item.style.display = show ? 'flex' : 'none';
+            if (show) visibleCount++;
         });
+
+        const archivedEmpty = document.getElementById('sidebar-archived-empty');
+        if (archivedEmpty) {
+            archivedEmpty.classList.toggle('hidden', !(currentSidebarFilter === 'archived' && visibleCount === 0));
+        }
+    }
+
+    function toggleSidebarConvMenu(event, roomId) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.querySelectorAll('.sidebar-conv-menu').forEach(menu => {
+            if (menu.id !== `sidebar-conv-menu-${roomId}`) menu.classList.add('hidden');
+        });
+        document.getElementById(`sidebar-conv-menu-${roomId}`)?.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-conv-menu').forEach(menu => menu.classList.add('hidden'));
+    });
+
+    function applySidebarConversationUpdate(data) {
+        if (!data || !data.room_id) return;
+        const item = document.querySelector(`.sidebar-item[data-room-id="${data.room_id}"]`);
+        if (!item) return;
+
+        const unreadCount = parseInt(data.unread_count ?? 0, 10);
+        const isArchived = Boolean(data.is_archived);
+        item.setAttribute('data-unread', String(unreadCount));
+        item.setAttribute('data-archived', isArchived ? '1' : '0');
+
+        const titleEl = item.querySelector('.sidebar-room-title');
+        const previewEl = item.querySelector('.sidebar-room-preview');
+        const timeEl = item.querySelector('.sidebar-room-time');
+        const badgeEl = item.querySelector('.sidebar-unread-badge');
+        const archiveBtn = item.querySelector('.sidebar-archive-btn');
+        const isActiveRoom = data.room_id === currentRoomId;
+
+        if (titleEl) {
+            titleEl.className = `sidebar-room-title text-xs ${unreadCount > 0 || isActiveRoom ? 'font-semibold' : 'font-medium'} truncate ${isActiveRoom ? 'text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-primary)]'}`;
+        }
+        if (previewEl) {
+            if (data.last_message_preview) previewEl.textContent = data.last_message_preview;
+            previewEl.className = `sidebar-room-preview text-[11px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-text-primary)]' : 'text-[var(--sl-text-secondary)]'} truncate`;
+        }
+        if (timeEl) {
+            if (data.last_message_time) timeEl.textContent = data.last_message_time;
+            timeEl.className = `sidebar-room-time text-[10px] ${unreadCount > 0 ? 'font-semibold text-[var(--sl-primary-teal)]' : 'text-[var(--sl-text-secondary)]'}`;
+        }
+        if (badgeEl) {
+            badgeEl.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+            badgeEl.classList.toggle('hidden', unreadCount <= 0);
+            badgeEl.classList.toggle('inline-flex', unreadCount > 0);
+        }
+        if (archiveBtn) {
+            archiveBtn.textContent = isArchived ? 'Keluarkan dari arsip' : 'Arsipkan percakapan';
+        }
+
+        if (data.action === 'message') {
+            const list = document.getElementById('sidebar-rooms-list');
+            if (list && list.firstElementChild !== item) {
+                list.insertBefore(item, list.firstElementChild);
+            }
+        }
+
+        filterSidebarRooms();
+    }
+
+    function toggleSidebarArchive(event, roomId) {
+        event.preventDefault();
+        event.stopPropagation();
+        const item = document.querySelector(`.sidebar-item[data-room-id="${roomId}"]`);
+        const isArchived = item?.getAttribute('data-archived') === '1';
+        const endpoint = isArchived ? `/api/rooms/${roomId}/unarchive` : `/api/rooms/${roomId}/archive`;
+
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                applySidebarConversationUpdate({
+                    room_id: roomId,
+                    unread_count: parseInt(item?.getAttribute('data-unread') || '0', 10),
+                    is_archived: Boolean(data.is_archived),
+                    action: data.is_archived ? 'archived' : 'unarchived',
+                });
+                window.slToast?.(data.is_archived ? 'Percakapan diarsipkan.' : 'Percakapan dikeluarkan dari arsip.', 'success');
+            }
+        })
+        .catch(() => window.slToast?.('Gagal memperbarui status arsip.', 'error'));
     }
 
     async function openInviteModal() {
@@ -707,7 +848,7 @@
         }
     }
 
-    const STATUS_RANK = { failed: 0, sending: 1, sent: 2, delivered: 3, read: 4 };
+    const STATUS_RANK = { failed: 0, sending: 1, queued: 2, sent: 3, delivered: 4, read: 5 };
     const unreadIncomingMessages = new Map();
     const visibleIncomingIds = new Set();
     let incomingVisibilityObserver = null;
@@ -732,6 +873,11 @@
                 return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-medium" title="Sedang mengirim pesan">
                     <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
                     <span>Mengirim...</span>
+                </span>`;
+            case 'queued':
+                return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-medium" title="Pesan tersimpan aman, menunggu penerima membuka percakapan">
+                    <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+                    <span>Menunggu penerima</span>
                 </span>`;
             case 'sent':
                 return `<span class="inline-flex items-center gap-1 text-[var(--sl-text-secondary)] font-semibold" title="Terkirim">
@@ -770,7 +916,7 @@
 
         if (!allowDowngrade) {
             if (nextStatus === 'failed') {
-                if (currentStatus === 'delivered' || currentStatus === 'read') return;
+                if (currentStatus === 'queued' || currentStatus === 'delivered' || currentStatus === 'read') return;
             } else if (STATUS_RANK[nextStatus] < STATUS_RANK[currentStatus]) {
                 return;
             }
@@ -1071,6 +1217,11 @@
         const container = document.getElementById('messages-container');
         container.scrollTop = container.scrollHeight;
 
+        const activeSidebarPreview = document.querySelector(`.sidebar-item[data-room-id="${currentRoomId}"] .sidebar-room-preview`);
+        if (activeSidebarPreview && data.text) {
+            activeSidebarPreview.textContent = data.text;
+        }
+
         if (!data._restored) {
             const expiresAt = data.ephemeralDuration > 0 ? Date.now() + (data.ephemeralDuration * 1000) : null;
             saveChatMessageToHistory({
@@ -1237,6 +1388,9 @@
             onMessageSent: (messageId) => {
                 updateMessageStatus(messageId, 'sent');
             },
+            onMessageQueued: (messageId) => {
+                updateMessageStatus(messageId, 'queued');
+            },
             onMessageAck: (messageId, ackUserId, ackedBy) => {
                 updateMessageStatus(messageId, 'delivered', { ackUserId, ackedBy });
             },
@@ -1246,6 +1400,23 @@
             onMessageFailed: (messageId) => {
                 updateMessageStatus(messageId, 'failed');
             },
+            pendingMessageSaver: async (payload) => {
+                try {
+                    const res = await fetch(`/api/rooms/${currentRoomId}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Socket-Id': window.Echo?.socketId?.() || '',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+                    return res.ok;
+                } catch (err) {
+                    return false;
+                }
+            },
             onStatusChange: (status) => {
                 const statusEl = document.getElementById('header-conn-status');
                 if (statusEl) statusEl.textContent = status.label;
@@ -1254,8 +1425,86 @@
 
         await window.peerManager.loadIceConfig();
 
+        const updateRoomPresence = (state, useBeacon = false) => {
+            const url = `/api/rooms/${currentRoomId}/presence`;
+            if (useBeacon && navigator.sendBeacon) {
+                const blob = new Blob([JSON.stringify({ state, _token: csrfToken })], { type: 'application/json' });
+                navigator.sendBeacon(url, blob);
+                return;
+            }
+            fetch(url, {
+                method: 'POST',
+                keepalive: useBeacon,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ state }),
+            }).catch(() => {});
+        };
+
+        const syncPendingMessages = async () => {
+            try {
+                const res = await fetch(`/api/rooms/${currentRoomId}/pending-messages`, {
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success || !Array.isArray(data.messages)) return;
+
+                for (const msg of data.messages) {
+                    if (document.getElementById('bubble_peer_' + msg.id)) {
+                        if (msg.receipt_status === 'pending') {
+                            sendBroadcastReceipt(msg.id, 'delivered');
+                        }
+                        continue;
+                    }
+                    let text = msg.ciphertext;
+                    if (window.peerManager && (msg.transport !== 'broadcast' || msg.encrypted)) {
+                        try {
+                            text = await window.peerManager.decryptRoomEnvelope(
+                                msg.ciphertext,
+                                msg.iv,
+                                msg.senderId,
+                                msg.id,
+                                msg.encrypted,
+                                msg.transport || 'p2p'
+                            );
+                        } catch (e) {
+                            text = '[Pesan terenkripsi — gagal mendekripsi]';
+                        }
+                    }
+                    renderIncomingMessage({
+                        id: msg.id,
+                        senderId: msg.senderId,
+                        senderName: msg.senderName,
+                        senderAvatarColor: msg.senderAvatarColor,
+                        senderAvatarIcon: msg.senderAvatarIcon,
+                        text,
+                        timestamp: msg.timestamp,
+                        ephemeralDuration: msg.ephemeralDuration || 0,
+                        replyTo: msg.replyTo || null,
+                        transport: msg.transport || 'p2p',
+                        readSent: false,
+                    });
+                    sendBroadcastReceipt(msg.id, 'delivered');
+                }
+                flushVisibleReadReceipts();
+            } catch (e) {}
+        };
+
+        filterSidebarRooms();
+        updateRoomPresence('in_conversation');
+        syncPendingMessages();
+
         if (window.Echo) {
             try {
+                if (currentUserId) {
+                    window.Echo.private(`user.${currentUserId}`)
+                        .listen('.conversation.updated', (data) => applySidebarConversationUpdate(data));
+                }
+
                 const channel = window.Echo.join(`room.${currentRoomId}`);
                 window.peerManager.signalSender = (targetUserId, signal) => {
                     fetch(`/api/rooms/${currentRoomId}/signal`, {
@@ -1327,12 +1576,22 @@
                 });
 
                 window.addEventListener('securelink:ws-state', (e) => {
-                    if (e.detail?.state === 'connected') window.peerManager.handleTransportReconnect();
+                    const st = e.detail?.state;
+                    if (st === 'connected') {
+                        window.peerManager.handleTransportReconnect();
+                        updateRoomPresence('in_conversation');
+                        syncPendingMessages();
+                    } else if (st === 'disconnected' || st === 'unavailable') {
+                        updateRoomPresence('reconnecting');
+                    }
                 });
             } catch (e) {}
         }
 
-        window.addEventListener('beforeunload', () => window.peerManager?.destroy());
+        window.addEventListener('beforeunload', () => {
+            updateRoomPresence('online', true);
+            window.peerManager?.destroy();
+        });
     });
 
     function toggleRoomLock() {

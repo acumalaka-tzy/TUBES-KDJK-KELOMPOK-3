@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Room;
+use App\Services\ConversationStateService;
 use App\Services\RoomIdGeneratorService;
 use App\Services\RoomService;
 use App\Services\UserIdentityService;
@@ -15,7 +16,8 @@ class WebViewController extends Controller
     public function __construct(
         protected UserIdentityService $identityService,
         protected RoomService $roomService,
-        protected RoomIdGeneratorService $idGenerator
+        protected RoomIdGeneratorService $idGenerator,
+        protected ConversationStateService $conversationState
     ) {}
 
     /**
@@ -54,10 +56,14 @@ class WebViewController extends Controller
             ->where('is_kicked', false)
             ->with(['room' => fn($q) => $q->withCount('activeParticipants')])
             ->latest('last_seen_at')
-            ->take(15)
+            ->take(50)
             ->get();
 
-        return view('pages.dashboard', compact('user', 'participations'));
+        $roomSummaries = $participations->mapWithKeys(function ($part) {
+            return [$part->room_id => $this->conversationState->getRoomSummaryForParticipant($part)];
+        });
+
+        return view('pages.dashboard', compact('user', 'participations', 'roomSummaries'));
     }
 
     /**
@@ -134,10 +140,14 @@ class WebViewController extends Controller
             ->where('is_kicked', false)
             ->with(['room' => fn($q) => $q->withCount('activeParticipants')])
             ->latest('last_seen_at')
-            ->take(15)
+            ->take(50)
             ->get();
 
-        return view('pages.rooms.chat', compact('user', 'room', 'participant', 'metadata', 'userRooms'));
+        $roomSummaries = $userRooms->mapWithKeys(function ($part) {
+            return [$part->room_id => $this->conversationState->getRoomSummaryForParticipant($part)];
+        });
+
+        return view('pages.rooms.chat', compact('user', 'room', 'participant', 'metadata', 'userRooms', 'roomSummaries'));
     }
 
     /**

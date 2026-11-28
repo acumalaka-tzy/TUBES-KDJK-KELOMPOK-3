@@ -41,3 +41,18 @@ Broadcast::channel('room.{roomId}', function ($user, string $roomId) {
         'avatar_icon' => $currentUser->preferences['avatar_icon'] ?? 'initial',
     ];
 });
+
+Broadcast::channel('user.{userId}', function ($user, string $userId) {
+    /** @var UserIdentityService $identityService */
+    $identityService = app(UserIdentityService::class);
+    $currentUser = $identityService->getCurrentUser(request());
+
+    if (!$currentUser || $currentUser->user_id !== $userId) {
+        return false;
+    }
+
+    return [
+        'id' => $currentUser->user_id,
+        'name' => $currentUser->display_name,
+    ];
+});
